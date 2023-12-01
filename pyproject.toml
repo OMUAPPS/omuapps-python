@@ -5,7 +5,9 @@ description = "Add your description here"
 authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" }
 ]
-dependencies = []
+dependencies = [
+    "loguru>=0.7.2",
+]
 readme = "README.md"
 requires-python = ">= 3.12"
 
@@ -15,10 +17,12 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "pipdeptree>=2.13.1",
+]
 
 [tool.rye.workspace]
-members = ["omu.py", "provider", "omuserver", "omuchat"]
+members = ["omu.py", "provider", "server", "omuchat"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
