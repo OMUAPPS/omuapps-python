@@ -1,0 +1,12 @@
+[submodule "omu.py"]
+	path = omu.py
+	url = https://github.com/OMUCHAT/omu.py
+[submodule "omuchat.py"]
+	path = omuchat.py
+	url = https://github.com/OMUCHAT/omuchat.py
+[submodule "server"]
+	path = server
+	url = https://github.com/OMUCHAT/server
+[submodule "provider"]
+	path = provider
+	url = https://github.com/OMUCHAT/provider
