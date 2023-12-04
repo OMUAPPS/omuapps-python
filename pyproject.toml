@@ -19,10 +19,11 @@ build-backend = "hatchling.build"
 managed = true
 dev-dependencies = [
     "pipdeptree>=2.13.1",
+    "ruff>=0.1.6",
 ]
 
 [tool.rye.workspace]
-members = ["omu.py", "provider", "server", "omuchat"]
+members = ["omu.py", "server", "omuchat.py", "provider"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
