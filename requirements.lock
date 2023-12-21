@@ -6,13 +6,21 @@
 #   features: []
 #   all-features: false
 
+-e file:provider
 -e file:omu.py
 -e file:omuchat.py
 -e file:.
 -e file:server
--e file:provider
+aiohttp==3.9.1
+aiosignal==1.3.1
+attrs==23.1.0
+beautifulsoup4==4.12.2
 colorama==0.4.6
+frozenlist==1.4.1
+idna==3.6
 loguru==0.7.2
-sqlitedict==2.1.0
+multidict==6.0.4
+soupsieve==2.5
 websockets==12.0
 win32-setctime==1.1.0
+yarl==1.9.4

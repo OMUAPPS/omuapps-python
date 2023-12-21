@@ -18,7 +18,6 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 dev-dependencies = [
-    "pipdeptree>=2.13.1",
     "ruff>=0.1.6",
 ]
 
