@@ -23,6 +23,7 @@ idna==3.6
 iwashi==2.1.1
 loguru==0.7.2
 multidict==6.0.4
+psutil==5.9.7
 ruff==0.1.8
 soupsieve==2.5
 win32-setctime==1.1.0
