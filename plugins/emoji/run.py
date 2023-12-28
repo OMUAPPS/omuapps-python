@@ -7,8 +7,8 @@ from typing import Dict, List, TypedDict
 from omuchat import App, Client, model
 
 APP = App(
-    name="emoji-plugin",
-    group="omu-plugins",
+    name="emoji",
+    group="omu.chat.plugins",
     version="0.1.0",
 )
 client = Client(APP)
@@ -28,7 +28,7 @@ class registry:
 
 @client.omu.registry.listen("emojis")
 async def on_emojis_update(emojis: Dict[str, Emoji]) -> None:
-    registry.emojis = emojis
+    registry.emojis = emojis or {}
 
 
 class Directories(TypedDict):
