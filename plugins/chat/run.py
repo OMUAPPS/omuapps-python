@@ -60,7 +60,9 @@ async def create_channel_tree(url: str) -> List[ChannelJson]:
     providers = await chat.providers.fetch()
     for result in results.to_list():
         for provider in providers.values():
-            if not re.match(provider.regex, result.url):
+            if provider.id == "misskey":
+                continue
+            if re.search(provider.regex, result.url) is None:
                 continue
             channels.append(
                 Channel(
