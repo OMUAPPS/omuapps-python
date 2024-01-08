@@ -5,7 +5,6 @@ import iwashi
 from omu import Address, OmuClient
 from omu.client import Client, ClientListener
 from omu.extension import Extension, define_extension_type
-from omu.extension.server.model.extension_info import ExtensionInfo
 from omu.extension.table import TableExtensionType
 from omuchat import App
 from omuchat.chat.chat_extension import (
@@ -43,7 +42,7 @@ class ChatServiceExt(Extension, ClientListener):
 
 
 ChatServiceExtType = define_extension_type(
-    ExtensionInfo.create("chat-service"),
+    "chat-service",
     lambda client: ChatServiceExt(client),
     lambda: [],
 )
