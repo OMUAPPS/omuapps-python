@@ -42,9 +42,9 @@ class Registry(SessionListener):
 
     async def attach(self, session: Session) -> None:
         if session in self._listeners:
-            return
-        session.add_listener(self)
+            raise Exception("Session already attached")
         self._listeners.add(session)
+        session.add_listener(self)
         await session.send(
             RegistryUpdateEvent, RegistryEventData(key=self._key, value=self.data)
         )
@@ -53,3 +53,4 @@ class Registry(SessionListener):
         if session not in self._listeners:
             raise Exception("Session not attached")
         self._listeners.remove(session)
+        session.remove_listener(self)
