@@ -4,12 +4,12 @@ from typing import Any, List
 
 from aiohttp import web
 from loguru import logger
-from omu.event import EVENTS, EventJson, EventType
-from omu.extension.server.model.app import App
-
 from omuserver.security import Permission
 from omuserver.server import Server
 from omuserver.session import Session, SessionListener
+
+from omu.event import EVENTS, EventJson, EventType
+from omu.extension.server.model.app import App
 
 
 class AiohttpSession(Session):
@@ -71,8 +71,9 @@ class AiohttpSession(Session):
     async def disconnect(self) -> None:
         try:
             await self.socket.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Error closing socket: {e}")
+            logger.error(e)
         for listener in self._listeners:
             await listener.on_disconnected(self)
 
