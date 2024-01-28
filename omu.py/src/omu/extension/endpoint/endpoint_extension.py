@@ -95,12 +95,12 @@ class EndpointExtension(Extension, ConnectionListener):
             decorator(func)
         return decorator
 
-    async def call[Req, ResData](
-        self, endpoint: EndpointType[Req, Any, Any, ResData], data: Req
-    ) -> Future[ResData]:
+    async def call[Req, ResData, Res](
+        self, endpoint: EndpointType[Req, Res, Any, ResData], data: Req
+    ) -> Res:
         try:
             self.call_id += 1
-            future = Future()
+            future = Future[ResData]()
             self.promises[self.call_id] = future
             json = endpoint.request_serializer.serialize(data)
             await self.client.send(
