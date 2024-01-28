@@ -6,11 +6,11 @@
 #   features: []
 #   all-features: false
 
--e file:provider
--e file:omu.py
--e file:omuchat.py
+-e file:packages/provider
+-e file:packages/omu.py
+-e file:packages/omuchat.py
 -e file:.
--e file:server
+-e file:packages/server
 aiohttp==3.9.1
 aiosignal==1.3.1
 aiosqlite==0.19.0

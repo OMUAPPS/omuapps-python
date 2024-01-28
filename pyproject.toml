@@ -24,7 +24,7 @@ dev-dependencies = [
 ]
 
 [tool.rye.workspace]
-members = ["omu.py", "server", "omuchat.py", "provider"]
+members = ["packages/*"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

@@ -10,7 +10,7 @@
                 "--token",
                 "dev-admin-token",
             ],
-            "cwd": "${workspaceFolder}/server",
+            "cwd": "${workspaceFolder}/appdata",
             "justMyCode": true
         }
     ]
