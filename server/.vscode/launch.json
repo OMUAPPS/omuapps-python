@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Python: Module",
+            "type": "python",
+            "request": "launch",
+            "module": "omuserver",
+            "args": [
+                "--debug",
+                "--token",
+                "dev-admin-token",
+            ],
+            "justMyCode": true
+        }
+    ]
+}

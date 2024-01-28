@@ -1,14 +1,10 @@
 [project]
-name = "omuchat-python"
+name = "omu"
 version = "0.1.0"
 description = "Add your description here"
-authors = [
-    { name = "am230", email = "111672334+am230@users.noreply.github.com" }
-]
+authors = [{ name = "am230", email = "111672334+am230@users.noreply.github.com" }]
 dependencies = [
     "loguru>=0.7.2",
-    "psutil>=5.9.7",
-    "aiosqlite>=0.19.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
@@ -19,12 +15,14 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "ruff>=0.1.6",
-]
-
-[tool.rye.workspace]
-members = ["omu.py", "server", "omuchat.py", "provider"]
+dev-dependencies = []
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.ruff]
+target-python = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = ["E501"]

@@ -1,0 +1,17 @@
+{
+    "configurations": [
+        {
+            "name": "Run Server",
+            "type": "python",
+            "request": "launch",
+            "module": "omuserver",
+            "args": [
+                "--debug",
+                "--token",
+                "dev-admin-token",
+            ],
+            "cwd": "${workspaceFolder}/server",
+            "justMyCode": true
+        }
+    ]
+}
