@@ -129,8 +129,6 @@ class OmuServer(Server, NetworkListener):
     async def start(self) -> None:
         self._running = True
         await self._network.start()
-        for listener in self._listeners:
-            await listener.on_start()
 
     async def shutdown(self) -> None:
         self._running = False
