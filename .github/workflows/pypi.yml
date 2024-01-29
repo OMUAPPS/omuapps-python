@@ -17,7 +17,9 @@ jobs:
         run: |
           rye sync
       - name: Build
+        # 権限を付与
         run: |
+          chmod +x ./packages-run.sh
           ./packages-run.sh rye build
       - name: Publish a Python distribution to PyPI
         # TODO: 新しいpublish方法https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
