@@ -1,5 +1,5 @@
 [project]
-name = "chatprovider"
+name = "omuchatprovider"
 version = "0.1.0"
 description = "Add your description here"
 authors = [

@@ -1,4 +1,4 @@
-from chatprovider import client
+from omuchatprovider import client
 
 
 async def main():
