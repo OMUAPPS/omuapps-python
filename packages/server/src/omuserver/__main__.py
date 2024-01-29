@@ -2,6 +2,7 @@ import asyncio
 import io
 import sys
 import tracemalloc
+from pathlib import Path
 from typing import Callable, Coroutine
 
 import click
@@ -32,7 +33,9 @@ def main(debug: bool, token: str | None):
         logger.warning("Debug mode enabled")
         tracemalloc.start()
 
-    directories = get_directories(debug=debug)
+    directories = get_directories()
+    if debug:
+        directories.plugins = (Path.cwd() / ".." / "packages" / "plugins").resolve()
     address = Address(
         host="0.0.0.0",
         port=26423,

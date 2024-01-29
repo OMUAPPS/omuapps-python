@@ -38,14 +38,8 @@ class Directories:
         return str(self)
 
 
-def get_directories(debug=False):
+def get_directories():
     cwd = pathlib.Path.cwd()
-    if debug:
-        return Directories(
-            data=cwd / "data",
-            assets=cwd / "assets",
-            plugins=cwd / ".." / "plugins",
-        )
     return Directories(
         data=cwd / "data",
         assets=cwd / "assets",
