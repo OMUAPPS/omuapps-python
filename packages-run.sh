@@ -1,4 +1,3 @@
-# export PATH="$PATH:$HOME/.rye/shims/"
 directory="packages/"
 
 for subdir in "$directory"/*; do
