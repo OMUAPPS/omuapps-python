@@ -1,3 +1,3 @@
-from chatprovider.__main__ import client
+from omuchatprovider.__main__ import client
 
 client.run()

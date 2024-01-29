@@ -7,8 +7,6 @@ from typing import Dict, List
 
 import aiohttp
 from aiohttp import web
-from chatprovider.helper import get_session
-
 from omuchat import ImageContent, Role
 from omuchat.client import Client
 from omuchat.model import (
@@ -20,6 +18,8 @@ from omuchat.model import (
     RootContent,
     TextContent,
 )
+
+from omuchatprovider.helper import get_session
 
 from ...provider import ProviderService
 from ...tasks import Tasks

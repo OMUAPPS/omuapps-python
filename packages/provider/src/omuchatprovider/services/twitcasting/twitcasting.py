@@ -9,12 +9,13 @@ from typing import List
 
 import aiohttp
 from aiohttp import web
-from chatprovider.helper import HTTP_REGEX, get_session
 from omuchat.client import Client
 from omuchat.model import Channel, Message, Provider, Room
 from omuchat.model.author import Author
 from omuchat.model.content import TextContent
 from omuchat.model.gift import Gift
+
+from omuchatprovider.helper import HTTP_REGEX, get_session
 
 from ...provider import ProviderService
 from ...tasks import Tasks
