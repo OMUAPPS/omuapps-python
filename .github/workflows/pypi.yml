@@ -1,0 +1,28 @@
+name: PyPI
+
+on: workflow_dispatch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.x"
+      - name: Install rye
+        uses: eifinger/setup-rye@v1
+      - name: Install dependencies
+        run: |
+          rye sync
+          ./packages-run.sh rye build
+      - name: Build
+        run: |
+          python3 -m build
+      - name: Publish a Python distribution to PyPI
+        # TODO: 新しいpublish方法https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
