@@ -17,13 +17,8 @@ jobs:
         run: |
           rye sync
       - name: Build
-        # 権限を付与
         run: |
-          chmod +x ./packages-run.sh
-          ./packages-run.sh rye build
+          rye build --all
+          rm -rf ./dist/omuchat*python*
       - name: Publish a Python distribution to PyPI
-        # TODO: 新しいpublish方法https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        run: rye publish -y --username __token__ --password ${{ secrets.PYPI_API_TOKEN }}
