@@ -21,4 +21,5 @@ jobs:
           rye build --all
           rm -rf ./dist/omuchat*python*
       - name: Publish a Python distribution to PyPI
-        run: rye publish -y --username __token__ --token ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          rye publish --username __token__ --token ${{ secrets.PYPI_API_TOKEN }} -y
