@@ -1,6 +1,6 @@
 from typing import List, NotRequired, TypedDict
 
-from omu.helper import optional_map
+from omu.helper import map_optional
 from omu.interface import Keyable, Model
 
 from .role import Role, RoleJson
@@ -53,7 +53,7 @@ class Author(Keyable, Model[AuthorJson]):
             name=json["name"],
             screen_id=json.get("screen_id", None),
             avatar_url=json.get("avatar_url", None),
-            roles=optional_map(
+            roles=map_optional(
                 json.get("roles"),
                 lambda roles: list(map(Role.from_json, roles)),
                 [],

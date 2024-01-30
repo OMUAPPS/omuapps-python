@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Dict, List, TypedDict
 
 import bs4
-
+from omu.helper import map_optional
 from omuchat import Paid
 from omuchat.client import Client
 from omuchat.model import (
@@ -316,7 +316,7 @@ class YoutubeRoomService:
         elif "liveChatPaidMessageRenderer" in item:
             message = item["liveChatPaidMessageRenderer"]
             author = self._parse_author(message)
-            content = self._parse_message(message["message"])
+            content = map_optional(message.get("message"), self._parse_message)
             paid = self._parse_paid(message)
             created_at = self._parse_created_at(message)
             await self.client.authors.add(author)

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import List, NotRequired, TypedDict
 
+from omu.helper import map_optional
 from omu.interface import Keyable, Model
 
 from .content import ContentComponent, ContentJson, ImageContent, TextContent
@@ -43,15 +44,6 @@ class Message(Keyable, Model[MessageJson]):
 
     @classmethod
     def from_json(cls, json: MessageJson) -> "Message":
-        content = None
-        if json.get("content", None) and json["content"]:
-            content = ContentComponent.from_json(json["content"])
-        paid = None
-        if json.get("paid", None) and json["paid"]:
-            paid = Paid.from_json(json["paid"])
-        gifts = []
-        if json.get("gifts", None) and json["gifts"]:
-            gifts = [Gift.from_json(gift) for gift in json["gifts"]]
         created_at = None
         if json.get("created_at", None) and json["created_at"]:
             created_at = datetime.fromisoformat(json["created_at"])
@@ -60,9 +52,13 @@ class Message(Keyable, Model[MessageJson]):
             room_id=json["room_id"],
             id=json["id"],
             author_id=json.get("author_id"),
-            content=content,
-            paid=paid,
-            gifts=gifts,
+            content=map_optional(json.get("content"), ContentComponent.from_json),
+            paid=map_optional(json.get("paid"), Paid.from_json),
+            gifts=map_optional(
+                json.get("gifts"),
+                lambda gifts: list(map(Gift.from_json, gifts)),
+                [],
+            ),
             created_at=created_at,
         )
 
