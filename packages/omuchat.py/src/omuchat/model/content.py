@@ -13,7 +13,7 @@ class ContentComponentJson[T: str](TypedDict):
     siblings: NotRequired[List[ContentJson]] | None
 
 
-class ContentComponent(Model[ContentComponentJson]):
+class ContentComponent[T: ContentComponentJson](Model[T]):
     def __init__(
         self, type: str, siblings: List[ContentComponent] | None = None
     ) -> None:
@@ -155,3 +155,41 @@ class ImageContent(ContentComponent, Model[ImageContentJson]):
 
     def __str__(self) -> str:
         return f"[{self.name}]({self.url})"
+
+
+class SystemContentJson(ContentComponentJson[Literal["system"]]):
+    text: str
+    color: NotRequired[str] | None
+
+
+class SystemContent(ContentComponent, Model[SystemContentJson]):
+    def __init__(
+        self,
+        text: str,
+        color: str | None = None,
+        siblings: List[ContentComponent] | None = None,
+    ) -> None:
+        super().__init__(type="system", siblings=siblings)
+        self.text = text
+        self.color = color
+
+    def to_json(self) -> SystemContentJson:
+        return {
+            "type": "system",
+            "text": self.text,
+            "color": self.color,
+            "siblings": [sibling.to_json() for sibling in self.siblings]
+            if self.siblings
+            else [],
+        }
+
+    @classmethod
+    def of(cls, text: str, color: str | None = None) -> SystemContent:
+        return cls(text=text, color=color)
+
+    @classmethod
+    def from_json(cls, json: SystemContentJson) -> SystemContent:
+        return cls(text=json["text"], color=json.get("color"))
+
+    def __str__(self) -> str:
+        return self.text
