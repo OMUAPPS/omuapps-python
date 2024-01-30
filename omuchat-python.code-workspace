@@ -9,10 +9,10 @@
             "path": "appdata"
         },
         {
-            "path": "packages/omu.py"
+            "path": "packages/omu"
         },
         {
-            "path": "packages/omuchat.py"
+            "path": "packages/chat"
         },
         {
             "path": "packages/plugins"

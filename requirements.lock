@@ -6,8 +6,8 @@
 #   features: []
 #   all-features: false
 
--e file:packages/omu.py
--e file:packages/omuchat.py
+-e file:packages/omu
+-e file:packages/chat
 -e file:.
 -e file:packages/provider
 -e file:packages/server

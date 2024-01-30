@@ -1,16 +1,19 @@
-from typing import List
+from __future__ import annotations
+
+from typing import List, TypedDict
 
 from omu.client import Client, ClientListener
 from omu.extension import Extension, define_extension_type
 from omu.extension.endpoint.endpoint import SerializeEndpointType
 from omu.extension.table import TableExtensionType
 from omu.extension.table.table import ModelTableType
-from omu.interface import Serializer
-from omuchat.model.author import Author
-from omuchat.model.channel import Channel, ChannelJson
-from omuchat.model.message import Message
-from omuchat.model.provider import Provider, ProviderJson
-from omuchat.model.room import Room, RoomJson
+from omu.interface import Model, Serializer
+
+from omuchat.model.author import Author, AuthorJson
+from omuchat.model.channel import Channel
+from omuchat.model.message import Message, MessageJson
+from omuchat.model.provider import Provider
+from omuchat.model.room import Room
 
 ChatExtensionType = define_extension_type(
     "chat", lambda client: ChatExtension(client), lambda: []
@@ -46,17 +49,17 @@ AuthorsTableKey = ModelTableType.of_extension(
 )
 AuthorsTableKey.info.use_database = True
 AuthorsTableKey.info.cache_size = 1000
-ChannelsTableKey = ModelTableType[Channel, ChannelJson].of_extension(
+ChannelsTableKey = ModelTableType.of_extension(
     ChatExtensionType,
     "channels",
     Channel,
 )
-ProviderTableKey = ModelTableType[Provider, ProviderJson].of_extension(
+ProviderTableKey = ModelTableType.of_extension(
     ChatExtensionType,
     "providers",
     Provider,
 )
-RoomTableKey = ModelTableType[Room, RoomJson].of_extension(
+RoomTableKey = ModelTableType.of_extension(
     ChatExtensionType,
     "rooms",
     Room,
@@ -66,4 +69,34 @@ CreateChannelTreeEndpoint = SerializeEndpointType[str, List[Channel]].of_extensi
     "create_channel_tree",
     Serializer.noop(),
     Serializer.array(Serializer.model(Channel)),
+)
+
+
+MessageEventDataJson = TypedDict(
+    "MessageEventDataJson", {"message": MessageJson, "author": AuthorJson}
+)
+
+
+class MessageEventData(
+    Model[MessageEventDataJson],
+):
+    message: Message
+    author: Author
+
+    def to_json(self) -> MessageEventDataJson:
+        return {"message": self.message.to_json(), "author": self.author.to_json()}
+
+    @classmethod
+    def from_json(cls, json):
+        return cls(
+            message=Message.from_json(json["message"]),
+            author=Author.from_json(json["author"]),
+        )
+
+
+MessageEvent = SerializeEndpointType[MessageEventData, str].of_extension(
+    ChatExtensionType,
+    "message",
+    Serializer.model(MessageEventData),
+    Serializer.noop(),
 )
