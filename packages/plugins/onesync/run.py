@@ -4,7 +4,7 @@ import asyncio
 from typing import Dict, List, Set, TypedDict
 
 from aiohttp import web
-
+from loguru import logger
 from omuchat import App, Client, events, model
 
 APP = App(
@@ -170,7 +170,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
             if msg.type == web.WSMsgType.TEXT:
                 pass
             elif msg.type == web.WSMsgType.ERROR:
-                print("ws connection closed with exception %s" % ws.exception())
+                logger.error("ws connection closed with exception %s", ws.exception())
     finally:
         sessions.remove(ws)
     return ws
