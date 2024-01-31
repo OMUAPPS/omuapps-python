@@ -347,6 +347,11 @@ class YoutubeRoomService:
                     created_at=created_at,
                 )
             )
+        elif "liveChatPlaceholderItemRenderer" in item:
+            """
+            item["liveChatPlaceholderItemRenderer"] = {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
+            """
+            pass
         else:
             raise RuntimeError(f"Unknown message type: {list(item.keys())} {item=}")
 
