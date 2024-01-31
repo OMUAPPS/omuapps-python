@@ -1,9 +1,9 @@
-from .event import EventJson, EventType, JsonEventType, SerializeEventType
+from .event import EventData, EventType, JsonEventType, SerializeEventType
 from .event_registry import EventRegistry, EventRegistryImpl
 from .events import EVENTS
 
 __all__ = [
-    "EventJson",
+    "EventData",
     "EventType",
     "EventRegistry",
     "EventRegistryImpl",

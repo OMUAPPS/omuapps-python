@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import struct
 from asyncio import Future
 from typing import Any, Awaitable, Callable, Dict, Tuple, TypedDict
 
@@ -11,6 +12,7 @@ from omu.extension.endpoint.model.endpoint_info import EndpointInfo
 from omu.extension.extension import Extension, define_extension_type
 from omu.extension.table.table import ModelTableType
 from omu.interface import Serializer
+from omu.interface.serializable import Serializable
 
 EndpointExtensionType = define_extension_type(
     "endpoint",
@@ -72,7 +74,7 @@ class EndpointExtension(Extension, ConnectionListener):
             await self.client.send(EndpointRegisterEvent, endpoint.info)
 
     def register[Req, Res](
-        self, type: EndpointType[Req, Res, Any, Any], func: Coro[[Req], Res]
+        self, type: EndpointType[Req, Res], func: Coro[[Req], Res]
     ) -> None:
         if type.info.key() in self.endpoints:
             raise Exception(f"Endpoint for key {type.info.key()} already registered")
@@ -95,12 +97,10 @@ class EndpointExtension(Extension, ConnectionListener):
             decorator(func)
         return decorator
 
-    async def call[Req, ResData, Res](
-        self, endpoint: EndpointType[Req, Res, Any, ResData], data: Req
-    ) -> Res:
+    async def call[Req, Res](self, endpoint: EndpointType[Req, Res], data: Req) -> Res:
         try:
             self.call_id += 1
-            future = Future[ResData]()
+            future = Future[bytes]()
             self.promises[self.call_id] = future
             json = endpoint.request_serializer.serialize(data)
             await self.client.send(
@@ -118,30 +118,56 @@ class EndpointReq(TypedDict):
     id: int
 
 
-class EndpointDataReq(TypedDict):
+class EndpointDataReq(EndpointReq):
     type: str
     id: int
-    data: Any
+    data: bytes
 
 
-class EndpointError(TypedDict):
+class EndpointError(EndpointReq):
     type: str
     id: int
     error: str
 
 
-EndpointRegisterEvent = SerializeEventType.of_extension(
-    EndpointExtensionType, "register", Serializer.model(EndpointInfo)
+EndpointRegisterEvent = JsonEventType.of_extension(
+    EndpointExtensionType,
+    "register",
+    Serializer.model(EndpointInfo),
 )
 
 
-EndpointCallEvent = JsonEventType[EndpointDataReq].of_extension(
+class CallSerializer(Serializable[EndpointDataReq, bytes]):
+    def serialize(self, data: EndpointDataReq) -> bytes:
+        # type_length, type, id_length, id, data
+        type_buff = data["type"].encode("utf-8")
+        type_length = struct.pack("B", len(type_buff))
+        id_buff = struct.pack("I", data["id"])
+        id_length = struct.pack("B", len(id_buff))
+        return type_length + type_buff + id_length + id_buff + data["data"]
+
+    def deserialize(self, data: bytes) -> EndpointDataReq:
+        type_length = struct.unpack("B", data[:1])[0]
+        type_buff = data[1 : type_length + 1]
+        type = type_buff.decode("utf-8")
+        id_length = struct.unpack("B", data[type_length + 1 : type_length + 2])[0]
+        id_buff = data[type_length + 2 : type_length + 2 + id_length]
+        id = struct.unpack("I", id_buff)[0]
+        data = data[type_length + 2 + id_length :]
+        return EndpointDataReq(type=type, id=id, data=data)
+
+
+CALL_SERIALIZER = CallSerializer()
+
+EndpointCallEvent = SerializeEventType[EndpointDataReq].of_extension(
     EndpointExtensionType,
     "call",
+    CALL_SERIALIZER,
 )
-EndpointReceiveEvent = JsonEventType[EndpointDataReq].of_extension(
+EndpointReceiveEvent = SerializeEventType[EndpointDataReq].of_extension(
     EndpointExtensionType,
     "receive",
+    CALL_SERIALIZER,
 )
 EndpointErrorEvent = JsonEventType[EndpointError].of_extension(
     EndpointExtensionType,

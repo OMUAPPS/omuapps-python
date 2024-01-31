@@ -8,7 +8,7 @@ from omuserver.network.network import NetworkListener
 from omuserver.session.session import Session, SessionListener
 
 if TYPE_CHECKING:
-    from omu.event import EventJson, EventType
+    from omu.event import EventData, EventType
 
     from omuserver.server import Server
 
@@ -16,10 +16,10 @@ if TYPE_CHECKING:
 type EventCallback[T] = Callable[[Session, T], Coroutine[Any, Any, None]]
 
 
-class EventEntry[T, D]:
+class EventEntry[T]:
     def __init__(
         self,
-        event_type: EventType[T, D],
+        event_type: EventType[T],
         listeners: List[EventCallback[T]],
     ):
         self.event_type = event_type
@@ -35,12 +35,12 @@ class EventRegistry(NetworkListener, SessionListener):
     async def on_connected(self, session: Session) -> None:
         session.add_listener(self)
 
-    async def on_event(self, session: Session, event_json: EventJson) -> None:
-        event = self._events.get(event_json.type)
+    async def on_event(self, session: Session, event_data: EventData) -> None:
+        event = self._events.get(event_data.type)
         if not event:
-            logger.warning(f"Received unknown event type {event_json.type}")
+            logger.warning(f"Received unknown event type {event_data.type}")
             return
-        data = event.event_type.serializer.deserialize(event_json.data)
+        data = event.event_type.serializer.deserialize(event_data.data)
         for listener in event.listeners:
             await listener(session, data)
 
@@ -52,7 +52,7 @@ class EventRegistry(NetworkListener, SessionListener):
 
     def add_listener[T](
         self,
-        event_type: EventType[T, Any],
+        event_type: EventType[T],
         listener: EventCallback[T] | None = None,
     ) -> Callable[[EventCallback[T]], None]:
         if not self._events.get(event_type.type):

@@ -3,14 +3,13 @@ from __future__ import annotations
 import abc
 from typing import Any
 
-from omu.connection.address import Address
 from omu.extension.endpoint.model.endpoint_info import EndpointInfo
 from omu.extension.extension import ExtensionType
 from omu.extension.server.model.app import App
 from omu.interface import Serializable, Serializer
 
 
-class EndpointType[Req, Res, ReqData, ResData](abc.ABC):
+class EndpointType[Req, Res](abc.ABC):
     @property
     @abc.abstractmethod
     def info(self) -> EndpointInfo:
@@ -18,16 +17,16 @@ class EndpointType[Req, Res, ReqData, ResData](abc.ABC):
 
     @property
     @abc.abstractmethod
-    def request_serializer(self) -> Serializable[Req, ReqData]:
+    def request_serializer(self) -> Serializable[Req, bytes]:
         ...
 
     @property
     @abc.abstractmethod
-    def response_serializer(self) -> Serializable[Res, ResData]:
+    def response_serializer(self) -> Serializable[Res, bytes]:
         ...
 
 
-class SerializeEndpointType[Req, Res](EndpointType[Req, Res, Any, Any]):
+class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
     def __init__(
         self,
         info: EndpointInfo,
@@ -86,8 +85,8 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
     ):
         super().__init__(
             info,
-            request_serializer=Serializer.noop(),
-            response_serializer=Serializer.noop(),
+            request_serializer=Serializer.json(),
+            response_serializer=Serializer.json(),
         )
 
     @classmethod
@@ -109,16 +108,3 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
         return cls(
             info=EndpointInfo(extension.key, name),
         )
-
-
-class Endpoint(abc.ABC):
-    @property
-    @abc.abstractmethod
-    def address(self) -> Address:
-        ...
-
-    @abc.abstractmethod
-    async def execute[Req, Res](
-        self, type: EndpointType[Req, Res, Any, Any], data: Req
-    ) -> Res:
-        ...

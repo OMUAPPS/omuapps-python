@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
 import struct
-from typing import Any, List
+from typing import List
 
 from aiohttp import web
 from loguru import logger
-from omu.event import EVENTS, EventJson, EventType
+from omu.event import EVENTS, EventData, EventType
 from omu.extension.server.model.app import App
 
 from omuserver.security import Permission
@@ -36,7 +35,7 @@ class AiohttpSession(Session):
         return self.permissions
 
     @classmethod
-    async def _receive(cls, socket: web.WebSocketResponse) -> EventJson[Any]:
+    async def _receive(cls, socket: web.WebSocketResponse) -> EventData:
         msg = await socket.receive()
         match msg.type:
             case web.WSMsgType.CLOSE:
@@ -50,14 +49,13 @@ class AiohttpSession(Session):
         if msg.data is None:
             raise RuntimeError("Received empty message")
         if msg.type == web.WSMsgType.TEXT:
-            return EventJson.from_json(msg.json())
+            raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
             type_length = struct.unpack("B", msg.data[:1])[0]
             type_buff = msg.data[1 : type_length + 1]
-            data_buff = msg.data[type_length + 1 :]
             type = type_buff.decode("utf-8")
-            data = json.loads(data_buff.decode("utf-8"))
-            return EventJson(type, data)
+            data = msg.data[type_length + 1 :]
+            return EventData(type, data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 
@@ -95,11 +93,11 @@ class AiohttpSession(Session):
         for listener in self._listeners:
             await listener.on_disconnected(self)
 
-    async def send[T](self, type: EventType[Any, T], data: T) -> None:
+    async def send[T](self, type: EventType[T], data: T) -> None:
         if self.closed:
             raise ValueError("Socket is closed")
         type_buff = type.type.encode("utf-8")
-        data_buff = json.dumps(type.serializer.serialize(data)).encode("utf-8")
+        data_buff = type.serializer.serialize(data)
         type_length = struct.pack("B", len(type_buff))
         await self.socket.send_bytes(type_length + type_buff + data_buff)
 

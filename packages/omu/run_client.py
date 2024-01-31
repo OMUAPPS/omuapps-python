@@ -1,5 +1,3 @@
-import asyncio
-
 from omu.client import OmuClient
 from omu.connection import Address, ConnectionListener
 from omu.event import EVENTS
@@ -40,6 +38,4 @@ async def on_ready(_) -> None:
 
 
 if __name__ == "__main__":
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(client.start())
-    loop.run_forever()
+    client.run()

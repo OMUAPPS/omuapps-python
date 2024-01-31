@@ -1,6 +1,6 @@
 from typing import Dict
 
-from omu.event.event import JsonEventType, SerializeEventType
+from omu.event.event import JsonEventType
 from omu.extension.server.model.app import App
 from omu.interface import Serializer
 from omu.interface.model import Model
@@ -40,12 +40,12 @@ class DisconnectEvent(Model):
 
 
 class EVENTS:
-    Connect = SerializeEventType(
+    Connect = JsonEventType(
         "",
         "connect",
         Serializer.model(ConnectEvent),
     )
-    Disconnect = SerializeEventType(
+    Disconnect = JsonEventType(
         "",
         "disconnect",
         Serializer.model(DisconnectEvent),

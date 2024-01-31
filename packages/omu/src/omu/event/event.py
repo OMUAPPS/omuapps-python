@@ -11,21 +11,13 @@ if TYPE_CHECKING:
     from omu.interface import Serializable
 
 
-class EventJson[T]:
-    def __init__(self, type: str, data: T):
+class EventData:
+    def __init__(self, type: str, data: bytes):
         self.type = type
         self.data = data
 
     @classmethod
-    def from_json(cls, json: dict) -> EventJson[T]:
-        if "type" not in json:
-            raise ValueError("Missing type field in event json")
-        if "data" not in json:
-            raise ValueError("Missing data field in event json")
-        return cls(**json)
-
-    @classmethod
-    def from_json_as[_T, _D](cls, event: EventType[_T, _D], data: Any) -> _T:
+    def from_json_as[T](cls, event: EventType[T], data: Any) -> T:
         if "type" not in data:
             raise ValueError("Missing type field in event json")
         if data["type"] != event.type:
@@ -41,7 +33,7 @@ class EventJson[T]:
         return f"{self.type}:{self.data}"
 
 
-class EventType[T, D](abc.ABC):
+class EventType[T](abc.ABC):
     @property
     @abc.abstractmethod
     def type(self) -> str:
@@ -49,7 +41,7 @@ class EventType[T, D](abc.ABC):
 
     @property
     @abc.abstractmethod
-    def serializer(self) -> Serializable[T, D]:
+    def serializer(self) -> Serializable[T, bytes]:
         ...
 
     def __str__(self) -> str:
@@ -64,17 +56,23 @@ type Jsonable = (
 )
 
 
-class JsonEventType[T: Jsonable](EventType[T, T]):
-    def __init__(self, owner: str, name: str, serializer: Serializable[T, T]):
+class JsonEventType[T](EventType[T]):
+    def __init__(
+        self, owner: str, name: str, serializer: Serializable[T, Any] | None = None
+    ):
         self._type = f"{owner}:{name}"
-        self._serializer = serializer
+        self._serializer = (
+            Serializer.noop()
+            .pipe(serializer or Serializer.noop())
+            .pipe(Serializer.json())
+        )
 
     @property
     def type(self) -> str:
         return self._type
 
     @property
-    def serializer(self) -> Serializable[T, T]:
+    def serializer(self) -> Serializable[T, bytes]:
         return self._serializer
 
     @classmethod
@@ -86,16 +84,21 @@ class JsonEventType[T: Jsonable](EventType[T, T]):
         )
 
     @classmethod
-    def of_extension(cls, extension: ExtensionType, name: str) -> JsonEventType[T]:
+    def of_extension(
+        cls,
+        extension: ExtensionType,
+        name: str,
+        serializer: Serializable[T, Any] | None = None,
+    ) -> JsonEventType[T]:
         return cls(
             owner=extension.key,
             name=name,
-            serializer=Serializer.noop(),
+            serializer=serializer,
         )
 
 
-class SerializeEventType[T, D](EventType[T, D]):
-    def __init__(self, owner: str, name: str, serializer: Serializable[T, D]):
+class SerializeEventType[T](EventType[T]):
+    def __init__(self, owner: str, name: str, serializer: Serializable[T, bytes]):
         self._type = f"{owner}:{name}"
         self._serializer = serializer
 
@@ -104,13 +107,13 @@ class SerializeEventType[T, D](EventType[T, D]):
         return self._type
 
     @property
-    def serializer(self) -> Serializable[T, D]:
+    def serializer(self) -> Serializable[T, bytes]:
         return self._serializer
 
     @classmethod
     def of(
-        cls, app: App, name: str, serializer: Serializable[T, D]
-    ) -> SerializeEventType[T, D]:
+        cls, app: App, name: str, serializer: Serializable[T, bytes]
+    ) -> SerializeEventType[T]:
         return cls(
             owner=app.key(),
             name=name,
@@ -119,8 +122,8 @@ class SerializeEventType[T, D](EventType[T, D]):
 
     @classmethod
     def of_extension(
-        cls, extension: ExtensionType, name: str, serializer: Serializable[T, D]
-    ) -> SerializeEventType[T, D]:
+        cls, extension: ExtensionType, name: str, serializer: Serializable[T, bytes]
+    ) -> SerializeEventType[T]:
         return cls(
             owner=extension.key,
             name=name,

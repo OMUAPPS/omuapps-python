@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, List
 
 from loguru import logger
 
@@ -113,7 +113,7 @@ class OmuClient(Client, ConnectionListener):
             return
         logger.warning(f"Disconnected from {self._connection.address}")
 
-    async def send[T](self, event: EventType[T, Any], data: T) -> None:
+    async def send[T](self, event: EventType[T], data: T) -> None:
         await self._connection.send(event, data)
 
     def run(self, *, token: str | None = None, reconnect: bool = True) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import json
 from typing import TYPE_CHECKING, Callable, Protocol
 
 if TYPE_CHECKING:
@@ -38,76 +39,97 @@ class Serializer[T, D](Serializable[T, D]):
         return self._deserialize(item)
 
     @classmethod
-    def noop(cls) -> Serializable[T, T]:
+    def noop(cls) -> Serializer[T, T]:
         return NoopSerializer()
 
     @classmethod
-    def model[_T, _D](cls, model: type[Jsonable[_T, _D]]) -> Serializable[_T, _D]:
+    def model[_T, _D](cls, model: type[Jsonable[_T, _D]]) -> Serializer[_T, _D]:
         return ModelSerializer(model)
 
     @classmethod
-    def array[_T, _D](
-        cls, serializer: Serializable[_T, _D]
-    ) -> Serializable[list[_T], list[_D]]:
-        return ArraySerializer(serializer)
+    def json(cls) -> Serializer[T, bytes]:
+        return JsonSerializer()
 
-    @classmethod
-    def map[_T, _D](
-        cls, serializer: Serializable[_T, _D]
-    ) -> Serializable[dict[str, _T], dict[str, _D]]:
-        return MapSerializer(serializer)
+    def array(self) -> Serializer[list[T], list[D]]:
+        return ArraySerializer(self)
+
+    def map(self) -> Serializer[dict[str, T], dict[str, D]]:
+        return MapSerializer(self)
+
+    def pipe[E](self, other: Serializable[D, E]) -> Serializer[T, E]:
+        return PipeSerializer(self, other)
 
 
-class NoopSerializer[T](Serializable[T, T]):
-    def serialize(self, item: T) -> T:
-        return item
-
-    def deserialize(self, item: T) -> T:
-        return item
+class NoopSerializer[T](Serializer[T, T]):
+    def __init__(self):
+        super().__init__(lambda item: item, lambda item: item)
 
     def __repr__(self) -> str:
         return "NoopSerializer()"
 
 
-class ModelSerializer[M: Jsonable, D](Serializable[M, D]):
+class ModelSerializer[M: Jsonable, D](Serializer[M, D]):
     def __init__(self, model: type[Jsonable[M, D]]):
         self._model = model
-
-    def serialize(self, item: M) -> D:
-        return item.to_json()
-
-    def deserialize(self, item: D) -> M:
-        return self._model.from_json(item)
+        super().__init__(
+            lambda item: item.to_json(), lambda item: model.from_json(item)
+        )
 
     def __repr__(self) -> str:
         return f"ModelSerializer({self._model})"
 
 
-class ArraySerializer[_T, _D](Serializable[list[_T], list[_D]]):
-    def __init__(self, serializer: Serializable[_T, _D]):
+class JsonSerializer[T](Serializer[T, bytes]):
+    def __init__(self):
+        super().__init__(
+            lambda item: json.dumps(item).encode("utf-8"),
+            lambda item: json.loads(item.decode("utf-8")),
+        )
+
+    def __repr__(self) -> str:
+        return "JsonSerializer()"
+
+
+class ArraySerializer[T, D](Serializer[list[T], list[D]]):
+    def __init__(self, serializer: Serializable[T, D]):
         self._serializer = serializer
-
-    def serialize(self, items: list[_T]) -> list[_D]:
-        return [self._serializer.serialize(item) for item in items]
-
-    def deserialize(self, items: list[_D]) -> list[_T]:
-        return [self._serializer.deserialize(item) for item in items]
+        super().__init__(
+            lambda items: [serializer.serialize(item) for item in items],
+            lambda items: [serializer.deserialize(item) for item in items],
+        )
 
     def __repr__(self) -> str:
         return f"ArraySerializer({self._serializer})"
 
 
-class MapSerializer[_T, _D](Serializable[dict[str, _T], dict[str, _D]]):
-    def __init__(self, serializer: Serializable[_T, _D]):
+class MapSerializer[T, D](Serializer[dict[str, T], dict[str, D]]):
+    def __init__(self, serializer: Serializable[T, D]):
         self._serializer = serializer
+        super().__init__(
+            self._serialize,
+            self._deserialize,
+        )
 
-    def serialize(self, items: dict[str, _T]) -> dict[str, _D]:
+    def _serialize(self, items: dict[str, T]) -> dict[str, D]:
         return {key: self._serializer.serialize(value) for key, value in items.items()}
 
-    def deserialize(self, items: dict[str, _D]) -> dict[str, _T]:
+    def _deserialize(self, items: dict[str, D]) -> dict[str, T]:
         return {
             key: self._serializer.deserialize(value) for key, value in items.items()
         }
 
     def __repr__(self) -> str:
         return f"MapSerializer({self._serializer})"
+
+
+class PipeSerializer[T, D, E](Serializer[T, E]):
+    def __init__(self, a: Serializable[T, D], b: Serializable[D, E]):
+        self._a = a
+        self._b = b
+        super().__init__(
+            lambda item: b.serialize(a.serialize(item)),
+            lambda item: a.deserialize(b.deserialize(item)),
+        )
+
+    def __repr__(self) -> str:
+        return f"PipeSerializer({self._a}, {self._b})"

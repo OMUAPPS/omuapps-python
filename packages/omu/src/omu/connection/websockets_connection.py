@@ -1,14 +1,13 @@
 import asyncio
-import json
 import struct
-from typing import Any, List
+from typing import List
 
 import aiohttp
 from aiohttp import web
 
 from omu.client import Client
 from omu.connection import Address, Connection, ConnectionListener
-from omu.event import EVENTS, EventJson
+from omu.event import EVENTS, EventData
 from omu.event.event import EventType
 from omu.event.events import ConnectEvent
 
@@ -67,7 +66,7 @@ class WebsocketsConnection(Connection):
         self._socket = await self._session.ws_connect(self._ws_endpoint)
         self._connected = True
 
-    async def _receive(self, socket: aiohttp.ClientWebSocketResponse) -> EventJson[Any]:
+    async def _receive(self, socket: aiohttp.ClientWebSocketResponse) -> EventData:
         msg = await socket.receive()
         match msg.type:
             case web.WSMsgType.CLOSE:
@@ -81,14 +80,14 @@ class WebsocketsConnection(Connection):
         if msg.data is None:
             raise RuntimeError("Received empty message")
         if msg.type == web.WSMsgType.TEXT:
-            return EventJson.from_json(msg.json())
+            # return EventJson.from_json(msg.json())
+            raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
             type_length = struct.unpack("B", msg.data[:1])[0]
             type_buff = msg.data[1 : type_length + 1]
-            data_buff = msg.data[type_length + 1 :]
             type = type_buff.decode("utf-8")
-            data = json.loads(data_buff.decode("utf-8"))
-            return EventJson(type, data)
+            data = msg.data[type_length + 1 :]
+            return EventData(type, data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 
@@ -100,9 +99,7 @@ class WebsocketsConnection(Connection):
         finally:
             await self.disconnect()
 
-    async def _dispatch(self, event: EventJson) -> None:
-        if event.type == EVENTS.Token.type:
-            self._token = event.data
+    async def _dispatch(self, event: EventData) -> None:
         for listener in self._listeners:
             await listener.on_event(event)
 
@@ -121,11 +118,11 @@ class WebsocketsConnection(Connection):
             await listener.on_disconnected()
             await listener.on_status_changed("disconnected")
 
-    async def send[T](self, event: EventType[T, Any], data: T) -> None:
+    async def send[T](self, event: EventType[T], data: T) -> None:
         if not self._socket or self._socket.closed or not self._connected:
             raise RuntimeError("Not connected")
         type_buff = event.type.encode("utf-8")
-        data_buff = json.dumps(event.serializer.serialize(data)).encode("utf-8")
+        data_buff = event.serializer.serialize(data)
         type_length = struct.pack("B", len(type_buff))
         await self._socket.send_bytes(type_length + type_buff + data_buff)
 

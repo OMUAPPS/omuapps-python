@@ -2,7 +2,7 @@ from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, TypedDi
 
 from omu.client.client import Client
 from omu.connection import ConnectionListener
-from omu.event.event import JsonEventType, SerializeEventType
+from omu.event.event import JsonEventType
 from omu.extension.endpoint.endpoint import JsonEndpointType
 from omu.extension.extension import Extension, define_extension_type
 from omu.interface import Keyable, Serializer
@@ -79,7 +79,7 @@ class TableKeysEventData(TypedDict):
     items: List[str]
 
 
-TableRegisterEvent = SerializeEventType.of_extension(
+TableRegisterEvent = JsonEventType.of_extension(
     TableExtensionType, "register", Serializer.model(TableInfo)
 )
 TableListenEvent = JsonEventType[str].of_extension(TableExtensionType, name="listen")
