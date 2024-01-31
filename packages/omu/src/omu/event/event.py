@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Dict, List, TypedDict
+from typing import TYPE_CHECKING, Any, Dict, List, TypedDict
 
 from omu.interface.serializable import Serializer
 
@@ -25,7 +25,7 @@ class EventJson[T]:
         return cls(**json)
 
     @classmethod
-    def from_json_as[_T, _D](cls, event: EventType[_T, _D], data: dict) -> _T:
+    def from_json_as[_T, _D](cls, event: EventType[_T, _D], data: Any) -> _T:
         if "type" not in data:
             raise ValueError("Missing type field in event json")
         if data["type"] != event.type:

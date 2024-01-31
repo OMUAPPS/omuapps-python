@@ -1,9 +1,10 @@
 import asyncio
+import json
+import struct
 from typing import Any, List
 
 import aiohttp
 from aiohttp import web
-from loguru import logger
 
 from omu.client import Client
 from omu.connection import Address, Connection, ConnectionListener
@@ -66,25 +67,35 @@ class WebsocketsConnection(Connection):
         self._socket = await self._session.ws_connect(self._ws_endpoint)
         self._connected = True
 
+    async def _receive(self, socket: aiohttp.ClientWebSocketResponse) -> EventJson[Any]:
+        msg = await socket.receive()
+        match msg.type:
+            case web.WSMsgType.CLOSE:
+                raise RuntimeError("Socket closed")
+            case web.WSMsgType.ERROR:
+                raise RuntimeError("Socket error")
+            case web.WSMsgType.CLOSED:
+                raise RuntimeError("Socket closed")
+            case web.WSMsgType.CLOSING:
+                raise RuntimeError("Socket closing")
+        if msg.data is None:
+            raise RuntimeError("Received empty message")
+        if msg.type == web.WSMsgType.TEXT:
+            return EventJson.from_json(msg.json())
+        elif msg.type == web.WSMsgType.BINARY:
+            type_length = struct.unpack("B", msg.data[:1])[0]
+            type_buff = msg.data[1 : type_length + 1]
+            data_buff = msg.data[type_length + 1 :]
+            type = type_buff.decode("utf-8")
+            data = json.loads(data_buff.decode("utf-8"))
+            return EventJson(type, data)
+        else:
+            raise RuntimeError(f"Unknown message type {msg.type}")
+
     async def _listen(self) -> None:
         try:
-            while True:
-                if not self._socket:
-                    break
-                msg = await self._socket.receive()
-                if msg.type == web.WSMsgType.CLOSE:
-                    break
-                elif msg.type == web.WSMsgType.ERROR:
-                    break
-                elif msg.type == web.WSMsgType.CLOSED:
-                    break
-                if msg.data is None:
-                    continue
-                try:
-                    event = EventJson.from_json(msg.json())
-                except TypeError as e:
-                    logger.error(f"Failed to parse event: {e} {msg}")
-                    raise e
+            while self._socket:
+                event = await self._receive(self._socket)
                 self._client.loop.create_task(self._dispatch(event))
         finally:
             await self.disconnect()
@@ -113,12 +124,10 @@ class WebsocketsConnection(Connection):
     async def send[T](self, event: EventType[T, Any], data: T) -> None:
         if not self._socket or self._socket.closed or not self._connected:
             raise RuntimeError("Not connected")
-        await self._socket.send_json(
-            {
-                "type": event.type,
-                "data": event.serializer.serialize(data),
-            }
-        )
+        type_buff = event.type.encode("utf-8")
+        data_buff = json.dumps(event.serializer.serialize(data)).encode("utf-8")
+        type_length = struct.pack("B", len(type_buff))
+        await self._socket.send_bytes(type_length + type_buff + data_buff)
 
     def add_listener[T: ConnectionListener](self, listener: T) -> T:
         self._listeners.append(listener)
