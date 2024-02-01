@@ -8,7 +8,6 @@ from omu.extension.message.message_extension import (
     MessageListenEvent,
     MessageRegisterEvent,
 )
-
 from omuserver.extension import Extension
 from omuserver.session.session import SessionListener
 
@@ -18,19 +17,13 @@ if TYPE_CHECKING:
 
 
 class Message(SessionListener):
-    def __init__(self, key: str, session: Session | None = None) -> None:
+    def __init__(self, key: str) -> None:
         self.key = key
-        self.session: Session | None = session
         self.listeners: set[Session] = set()
 
     def add_listener(self, session: Session) -> None:
         self.listeners.add(session)
         session.add_listener(self)
-
-    def set_session(self, session: Session) -> None:
-        if self.session is not None and not self.session.closed:
-            raise Exception("Session already set")
-        self.session = session
 
     async def on_disconnected(self, session: Session) -> None:
         self.listeners.discard(session)
@@ -52,11 +45,9 @@ class MessageExtension(Extension):
         return cls(server)
 
     async def _on_register(self, session: Session, key: str) -> None:
-        if self.has(key):
-            message = self._keys[key]
-            message.set_session(session)
+        if key in self._keys:
             return
-        self._keys[key] = Message(key, session)
+        self._keys[key] = Message(key)
 
     def has(self, key):
         return key in self._keys
@@ -69,8 +60,8 @@ class MessageExtension(Extension):
 
     async def _on_broadcast(self, session: Session, data: MessageEventData) -> None:
         key = data["key"]
+        if key not in self._keys:
+            self._keys[key] = Message(key)
         message = self._keys[key]
-        if message.session != session:
-            raise Exception("Unauthorized broadcast")
         for listener in message.listeners:
             await listener.send(MessageBroadcastEvent, data)
