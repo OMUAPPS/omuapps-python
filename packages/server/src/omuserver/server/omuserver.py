@@ -19,11 +19,11 @@ from omuserver.extension.plugin.plugin_extension import PluginExtension
 from omuserver.extension.registry.registry_extension import RegistryExtension
 from omuserver.extension.server import ServerExtension
 from omuserver.extension.table import TableExtension
+from omuserver.helper import safe_path_join
 from omuserver.network import Network
 from omuserver.network.aiohttp_network import AiohttpNetwork
 from omuserver.network.network import NetworkListener
 from omuserver.security.security import ServerSecurity
-from omuserver.utils.helper import safe_path_join
 
 from .server import Server, ServerListener
 

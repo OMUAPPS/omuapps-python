@@ -1,7 +1,7 @@
 def test_directory_traversal_attack():
     from pathlib import Path
 
-    from omuserver.utils.helper import safe_path
+    from omuserver.helper import safe_path
 
     root = Path("/home/omu")
     path = Path("/home/omu/../../etc/passwd")

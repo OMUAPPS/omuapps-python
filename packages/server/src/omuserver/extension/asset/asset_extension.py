@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Dict, List
 from omu.extension.asset.asset_extension import AssetUploadEndpoint
 
 from omuserver.extension import Extension
-from omuserver.utils.helper import safe_path_join
+from omuserver.helper import safe_path_join
 
 if TYPE_CHECKING:
     from omuserver.server import Server
