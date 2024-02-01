@@ -1,12 +1,13 @@
 import asyncio
 import time
-from typing import Callable
+from typing import Tuple
 
 from loguru import logger
-from omuchat import App, Channel, Client, events
-from omuchat.model import Message
+from omuchat import App, Channel, Client, Message, Room, events
 
-from .provider import ProviderService
+from omuchatprovider.errors import ProviderError
+
+from .services import ChatService, ProviderService, get_services
 
 APP = App(
     name="provider",
@@ -20,29 +21,32 @@ APP = App(
 
 
 client = Client(APP)
-
-
-services = {}
-
-
-def load_services():
-    from .services import SERVICES
-
-    for service_cls in SERVICES:
-        service = service_cls(client)
-        services[service.info.key()] = service
-
-
-load_services()
-
-
-def instance[T](cls: Callable[[], T]) -> T:
-    return cls()
+services: dict[str, ProviderService] = {}
+chats: dict[str, Tuple[ProviderService, ChatService]] = {}
 
 
 async def register_services():
-    for service in services.values():
+    for service_cls in get_services():
+        service = service_cls(client)
+        services[service.info.key()] = service
         await client.providers.add(service.info)
+
+
+async def update(channel: Channel, service: ProviderService):
+    try:
+        if channel.active:
+            rooms = await service.fetch_rooms(channel)
+            for url, create in rooms.items():
+                if url in chats:
+                    continue
+                chat = await create()
+                chats[url] = (service, chat)
+                asyncio.create_task(chat.start())
+                logger.info(f"Started chat for {url}")
+        else:
+            pass
+    except ProviderError as e:
+        logger.error(f"Failed to update channel {channel.id}: {e}")
 
 
 @client.on(events.ChannelCreate)
@@ -50,12 +54,7 @@ async def on_channel_create(channel: Channel):
     service = get_provider(channel)
     if service is None:
         return
-    if channel.active:
-        try:
-            await service.start_channel(channel)
-            logger.info(f"Channel {channel.url} activated")
-        except Exception as e:
-            logger.error(f"Failed to activate channel {channel.url}: {e}")
+    await update(channel, service)
 
 
 @client.on(events.ChannelDelete)
@@ -63,9 +62,7 @@ async def on_channel_delete(channel: Channel):
     service = get_provider(channel)
     if service is None:
         return
-    if channel.active:
-        await service.stop_channel(channel)
-        logger.info(f"Channel {channel.url} deactivated")
+    await update(channel, service)
 
 
 @client.on(events.ChannelUpdate)
@@ -73,48 +70,53 @@ async def on_channel_update(channel: Channel):
     service = get_provider(channel)
     if service is None:
         return
-    if channel.active:
-        await service.start_channel(channel)
-        try:
-            await service.start_channel(channel)
-            logger.info(f"Channel {channel.url} activated")
-        except Exception as e:
-            logger.error(f"Failed to activate channel {channel.url}: {e}")
-    else:
-        await service.stop_channel(channel)
-        logger.info(f"Channel {channel.url} deactivated")
+    await update(channel, service)
 
 
-def get_provider(channel: Channel) -> ProviderService | None:
+def get_provider(channel: Channel | Room) -> ProviderService | None:
     if channel.provider_id not in services:
         return None
     return services[channel.provider_id]
 
 
-async def start_channels():
-    for channel in (await client.channels.fetch()).values():
-        service = get_provider(channel)
-        if service is None:
-            continue
-        if channel.active:
-            try:
-                await service.start_channel(channel)
-                logger.info(f"Channel {channel.url} activated")
-            except Exception as e:
-                logger.error(f"Failed to activate channel {channel.url}: {e}")
-            logger.info(f"Channel {channel.url} activated")
+async def wait_for_delay():
+    await asyncio.sleep(15 - time.time() % 15)
 
 
 async def recheck_task():
     while True:
-        await start_channels()
-        await asyncio.sleep(15 - time.time() % 15)
+        await recheck_channels()
+        await recheck_rooms()
+        await wait_for_delay()
+
+
+async def recheck_rooms():
+    rooms = await client.rooms.fetch()
+    for room in filter(lambda r: r.online, rooms.values()):
+        if room.provider_id not in services:
+            continue
+        service = services[room.provider_id]
+        if service is None:
+            continue
+        if await service.is_online(room):
+            continue
+        room.online = False
+        await client.rooms.update(room)
+
+
+async def recheck_channels():
+    providers = await client.channels.fetch()
+    for channel in providers.values():
+        service = get_provider(channel)
+        if service is None:
+            continue
+        await update(channel, service)
 
 
 @client.on(events.Ready)
 async def on_ready():
     await register_services()
-    await start_channels()
+    await recheck_channels()
     asyncio.create_task(recheck_task())
     logger.info("Ready!")
 

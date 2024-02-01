@@ -1,13 +1,16 @@
-from typing import List
+from .service import ChatService, ChatSupplier, ProviderService
 
-from ..provider import ProviderService
-from .misskey import MisskeyService
-from .twitcasting import TwitCastingService
-from .youtube import YoutubeService
 
-SERVICES: List[type[ProviderService]] = [
-    MisskeyService,
-    YoutubeService,
-    TwitCastingService,
-]
-__all__ = ["SERVICES"]
+def get_services():
+    # from .misskey import MisskeyService
+    # from .twitcasting import TwitCastingService
+    from .youtube import YoutubeService
+
+    return [
+        # MisskeyService,
+        # TwitCastingService,
+        YoutubeService,
+    ]
+
+
+__all__ = ["SERVICES", "ProviderService", "ChatService", "ChatSupplier"]
