@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from omu import App
-    from omu.event import EventJson, EventType
+    from omu.event import EventData, EventType
 
     from omuserver.security import Permission
 
@@ -35,7 +35,7 @@ class Session(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def send[T](self, type: EventType[Any, T], data: T) -> None:
+    async def send[T](self, type: EventType[T], data: T) -> None:
         ...
 
     @abc.abstractmethod
@@ -48,7 +48,7 @@ class Session(abc.ABC):
 
 
 class SessionListener:
-    async def on_event(self, session: Session, event: EventJson) -> None:
+    async def on_event(self, session: Session, event: EventData) -> None:
         ...
 
     async def on_disconnected(self, session: Session) -> None:

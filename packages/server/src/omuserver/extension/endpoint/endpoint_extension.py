@@ -51,11 +51,11 @@ class SessionEndpoint(Endpoint):
 type Coro[**P, R] = Callable[P, Coroutine[Any, Any, R]]
 
 
-class ServerEndpoint[Req, Res, ReqData, ResData](Endpoint):
+class ServerEndpoint[Req, Res](Endpoint):
     def __init__(
         self,
         server: Server,
-        endpoint: EndpointType[Req, Res, ReqData, ResData],
+        endpoint: EndpointType[Req, Res],
         callback: Coro[[Session, Req], Res],
     ) -> None:
         self._server = server
@@ -122,7 +122,7 @@ class EndpointExtension(Extension, ServerListener):
 
     def bind_endpoint[Req, Res](
         self,
-        type: EndpointType[Req, Res, Any, Any],
+        type: EndpointType[Req, Res],
         callback: Coro[[Session, Req], Res],
     ) -> None:
         if type.info.key() in self._endpoints:
