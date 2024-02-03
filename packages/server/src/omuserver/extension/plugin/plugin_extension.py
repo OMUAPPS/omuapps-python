@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict
 
+from loguru import logger
+
 from omuserver.extension import Extension
 from omuserver.server import ServerListener
 
@@ -16,12 +18,16 @@ class PluginLoader:
     def __init__(self, server: Server) -> None:
         self._server = server
 
-    def _validate(self, path: Path) -> None:
+    def is_valid_plugin(self, path: Path) -> bool:
         if not path.is_dir():
-            raise ValueError(f"{path} is not a directory")
+            return False
+        if not (path / "run.py").exists():
+            return False
+        return True
 
     async def load(self, path: Path) -> Plugin:
-        self._validate(path)
+        if not self.is_valid_plugin(path):
+            raise ValueError(f"Invalid plugin: {path}")
         return await ServerPlugin.create(path, self._server)
 
 
@@ -43,6 +49,9 @@ class PluginExtension(Extension, ServerListener):
         for plugin in self._server.directories.plugins.iterdir():
             if plugin.name.startswith("."):
                 continue
+            if not self.loader.is_valid_plugin(plugin):
+                continue
+            logger.info(f"Loading plugin: {plugin.name}")
             await self._load_plugin(plugin)
 
     async def _load_plugin(self, path: Path) -> None:
