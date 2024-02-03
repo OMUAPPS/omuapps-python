@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+import socket
 from typing import TYPE_CHECKING, Dict, List
 
 from aiohttp import web
 from loguru import logger
+from omu import App
+from omu.event import EVENTS
+
 from omuserver.server import ServerListener
 from omuserver.session import SessionListener
 from omuserver.session.aiohttp_session import AiohttpSession
-
-from omu import App
-from omu.event import EVENTS
 
 from .network import Coro, Network
 
@@ -69,7 +70,18 @@ class AiohttpNetwork(Network, ServerListener, SessionListener):
         for listener in self._listeners:
             await listener.on_start()
 
+    def is_port_available(self) -> bool:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(("127.0.0.1", 80))
+            sock.close()
+            return result != 0
+        except OSError:
+            return False
+
     async def start(self) -> None:
+        if not self.is_port_available():
+            raise OSError(f"Port {self._server.address.port} already in use")
         self._app.on_startup.append(self._handle_start)
         runner = web.AppRunner(self._app)
         await runner.setup()
