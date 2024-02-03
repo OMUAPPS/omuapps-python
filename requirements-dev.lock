@@ -11,14 +11,15 @@
 -e file:.
 -e file:packages/provider
 -e file:packages/server
-aiohttp==3.9.1
+-e file:packages/plugins
+aiohttp==3.9.3
 aiosignal==1.3.1
-aiosqlite==0.19.0
 attrs==23.1.0
 beautifulsoup4==4.12.2
 bs4==0.0.1
 click==8.1.7
 colorama==0.4.6
+edgetrans==0.2.0
 frozenlist==1.4.1
 idna==3.6
 iniconfig==2.0.0
@@ -28,8 +29,7 @@ lxml==5.0.0
 multidict==6.0.4
 packaging==23.2
 pluggy==1.3.0
-psutil==5.9.7
-pytest==7.4.4
+pytest==8.0.0
 ruff==0.1.8
 soupsieve==2.5
 sqlitedict==2.1.0
