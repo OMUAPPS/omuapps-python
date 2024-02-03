@@ -1,6 +1,7 @@
 {
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": true,
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/",
     "files.exclude": {
         "**/__pycache__": true,
     }
