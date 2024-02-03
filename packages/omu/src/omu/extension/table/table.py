@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import abc
-from typing import AsyncGenerator, Awaitable, Callable, Dict, Protocol
+from typing import AsyncGenerator, Awaitable, Callable, Dict, Mapping
 
 from omu.extension.extension import ExtensionType
 from omu.extension.server.model.app import App
 from omu.extension.table.model.table_info import TableInfo
+from omu.identifier import Identifier
 from omu.interface import Keyable, Serializable
-from omu.interface.serializable import Serializer
+from omu.interface.serializable import Jsonable, Serializer
 
 type AsyncCallback[**P] = Callable[P, Awaitable]
 type Coro[**P, T] = Callable[P, Awaitable[T]]
@@ -16,7 +17,7 @@ type Coro[**P, T] = Callable[P, Awaitable[T]]
 class Table[T: Keyable](abc.ABC):
     @property
     @abc.abstractmethod
-    def cache(self) -> Dict[str, T]:
+    def cache(self) -> Mapping[str, T]:
         ...
 
     @abc.abstractmethod
@@ -45,7 +46,7 @@ class Table[T: Keyable](abc.ABC):
         before: int | None = None,
         after: int | None = None,
         cursor: str | None = None,
-    ) -> Dict[str, T]:
+    ) -> Mapping[str, T]:
         ...
 
     @abc.abstractmethod
@@ -78,30 +79,30 @@ class Table[T: Keyable](abc.ABC):
 
 
 class TableListener[T: Keyable]:
-    async def on_add(self, items: Dict[str, T]) -> None:
+    async def on_add(self, items: Mapping[str, T]) -> None:
         ...
 
-    async def on_update(self, items: Dict[str, T]) -> None:
+    async def on_update(self, items: Mapping[str, T]) -> None:
         ...
 
-    async def on_remove(self, items: Dict[str, T]) -> None:
+    async def on_remove(self, items: Mapping[str, T]) -> None:
         ...
 
     async def on_clear(self) -> None:
         ...
 
-    async def on_cache_update(self, cache: Dict[str, T]) -> None:
+    async def on_cache_update(self, cache: Mapping[str, T]) -> None:
         ...
 
 
 class CallbackTableListener[T: Keyable](TableListener[T]):
     def __init__(
         self,
-        on_add: AsyncCallback[Dict[str, T]] | None = None,
-        on_update: AsyncCallback[Dict[str, T]] | None = None,
-        on_remove: AsyncCallback[Dict[str, T]] | None = None,
+        on_add: AsyncCallback[Mapping[str, T]] | None = None,
+        on_update: AsyncCallback[Mapping[str, T]] | None = None,
+        on_remove: AsyncCallback[Mapping[str, T]] | None = None,
         on_clear: AsyncCallback[[]] | None = None,
-        on_cache_update: AsyncCallback[Dict[str, T]] | None = None,
+        on_cache_update: AsyncCallback[Mapping[str, T]] | None = None,
     ):
         self._on_add = on_add
         self._on_update = on_update
@@ -109,15 +110,15 @@ class CallbackTableListener[T: Keyable](TableListener[T]):
         self._on_clear = on_clear
         self._on_cache_update = on_cache_update
 
-    async def on_add(self, items: Dict[str, T]) -> None:
+    async def on_add(self, items: Mapping[str, T]) -> None:
         if self._on_add:
             await self._on_add(items)
 
-    async def on_update(self, items: Dict[str, T]) -> None:
+    async def on_update(self, items: Mapping[str, T]) -> None:
         if self._on_update:
             await self._on_update(items)
 
-    async def on_remove(self, items: Dict[str, T]) -> None:
+    async def on_remove(self, items: Mapping[str, T]) -> None:
         if self._on_remove:
             await self._on_remove(items)
 
@@ -125,12 +126,12 @@ class CallbackTableListener[T: Keyable](TableListener[T]):
         if self._on_clear:
             await self._on_clear()
 
-    async def on_cache_update(self, cache: Dict[str, T]) -> None:
+    async def on_cache_update(self, cache: Mapping[str, T]) -> None:
         if self._on_cache_update:
             await self._on_cache_update(cache)
 
 
-class TableType[T: Keyable, D](abc.ABC):
+class TableType[T: Keyable](abc.ABC):
     @property
     @abc.abstractmethod
     def info(self) -> TableInfo:
@@ -138,43 +139,34 @@ class TableType[T: Keyable, D](abc.ABC):
 
     @property
     @abc.abstractmethod
-    def serializer(self) -> Serializable[T, D]:
+    def serializer(self) -> Serializable[T, bytes]:
         ...
 
 
-class TableEntry[T: Keyable, D](Protocol):
-    def key(self) -> str:
-        ...
-
-    def to_json(self) -> D:
-        ...
-
-    @classmethod
-    def from_json(cls, json: D) -> T:
-        ...
+type ModelEntry[T: Keyable, D] = Jsonable[T, D]
 
 
-class ModelTableType[T: Keyable, D](TableType[T, D]):
-    def __init__(self, info: TableInfo, serializer: Serializable[T, D]):
+class ModelTableType[T: Keyable, D](TableType[T]):
+    def __init__(self, info: TableInfo, model: type[ModelEntry[T, D]]):
         self._info = info
-        self._serializer = serializer
+        self._serializer = Serializer.model(model).pipe(Serializer.json())
 
     @classmethod
     def of[_T: Keyable, _D](
-        cls, app: App, name: str, model: type[TableEntry[_T, _D]]
-    ) -> TableType[_T, _D]:
+        cls, app: App, name: str, model: type[ModelEntry[_T, _D]]
+    ) -> ModelTableType[_T, _D]:
         return ModelTableType(
-            info=TableInfo.of(app, name),
-            serializer=Serializer.model(model),
+            info=TableInfo.of(Identifier.create(app.key(), name)),
+            model=model,
         )
 
     @classmethod
     def of_extension[_T: Keyable, _D](
-        cls, extension: ExtensionType, name: str, model: type[TableEntry[_T, _D]]
-    ) -> TableType[_T, _D]:
+        cls, extension: ExtensionType, name: str, model: type[ModelEntry[_T, _D]]
+    ) -> ModelTableType[_T, _D]:
         return ModelTableType(
-            info=TableInfo.of_extension(extension, name),
-            serializer=Serializer.model(model),
+            info=TableInfo.of(Identifier.create(extension.key, name)),
+            model=model,
         )
 
     @property
@@ -186,5 +178,5 @@ class ModelTableType[T: Keyable, D](TableType[T, D]):
         return self._info.key()
 
     @property
-    def serializer(self) -> Serializable[T, D]:
+    def serializer(self) -> Serializable[T, bytes]:
         return self._serializer

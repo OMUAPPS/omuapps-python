@@ -73,3 +73,11 @@ OWNER = Role(
     icon_url=None,
     color=None,
 )
+VERIFIED = Role(
+    id="verified",
+    name="Verified",
+    is_owner=False,
+    is_moderator=False,
+    icon_url=None,
+    color=None,
+)

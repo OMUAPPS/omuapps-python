@@ -1,5 +1,4 @@
 import asyncio
-import struct
 from typing import List
 
 import aiohttp
@@ -10,6 +9,7 @@ from omu.connection import Address, Connection, ConnectionListener
 from omu.event import EVENTS, EventData
 from omu.event.event import EventType
 from omu.event.events import ConnectEvent
+from omu.helper import ByteReader, ByteWriter
 
 
 class WebsocketsConnection(Connection):
@@ -80,13 +80,12 @@ class WebsocketsConnection(Connection):
         if msg.data is None:
             raise RuntimeError("Received empty message")
         if msg.type == web.WSMsgType.TEXT:
-            # return EventJson.from_json(msg.json())
             raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
-            type_length = struct.unpack("B", msg.data[:1])[0]
-            type_buff = msg.data[1 : type_length + 1]
-            type = type_buff.decode("utf-8")
-            data = msg.data[type_length + 1 :]
+            reader = ByteReader(msg.data)
+            type = reader.read_string()
+            data = reader.read_byte_array()
+            reader.finish()
             return EventData(type, data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
@@ -121,10 +120,10 @@ class WebsocketsConnection(Connection):
     async def send[T](self, event: EventType[T], data: T) -> None:
         if not self._socket or self._socket.closed or not self._connected:
             raise RuntimeError("Not connected")
-        type_buff = event.type.encode("utf-8")
-        data_buff = event.serializer.serialize(data)
-        type_length = struct.pack("B", len(type_buff))
-        await self._socket.send_bytes(type_length + type_buff + data_buff)
+        writer = ByteWriter()
+        writer.write_string(event.type)
+        writer.write_byte_array(event.serializer.serialize(data))
+        await self._socket.send_bytes(writer.finish())
 
     def add_listener[T: ConnectionListener](self, listener: T) -> T:
         self._listeners.append(listener)

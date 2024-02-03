@@ -1,2 +1,2 @@
-select = ["E", "F"]
+select = ["E", "F", "I"]
 ignore = ["E501"]

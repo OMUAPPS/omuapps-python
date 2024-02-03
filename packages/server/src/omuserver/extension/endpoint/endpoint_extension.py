@@ -116,7 +116,7 @@ class EndpointExtension(Extension, ServerListener):
         server.events.add_listener(EndpointErrorEvent, self._on_endpoint_error)
 
     async def _on_endpoint_register(self, session: Session, info: EndpointInfo) -> None:
-        await self.endpoints.add({info.key(): info})
+        await self.endpoints.add(info)
         endpoint = SessionEndpoint(session, info)
         self._endpoints[info.key()] = endpoint
 
@@ -198,7 +198,5 @@ class EndpointExtension(Extension, ServerListener):
     async def on_start(self) -> None:
         tables = self._server.extensions.get(TableExtension)
         self.endpoints = tables.register_table(EndpointsTableType)
-        await self.endpoints.load()
-        for key, endpoint in self._endpoints.items():
-            await self.endpoints.add({key: endpoint.info})
-        await self.endpoints.store()
+        for endpoint in self._endpoints.values():
+            await self.endpoints.add(endpoint.info)

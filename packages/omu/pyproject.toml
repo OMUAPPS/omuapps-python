@@ -18,9 +18,9 @@ dev-dependencies = []
 [tool.hatch.metadata]
 allow-direct-references = true
 
-[tool.ruff]
-target-python = "py312"
+[tool.pylint]
+disable = ["missing-module-docstring", "missing-function-docstring", "missing-class-docstring"]
 
 [tool.ruff.lint]
-select = ["E", "F"]
+select = ["E", "F", "I"]
 ignore = ["E501"]

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from typing import Any
 
 from omu.extension.endpoint.model.endpoint_info import EndpointInfo
 from omu.extension.extension import ExtensionType
@@ -30,20 +29,20 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
     def __init__(
         self,
         info: EndpointInfo,
-        request_serializer: Serializable[Req, Any] | None = None,
-        response_serializer: Serializable[Res, Any] | None = None,
+        request_serializer: Serializable[Req, bytes],
+        response_serializer: Serializable[Res, bytes],
     ):
         self._info = info
-        self._request_serializer = request_serializer or Serializer.noop()
-        self._response_serializer = response_serializer or Serializer.noop()
+        self._request_serializer = request_serializer
+        self._response_serializer = response_serializer
 
     @classmethod
     def of(
         cls,
         app: App,
         name: str,
-        request_serializer: Serializable[Req, Any] | None = None,
-        response_serializer: Serializable[Res, Any] | None = None,
+        request_serializer: Serializable[Req, bytes],
+        response_serializer: Serializable[Res, bytes],
     ):
         return cls(
             info=EndpointInfo(app.key(), name),
@@ -56,8 +55,8 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         cls,
         extension: ExtensionType,
         name: str,
-        request_serializer: Serializable[Req, Any] | None = None,
-        response_serializer: Serializable[Res, Any] | None = None,
+        request_serializer: Serializable[Req, bytes],
+        response_serializer: Serializable[Res, bytes],
     ):
         return cls(
             info=EndpointInfo(extension.key, name),
@@ -70,11 +69,11 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         return self._info
 
     @property
-    def request_serializer(self) -> Serializable[Req, Any]:
+    def request_serializer(self) -> Serializable[Req, bytes]:
         return self._request_serializer
 
     @property
-    def response_serializer(self) -> Serializable[Res, Any]:
+    def response_serializer(self) -> Serializable[Res, bytes]:
         return self._response_serializer
 
 

@@ -15,10 +15,9 @@ from omuchat.model.author import Author
 from omuchat.model.content import TextContent
 from omuchat.model.gift import Gift
 
-from omuchatprovider.helper import HTTP_REGEX, get_session
-
-from ...provider import ProviderService
+from ...helper import HTTP_REGEX, get_session
 from ...tasks import Tasks
+from .. import ProviderService
 from .token import get_session_id, get_token
 from .types import api, events
 

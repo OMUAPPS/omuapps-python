@@ -7,38 +7,29 @@ from omu.extension.table.table_extension import (
     TableItemAddEvent,
     TableItemClearEvent,
     TableItemRemoveEvent,
-    TableItemsEventData,
+    TableItemsData,
     TableItemUpdateEvent,
 )
 
-from .server_table import TableListener
+from .server_table import ServerTableListener
 
 if TYPE_CHECKING:
-    from omu.extension.table.model import TableInfo
-    from omu.interface import Serializable
-
     from omuserver.session import Session
 
 
-class SessionTableListener(TableListener):
-    def __init__(
-        self, info: TableInfo, session: Session, serializer: Serializable
-    ) -> None:
-        self._info = info
+class SessionTableListener(ServerTableListener):
+    def __init__(self, key: str, session: Session) -> None:
+        self._key = key
         self._session = session
-        self._serializer = serializer
 
     async def on_add(self, items: Dict[str, Any]) -> None:
         if self._session.closed:
             return
         await self._session.send(
             TableItemAddEvent,
-            TableItemsEventData(
-                items={
-                    key: self._serializer.serialize(value)
-                    for key, value in items.items()
-                },
-                type=self._info.key(),
+            TableItemsData(
+                items=items,
+                type=self._key,
             ),
         )
 
@@ -47,12 +38,9 @@ class SessionTableListener(TableListener):
             return
         await self._session.send(
             TableItemUpdateEvent,
-            TableItemsEventData(
-                items={
-                    key: self._serializer.serialize(value)
-                    for key, value in items.items()
-                },
-                type=self._info.key(),
+            TableItemsData(
+                items=items,
+                type=self._key,
             ),
         )
 
@@ -61,23 +49,16 @@ class SessionTableListener(TableListener):
             return
         await self._session.send(
             TableItemRemoveEvent,
-            TableItemsEventData(
-                items={
-                    key: self._serializer.serialize(value)
-                    for key, value in items.items()
-                },
-                type=self._info.key(),
+            TableItemsData(
+                items=items,
+                type=self._key,
             ),
         )
 
     async def on_clear(self) -> None:
         if self._session.closed:
             return
-        await self._session.send(
-            TableItemClearEvent, TableEventData(type=self._info.key())
-        )
+        await self._session.send(TableItemClearEvent, TableEventData(type=self._key))
 
     def __repr__(self) -> str:
-        return (
-            f"<SessionTableHandler info={self._info.key()} session={self._session.app}>"
-        )
+        return f"<SessionTableHandler info={self._key} session={self._session.app}>"

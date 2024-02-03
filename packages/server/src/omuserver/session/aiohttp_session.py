@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import struct
 from typing import List
 
 from aiohttp import web
 from loguru import logger
 from omu.event import EVENTS, EventData, EventType
 from omu.extension.server.model.app import App
+from omu.helper import ByteReader, ByteWriter
 
 from omuserver.security import Permission
 from omuserver.server import Server
@@ -51,10 +51,9 @@ class AiohttpSession(Session):
         if msg.type == web.WSMsgType.TEXT:
             raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
-            type_length = struct.unpack("B", msg.data[:1])[0]
-            type_buff = msg.data[1 : type_length + 1]
-            type = type_buff.decode("utf-8")
-            data = msg.data[type_length + 1 :]
+            reader = ByteReader(msg.data)
+            type = reader.read_string()
+            data = reader.read_byte_array()
             return EventData(type, data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
@@ -96,10 +95,10 @@ class AiohttpSession(Session):
     async def send[T](self, type: EventType[T], data: T) -> None:
         if self.closed:
             raise ValueError("Socket is closed")
-        type_buff = type.type.encode("utf-8")
-        data_buff = type.serializer.serialize(data)
-        type_length = struct.pack("B", len(type_buff))
-        await self.socket.send_bytes(type_length + type_buff + data_buff)
+        writer = ByteWriter()
+        writer.write_string(type.type)
+        writer.write_byte_array(type.serializer.serialize(data))
+        await self.socket.send_bytes(writer.finish())
 
     def add_listener(self, listener: SessionListener) -> None:
         self._listeners.append(listener)

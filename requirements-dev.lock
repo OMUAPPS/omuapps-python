@@ -5,6 +5,7 @@
 #   pre: false
 #   features: []
 #   all-features: false
+#   with-sources: false
 
 -e file:packages/omu
 -e file:packages/chat
@@ -19,11 +20,11 @@ beautifulsoup4==4.12.2
 bs4==0.0.1
 click==8.1.7
 colorama==0.4.6
-edgetrans==0.2.0
+edgetrans==0.2.1
 frozenlist==1.4.1
 idna==3.6
 iniconfig==2.0.0
-iwashi==2.1.5
+iwashi==2.1.6
 loguru==0.7.2
 lxml==5.0.0
 multidict==6.0.4

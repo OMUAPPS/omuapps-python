@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import asyncio
-from typing import TYPE_CHECKING, Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Awaitable, Callable
 
 if TYPE_CHECKING:
     from omu.connection import Connection
@@ -99,7 +99,7 @@ class Client(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def send[T](self, type: EventType[T, Any], data: T) -> None:
+    async def send[T](self, type: EventType[T], data: T) -> None:
         ...
 
     @abc.abstractmethod

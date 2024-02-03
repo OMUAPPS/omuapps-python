@@ -21,8 +21,8 @@ from omuchat.model import (
 
 from omuchatprovider.helper import get_session
 
-from ...provider import ProviderService
 from ...tasks import Tasks
+from .. import ProviderService
 from .types import api, events
 
 INFO = Provider(

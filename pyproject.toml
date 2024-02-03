@@ -23,6 +23,9 @@ dev-dependencies = [
     "pytest>=8.0.0",
 ]
 
+[tool.pylint]
+disable = ["missing-module-docstring", "missing-function-docstring", "missing-class-docstring"]
+
 [tool.rye.workspace]
 members = ["packages/*"]
 

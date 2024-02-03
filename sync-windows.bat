@@ -1,0 +1,2 @@
+set MULTIDICT_NO_EXTENSIONS=1
+rye sync

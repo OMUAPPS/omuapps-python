@@ -53,8 +53,8 @@ class ServerExtension(Extension, NetworkListener, ServerListener):
 
     async def on_connected(self, session: Session) -> None:
         logger.info(f"Connected: {session.app.key()}")
-        await self.apps.add({session.app.key(): session.app})
+        await self.apps.add(session.app)
 
     async def on_disconnected(self, session: Session) -> None:
         logger.info(f"Disconnected: {session.app.key()}")
-        await self.apps.remove([session.app.key()])
+        await self.apps.remove(session.app)

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import struct
 from asyncio import Future
 from typing import Any, Awaitable, Callable, Dict, Tuple, TypedDict
 
@@ -11,6 +10,7 @@ from omu.extension.endpoint.endpoint import EndpointType, JsonEndpointType
 from omu.extension.endpoint.model.endpoint_info import EndpointInfo
 from omu.extension.extension import Extension, define_extension_type
 from omu.extension.table.table import ModelTableType
+from omu.helper import ByteReader, ByteWriter
 from omu.interface import Serializer
 from omu.interface.serializable import Serializable
 
@@ -57,10 +57,10 @@ class EndpointExtension(Extension, ConnectionListener):
         try:
             req = endpoint.request_serializer.deserialize(data["data"])
             res = await func(req)
-            json = endpoint.response_serializer.serialize(res)
+            res_data = endpoint.response_serializer.serialize(res)
             await self.client.send(
                 EndpointReceiveEvent,
-                EndpointDataReq(type=data["type"], id=data["id"], data=json),
+                EndpointDataReq(type=data["type"], id=data["id"], data=res_data),
             )
         except Exception as e:
             await self.client.send(
@@ -70,7 +70,7 @@ class EndpointExtension(Extension, ConnectionListener):
             raise e
 
     async def on_connected(self) -> None:
-        for endpoint, func in self.endpoints.values():
+        for endpoint, _ in self.endpoints.values():
             await self.client.send(EndpointRegisterEvent, endpoint.info)
 
     def register[Req, Res](
@@ -138,22 +138,19 @@ EndpointRegisterEvent = JsonEventType.of_extension(
 
 
 class CallSerializer(Serializable[EndpointDataReq, bytes]):
-    def serialize(self, data: EndpointDataReq) -> bytes:
-        # type_length, type, id_length, id, data
-        type_buff = data["type"].encode("utf-8")
-        type_length = struct.pack("B", len(type_buff))
-        id_buff = struct.pack("I", data["id"])
-        id_length = struct.pack("B", len(id_buff))
-        return type_length + type_buff + id_length + id_buff + data["data"]
+    def serialize(self, item: EndpointDataReq) -> bytes:
+        writer = ByteWriter()
+        writer.write_string(item["type"])
+        writer.write_int(item["id"])
+        writer.write_byte_array(item["data"])
+        return writer.finish()
 
-    def deserialize(self, data: bytes) -> EndpointDataReq:
-        type_length = struct.unpack("B", data[:1])[0]
-        type_buff = data[1 : type_length + 1]
-        type = type_buff.decode("utf-8")
-        id_length = struct.unpack("B", data[type_length + 1 : type_length + 2])[0]
-        id_buff = data[type_length + 2 : type_length + 2 + id_length]
-        id = struct.unpack("I", id_buff)[0]
-        data = data[type_length + 2 + id_length :]
+    def deserialize(self, item: bytes) -> EndpointDataReq:
+        reader = ByteReader(item)
+        type = reader.read_string()
+        id = reader.read_int()
+        data = reader.read_byte_array()
+        reader.finish()
         return EndpointDataReq(type=type, id=id, data=data)
 
 

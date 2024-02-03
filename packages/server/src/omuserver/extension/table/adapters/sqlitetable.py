@@ -4,19 +4,19 @@ import sqlite3
 from pathlib import Path
 from typing import Dict
 
-from .tableadapter import Json, TableAdapter, json
+from .tableadapter import TableAdapter
 
 
 class SqliteTableAdapter(TableAdapter):
     def __init__(self, path: Path) -> None:
         self._path = path
-        self._conn = sqlite3.connect(str(path / "data.db"))
+        self._conn = sqlite3.connect(path.with_suffix(".db"))
         self._conn.execute(
             # index, key, value
             "CREATE TABLE IF NOT EXISTS data ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "key TEXT UNIQUE,"
-            "value TEXT"
+            "value BLOB"
             ")"
         )
         self._conn.commit()
@@ -31,31 +31,32 @@ class SqliteTableAdapter(TableAdapter):
     async def load(self) -> None:
         pass
 
-    async def get(self, key: str) -> Json | None:
+    async def get(self, key: str) -> bytes | None:
         cursor = self._conn.execute("SELECT value FROM data WHERE key = ?", (key,))
         row = cursor.fetchone()
         if row is None:
             return None
-        return json.loads(row[0])
+        return row[0]
 
-    async def get_all(self, keys: list[str]) -> Dict[str, Json]:
+    async def get_all(self, keys: list[str]) -> Dict[str, bytes]:
         cursor = self._conn.execute(
             f"SELECT key, value FROM data WHERE key IN ({','.join('?' for _ in keys)})",
             keys,
         )
         rows = cursor.fetchall()
-        return {row[0]: json.loads(row[1]) for row in rows}
+        return {row[0]: row[1] for row in rows}
 
-    async def set(self, key: str, value: Json) -> None:
+    async def set(self, key: str, value: bytes) -> None:
         self._conn.execute(
             "INSERT OR REPLACE INTO data (key, value) VALUES (?, ?)",
-            (key, json.dumps(value)),
+            (key, (value)),
         )
 
-    async def set_all(self, items: Dict[str, Json]) -> None:
+    async def set_all(self, items: Dict[str, bytes]) -> None:
+        query = [(key, value) for key, value in items.items()]
         self._conn.executemany(
             "INSERT OR REPLACE INTO data (key, value) VALUES (?, ?)",
-            ((key, json.dumps(value)) for key, value in items.items()),
+            query,
         )
 
     async def remove(self, key: str) -> None:
@@ -69,17 +70,22 @@ class SqliteTableAdapter(TableAdapter):
 
     async def fetch(
         self, before: int | None, after: int | None, cursor: str | None
-    ) -> Dict[str, Json]:
+    ) -> Dict[str, bytes]:
+        cursor_id: int | None = None
         if cursor is not None:
             _cursor = self._conn.execute("SELECT id FROM data WHERE key = ?", (cursor,))
             row = _cursor.fetchone()
             if row is None:
                 raise ValueError(f"Cursor {cursor} not found")
-            cursor = row[0]
+            cursor_id = row[0]
+
+        if before is None and after is None:
+            _cursor = self._conn.execute("SELECT key, value FROM data")
+            return {row[0]: (row[1]) for row in _cursor.fetchall()}
 
         items = {}
         if before is not None:
-            if cursor is None:
+            if cursor_id is None:
                 _cursor = self._conn.execute(
                     "SELECT id, key, value FROM data ORDER BY id DESC LIMIT ?",
                     (before,),
@@ -87,13 +93,11 @@ class SqliteTableAdapter(TableAdapter):
             else:
                 _cursor = self._conn.execute(
                     "SELECT id, key, value FROM data WHERE id <= ? ORDER BY id DESC LIMIT ?",
-                    (cursor, before),
+                    (cursor_id, before),
                 )
-            items.update(
-                {row[0]: (row[1], json.loads(row[2])) for row in _cursor.fetchall()}
-            )
+            items.update({row[0]: (row[1], (row[2])) for row in _cursor.fetchall()})
         if after is not None:
-            if cursor is None:
+            if cursor_id is None:
                 _cursor = self._conn.execute(
                     "SELECT id, key, value FROM data ORDER BY id LIMIT ?",
                     (after,),
@@ -101,11 +105,9 @@ class SqliteTableAdapter(TableAdapter):
             else:
                 _cursor = self._conn.execute(
                     "SELECT id, key, value FROM data WHERE id >= ? ORDER BY id LIMIT ?",
-                    (cursor, after),
+                    (cursor_id, after),
                 )
-            items.update(
-                {row[0]: (row[1], json.loads(row[2])) for row in _cursor.fetchall()}
-            )
+            items.update({row[0]: (row[1], (row[2])) for row in _cursor.fetchall()})
         return {key: value for _, (key, value) in sorted(items.items(), reverse=True)}
 
     async def first(self) -> str | None:
