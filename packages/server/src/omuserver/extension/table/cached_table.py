@@ -129,8 +129,6 @@ class CachedTable(ServerTable, SessionListener):
     async def proxy(self, session: Session, key: int, items: Dict[str, bytes]) -> int:
         if self._adapter is None:
             raise Exception("Table not set")
-        if key != self._proxy_id:
-            return 0
         if session not in self._proxy_sessions:
             raise ValueError("Session not in proxy sessions")
         index = self._proxy_sessions.index(session)
@@ -182,7 +180,7 @@ class CachedTable(ServerTable, SessionListener):
         self._cache.clear()
         self.mark_changed()
 
-    async def fetch(
+    async def fetch_items(
         self,
         before: int | None = None,
         after: str | None = None,
@@ -190,12 +188,12 @@ class CachedTable(ServerTable, SessionListener):
     ) -> Dict[str, bytes]:
         if self._adapter is None:
             raise Exception("Table not set")
-        return await self._adapter.fetch(before, after, cursor)
+        return await self._adapter.fetch_items(before, after, cursor)
 
-    async def iterator(self) -> AsyncIterator[bytes]:
+    async def iterate(self) -> AsyncIterator[bytes]:
         cursor: str | None = None
         while True:
-            items = await self.fetch(self.cache_size, cursor)
+            items = await self.fetch_items(self.cache_size, cursor)
             if len(items) == 0:
                 break
             for item in items.values():
@@ -223,8 +221,6 @@ class CachedTable(ServerTable, SessionListener):
 
     async def update_cache(self, items: Dict[str, bytes]) -> None:
         if self.cache_size is None or self.cache_size <= 0:
-            return
-        if not self._cache:
             return
         for key, item in items.items():
             self._cache[key] = item

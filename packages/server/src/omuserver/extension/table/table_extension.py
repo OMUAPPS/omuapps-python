@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from loguru import logger
 from omu.extension.table import Table, TableType
-from omu.extension.table.model.table_info import TableInfo
+from omu.extension.table import TableInfo
 from omu.extension.table.table_extension import (
     TableEventData,
     TableFetchReq,
@@ -87,10 +87,10 @@ class TableExtension(Extension, ServerListener):
         self, session: Session, req: TableFetchReq
     ) -> TableItemsData:
         table = await self.get_table(req["type"])
-        items = await table.fetch(
-            before=req.get("before", None),
-            after=req.get("after", None),
-            cursor=req.get("cursor", None),
+        items = await table.fetch_items(
+            before=req.get("before"),
+            after=req.get("after"),
+            cursor=req.get("cursor"),
         )
         return TableItemsData(
             type=req["type"],
@@ -148,19 +148,20 @@ class TableExtension(Extension, ServerListener):
         table = await self.get_table(event["type"])
         await table.clear()
 
-    def create_table(self, info: TableInfo):
+    async def create_table(self, info: TableInfo):
         path = self.get_table_path(info.identifier)
         table = CachedTable(self._server, info.key())
         adapter = SqliteTableAdapter.create(path)
+        await adapter.load()
         table.set_adapter(adapter)
         table.cache_size = info.cache_size
         self._tables[info.key()] = table
         return table
 
-    def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
+    async def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
         if table_type.info.key() in self._tables:
             raise Exception(f"Table {table_type.info.key()} already registered")
-        table = self.create_table(table_type.info)
+        table = await self.create_table(table_type.info)
         return SerializedTable(table, table_type)
 
     async def get_table(self, key: str) -> ServerTable:
@@ -170,6 +171,7 @@ class TableExtension(Extension, ServerListener):
         adapter = SqliteTableAdapter.create(
             self.get_table_path(Identifier.from_key(key))
         )
+        await adapter.load()
         table.set_adapter(adapter)
         self._tables[key] = table
         return table
@@ -179,12 +181,6 @@ class TableExtension(Extension, ServerListener):
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
-    async def on_start(self) -> None:
-        for table in self._tables.values():
-            if table.adapter is None:
-                continue
-            await table.adapter.load()
-
-    async def on_shutdown(self) -> None:
+    async def on_server_stop(self) -> None:
         for table in self._tables.values():
             await table.store()

@@ -51,8 +51,8 @@ class Author(Keyable, Model[AuthorJson]):
             provider_id=json["provider_id"],
             id=json["id"],
             name=json["name"],
-            screen_id=json.get("screen_id", None),
-            avatar_url=json.get("avatar_url", None),
+            screen_id=json.get("screen_id"),
+            avatar_url=json.get("avatar_url"),
             roles=map_optional(
                 json.get("roles"),
                 lambda roles: list(map(Role.from_json, roles)),

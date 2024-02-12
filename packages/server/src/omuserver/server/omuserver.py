@@ -76,11 +76,13 @@ class OmuServer(Server, NetworkListener):
 
     async def _handle_proxy(self, request: web.Request) -> web.StreamResponse:
         url = request.query.get("url")
+        no_cache = bool(request.query.get("no_cache"))
         if not url:
             return web.Response(status=400)
         try:
             async with client.get(url) as resp:
                 headers = {
+                    "Cache-Control": "no-cache" if no_cache else "max-age=3600",
                     "Content-Type": resp.content_type,
                 }
                 resp.raise_for_status()
@@ -133,12 +135,12 @@ class OmuServer(Server, NetworkListener):
     async def shutdown(self) -> None:
         self._running = False
         for listener in self._listeners:
-            await listener.on_shutdown()
+            await listener.on_server_stop()
 
     async def on_start(self) -> None:
         logger.info(f"Listening on {self.address}")
         for listener in self._listeners:
-            await listener.on_start()
+            await listener.on_server_start()
 
     def add_listener(self, listener: ServerListener) -> None:
         self._listeners.append(listener)

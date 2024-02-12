@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict
 
@@ -42,7 +44,7 @@ class PluginExtension(Extension, ServerListener):
     def create(cls, server: Server) -> PluginExtension:
         return cls(server)
 
-    async def on_start(self) -> None:
+    async def on_server_start(self) -> None:
         await self._load_plugins()
 
     async def _load_plugins(self) -> None:
@@ -57,4 +59,7 @@ class PluginExtension(Extension, ServerListener):
     async def _load_plugin(self, path: Path) -> None:
         plugin = await self.loader.load(path)
         self.plugins[path.name] = plugin
+        # loop = asyncio.new_event_loop()
+        # loop.create_task(plugin.start())
+        # threading.Thread(target=loop.run_forever).start()
         await plugin.start()

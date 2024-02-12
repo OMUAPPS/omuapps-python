@@ -1,9 +1,8 @@
 from typing import Dict
 
 from omu.event.event import JsonEventType
-from omu.extension.server.model.app import App
-from omu.interface import Serializer
-from omu.interface.model import Model
+from omu.extension.server import App
+from omu.interface import Model, Serializer
 
 
 class ConnectEvent(Model):

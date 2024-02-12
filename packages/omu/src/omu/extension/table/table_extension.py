@@ -3,21 +3,19 @@ from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Typ
 from omu.client.client import Client
 from omu.connection import ConnectionListener
 from omu.event.event import JsonEventType, SerializeEventType
-from omu.extension.endpoint.endpoint import JsonEndpointType, SerializeEndpointType
+from omu.extension.endpoint import JsonEndpointType, SerializeEndpointType
 from omu.extension.extension import Extension, define_extension_type
 from omu.helper import ByteReader, ByteWriter
-from omu.interface import Keyable, Serializer
-from omu.interface.serializable import Serializable
+from omu.interface import Keyable, Serializable, Serializer
 
-from .model.table_info import TableInfo
 from .table import (
     AsyncCallback,
-    CallbackTableListener,
     ModelTableType,
     Table,
     TableListener,
     TableType,
 )
+from .table_info import TableInfo
 
 type Coro[**P, T] = Callable[P, Awaitable[T]]
 
@@ -249,28 +247,28 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
     async def clear(self) -> None:
         await self._client.send(TableItemClearEvent, TableEventData(type=self.key))
 
-    async def fetch(
+    async def fetch_items(
         self,
         before: int | None = None,
         after: int | None = None,
         cursor: str | None = None,
     ) -> Dict[str, T]:
-        res = await self._client.endpoints.call(
+        items_response = await self._client.endpoints.call(
             TableItemFetchEndpoint,
             TableFetchReq(type=self.key, before=before, after=after, cursor=cursor),
         )
-        items = self._parse_items(res["items"])
+        items = self._parse_items(items_response["items"])
         self._cache.update(items)
         for listener in self._listeners:
             await listener.on_cache_update(self._cache)
         return items
 
-    async def iter(
+    async def iterate(
         self,
         backward: bool = False,
         cursor: str | None = None,
     ) -> AsyncGenerator[T, None]:
-        items = await self.fetch(
+        items = await self.fetch_items(
             before=self._type.info.cache_size if backward else None,
             after=self._type.info.cache_size if not backward else None,
             cursor=cursor,
@@ -279,7 +277,7 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
             yield item
         while len(items) > 0:
             cursor = next(iter(items.keys()))
-            items = await self.fetch(
+            items = await self.fetch_items(
                 before=self._type.info.cache_size if backward else None,
                 after=self._type.info.cache_size if not backward else None,
                 cursor=cursor,
@@ -305,7 +303,7 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
         self, callback: AsyncCallback[Mapping[str, T]] | None = None
     ) -> Callable[[], None]:
         self._listening = True
-        listener = CallbackTableListener(on_cache_update=callback)
+        listener = TableListener(on_cache_update=callback)
         self._listeners.append(listener)
         return lambda: self._listeners.remove(listener)
 
@@ -326,20 +324,21 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
             return
         items = self._parse_items(event["items"])
         for proxy in self._proxies:
-            for key, item in items.items():
-                if item := await proxy(item):
-                    items[key] = item
-                else:
+            for key, item in list(items.items()):
+                updated_item = await proxy(item)
+                if updated_item is None:
                     del items[key]
+                else:
+                    items[key] = updated_item
+        serialized_items = {
+            item.key(): self._type.serializer.serialize(item) for item in items.values()
+        }
         await self._client.endpoints.call(
             TableProxyEndpoint,
             TableProxyData(
                 type=self.key,
                 key=event["key"],
-                items={
-                    item.key(): self._type.serializer.serialize(item)
-                    for item in items.values()
-                },
+                items=serialized_items,
             ),
         )
 
@@ -382,10 +381,10 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
             await listener.on_cache_update(self._cache)
 
     def _parse_items(self, items: Dict[str, bytes]) -> Dict[str, T]:
-        parsed: Dict[str, T] = {}
-        for key, item in items.items():
-            item = self._type.serializer.deserialize(item)
-            if not item:
-                raise Exception(f"Failed to deserialize item {key}")
-            parsed[key] = item
-        return parsed
+        parsed_items: Dict[str, T] = {}
+        for key, item_bytes in items.items():
+            item = self._type.serializer.deserialize(item_bytes)
+            if item is None:
+                raise ValueError(f"Failed to deserialize item with key: {key}")
+            parsed_items[key] = item
+        return parsed_items

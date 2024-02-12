@@ -61,4 +61,4 @@ class SessionTableListener(ServerTableListener):
         await self._session.send(TableItemClearEvent, TableEventData(type=self._key))
 
     def __repr__(self) -> str:
-        return f"<SessionTableHandler info={self._key} session={self._session.app}>"
+        return f"<SessionTableHandler key={self._key} app={self._session.app}>"

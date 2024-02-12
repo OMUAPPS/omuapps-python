@@ -4,9 +4,9 @@ from typing import List, TypedDict
 
 from omu.client import Client, ClientListener
 from omu.extension import Extension, define_extension_type
-from omu.extension.endpoint.endpoint import SerializeEndpointType
+from omu.extension.endpoint import SerializeEndpointType
 from omu.extension.table import TableExtensionType
-from omu.extension.table.table import ModelTableType
+from omu.extension.table import ModelTableType
 from omu.interface import Model, Serializer
 
 from omuchat.model.author import Author, AuthorJson
@@ -40,14 +40,12 @@ MessagesTableKey = ModelTableType.of_extension(
     "messages",
     Message,
 )
-MessagesTableKey.info.use_database = True
 MessagesTableKey.info.cache_size = 1000
 AuthorsTableKey = ModelTableType.of_extension(
     ChatExtensionType,
     "authors",
     Author,
 )
-AuthorsTableKey.info.use_database = True
 AuthorsTableKey.info.cache_size = 1000
 ChannelsTableKey = ModelTableType.of_extension(
     ChatExtensionType,
@@ -67,8 +65,8 @@ RoomTableKey = ModelTableType.of_extension(
 CreateChannelTreeEndpoint = SerializeEndpointType[str, List[Channel]].of_extension(
     ChatExtensionType,
     "create_channel_tree",
-    Serializer.noop(),
-    Serializer.array(Serializer.model(Channel)),
+    Serializer.json(),
+    Serializer.model(Channel).array().json(),
 )
 
 
@@ -97,6 +95,6 @@ class MessageEventData(
 MessageEvent = SerializeEndpointType[MessageEventData, str].of_extension(
     ChatExtensionType,
     "message",
-    Serializer.model(MessageEventData),
+    Serializer.model(MessageEventData).json(),
     Serializer.noop(),
 )

@@ -1,6 +1,5 @@
 import asyncio
 import time
-from typing import Tuple
 
 from loguru import logger
 from omuchat import App, Channel, Client, Message, Room, events
@@ -22,55 +21,51 @@ APP = App(
 
 client = Client(APP)
 services: dict[str, ProviderService] = {}
-chats: dict[str, Tuple[ProviderService, ChatService]] = {}
+chats: dict[str, ChatService] = {}
 
 
 async def register_services():
-    for service_cls in get_services():
-        service = service_cls(client)
+    for service_class in get_services():
+        service = service_class(client)
         services[service.info.key()] = service
         await client.providers.add(service.info)
 
 
-async def update(channel: Channel, service: ProviderService):
+async def update_channel(channel: Channel, service: ProviderService):
     try:
-        if channel.active:
-            rooms = await service.fetch_rooms(channel)
-            for url, create in rooms.items():
-                if url in chats:
-                    continue
-                chat = await create()
-                chats[url] = (service, chat)
-                asyncio.create_task(chat.start())
-                logger.info(f"Started chat for {url}")
-        else:
-            pass
+        if not channel.active:
+            return
+        available_rooms = await service.fetch_rooms(channel)
+        for url, create_chat in available_rooms.items():
+            if url in chats:
+                continue
+            chat = await create_chat()
+            chats[url] = chat
+            asyncio.create_task(chat.start())
+            logger.info(f"Started chat for {url}")
     except ProviderError as e:
         logger.error(f"Failed to update channel {channel.id}: {e}")
 
 
 @client.on(events.ChannelCreate)
 async def on_channel_create(channel: Channel):
-    service = get_provider(channel)
-    if service is None:
-        return
-    await update(channel, service)
+    provider = get_provider(channel)
+    if provider is not None:
+        await update_channel(channel, provider)
 
 
 @client.on(events.ChannelDelete)
 async def on_channel_delete(channel: Channel):
-    service = get_provider(channel)
-    if service is None:
-        return
-    await update(channel, service)
+    provider = get_provider(channel)
+    if provider is not None:
+        await update_channel(channel, provider)
 
 
 @client.on(events.ChannelUpdate)
 async def on_channel_update(channel: Channel):
-    service = get_provider(channel)
-    if service is None:
-        return
-    await update(channel, service)
+    provider = get_provider(channel)
+    if provider is not None:
+        await update_channel(channel, provider)
 
 
 def get_provider(channel: Channel | Room) -> ProviderService | None:
@@ -79,7 +74,7 @@ def get_provider(channel: Channel | Room) -> ProviderService | None:
     return services[channel.provider_id]
 
 
-async def wait_for_delay():
+async def delay():
     await asyncio.sleep(15 - time.time() % 15)
 
 
@@ -87,30 +82,44 @@ async def recheck_task():
     while True:
         await recheck_channels()
         await recheck_rooms()
-        await wait_for_delay()
+        await delay()
 
 
 async def recheck_rooms():
-    rooms = await client.rooms.fetch()
+    rooms = await client.rooms.fetch_items()
     for room in filter(lambda r: r.online, rooms.values()):
         if room.provider_id not in services:
             continue
-        service = services[room.provider_id]
-        if service is None:
+        if not await should_remove(room, services[room.provider_id]):
             continue
-        if await service.is_online(room):
-            continue
-        room.online = False
-        await client.rooms.update(room)
+        await stop_room(room)
+
+
+async def stop_room(room: Room):
+    room.online = False
+    await client.rooms.update(room)
+    for url, chat in tuple(chats.items()):
+        if chat.room.key() == room.key():
+            await chat.stop()
+            del chats[url]
+
+
+async def should_remove(room: Room, provider_service: ProviderService):
+    if room.channel_id is None:
+        return False
+    channel = await client.channels.get(room.channel_id)
+    if channel and not channel.active:
+        return True
+    return not await provider_service.is_online(room)
 
 
 async def recheck_channels():
-    providers = await client.channels.fetch()
-    for channel in providers.values():
-        service = get_provider(channel)
-        if service is None:
+    all_channels = await client.channels.fetch_items()
+    for channel in all_channels.values():
+        provider = get_provider(channel)
+        if provider is None:
             continue
-        await update(channel, service)
+        await update_channel(channel, provider)
 
 
 @client.on(events.Ready)

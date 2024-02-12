@@ -1,8 +1,8 @@
-from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping
+from typing import AsyncGenerator, Callable, Dict, List, Mapping
 
 from omu.extension.table import Table, TableListener, TableType
-from omu.extension.table.table_extension import AsyncCallback, CallbackTableListener
 from omu.interface import Keyable, Serializable
+from omu.helper import AsyncCallback
 
 from .server_table import ServerTable, ServerTableListener
 
@@ -62,21 +62,21 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
     async def clear(self) -> None:
         await self._table.clear()
 
-    async def fetch(
+    async def fetch_items(
         self,
         before: int | None = None,
         after: int | None = None,
         cursor: str | None = None,
     ) -> Dict[str, T]:
-        items = await self._table.fetch(before, after, cursor)
+        items = await self._table.fetch_items(before, after, cursor)
         return self._parse_items(items)
 
-    async def iter(
+    async def iterate(
         self,
         backward: bool = False,
         cursor: str | None = None,
     ) -> AsyncGenerator[T, None]:
-        items = await self.fetch(
+        items = await self.fetch_items(
             before=self._type.info.cache_size if backward else None,
             after=self._type.info.cache_size if not backward else None,
             cursor=cursor,
@@ -85,7 +85,7 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
             yield item
         while len(items) > 0:
             cursor = next(iter(items.keys()))
-            items = await self.fetch(
+            items = await self.fetch_items(
                 before=self._type.info.cache_size if backward else None,
                 after=self._type.info.cache_size if not backward else None,
                 cursor=cursor,
@@ -108,7 +108,7 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
         self, callback: AsyncCallback[Mapping[str, T]] | None = None
     ) -> Callable[[], None]:
         self._listening = True
-        listener = CallbackTableListener(on_cache_update=callback)
+        listener = TableListener(on_cache_update=callback)
         self._listeners.append(listener)
         return lambda: self._listeners.remove(listener)
 

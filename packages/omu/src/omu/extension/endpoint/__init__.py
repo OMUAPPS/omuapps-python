@@ -1,4 +1,9 @@
-from .endpoint import EndpointType, JsonEndpointType, SerializeEndpointType
+from .endpoint import (
+    EndpointInfo,
+    EndpointType,
+    JsonEndpointType,
+    SerializeEndpointType,
+)
 from .endpoint_extension import EndpointExtension, EndpointExtensionType
 
 __all__ = [
@@ -7,4 +12,5 @@ __all__ = [
     "EndpointType",
     "EndpointExtension",
     "EndpointExtensionType",
+    "EndpointInfo",
 ]

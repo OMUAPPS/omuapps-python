@@ -1,30 +1,37 @@
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from loguru import logger
-from omu.extension.server.server_extension import AppsTableType, ShutdownEndpointType
+from omu.extension.server.server_extension import (
+    AppsTableType,
+    PrintTasksEndpointType,
+    ShutdownEndpointType,
+)
 
 from omuserver import __version__
 from omuserver.extension import Extension
 from omuserver.extension.table import TableExtension
 from omuserver.helper import get_launch_command
 from omuserver.network import NetworkListener
-from omuserver.server import ServerListener
 
 if TYPE_CHECKING:
     from omuserver.server import Server
     from omuserver.session.session import Session
 
 
-class ServerExtension(Extension, NetworkListener, ServerListener):
+class ServerExtension(Extension, NetworkListener):
     def __init__(self, server: Server) -> None:
         self._server = server
-        table = server.extensions.get(TableExtension)
-        self.apps = table.register_table(AppsTableType)
         server.network.add_listener(self)
-        server.add_listener(self)
         server.endpoints.bind_endpoint(ShutdownEndpointType, self.shutdown)
+        server.endpoints.bind_endpoint(PrintTasksEndpointType, self.print_tasks)
+
+    async def print_tasks(self, session: Session, _) -> None:
+        logger.info("Tasks:")
+        for task in asyncio.all_tasks(self._server.loop):
+            logger.info(task)
 
     async def shutdown(self, session: Session, restart: bool = False) -> bool:
         await self._server.shutdown()
@@ -45,6 +52,8 @@ class ServerExtension(Extension, NetworkListener, ServerListener):
         return cls(server)
 
     async def on_start(self) -> None:
+        table = self._server.extensions.get(TableExtension)
+        self.apps = await table.register_table(AppsTableType)
         await self._server.registry.store("server:version", __version__)
         await self._server.registry.store(
             "server:directories", self._server.directories.to_json()

@@ -21,10 +21,10 @@ if TYPE_CHECKING:
 
 
 class ServerListener:
-    async def on_start(self) -> None:
+    async def on_server_start(self) -> None:
         ...
 
-    async def on_shutdown(self) -> None:
+    async def on_server_stop(self) -> None:
         ...
 
 

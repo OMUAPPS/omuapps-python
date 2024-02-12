@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import asyncio
-from typing import List
+from typing import TYPE_CHECKING, List
 
 import aiohttp
 from aiohttp import web
 
-from omu.client import Client
 from omu.connection import Address, Connection, ConnectionListener
 from omu.event import EVENTS, EventData
 from omu.event.event import EventType
 from omu.event.events import ConnectEvent
 from omu.helper import ByteReader, ByteWriter
+
+if TYPE_CHECKING:
+    from omu.client import Client
 
 
 class WebsocketsConnection(Connection):
@@ -41,26 +45,28 @@ class WebsocketsConnection(Connection):
     ) -> None:
         if self._socket and not self._socket.closed:
             raise RuntimeError("Already connected")
-        self._token = token
 
-        while True:
-            await self.disconnect()
-            await self._connect()
-            await self.send(
-                EVENTS.Connect,
-                ConnectEvent(
-                    app=self._client.app,
-                    token=self._token,
-                ),
-            )
-            self._closed_event.clear()
-            self._client.loop.create_task(self._listen())
-            for listener in self._listeners:
-                await listener.on_connected()
-                await listener.on_status_changed("connected")
-            await self._closed_event.wait()
-            if not reconnect:
-                break
+        self._token = token
+        await self.disconnect()
+        await self._connect()
+        await self.send(
+            EVENTS.Connect,
+            ConnectEvent(
+                app=self._client.app,
+                token=self._token,
+            ),
+        )
+        self._closed_event.clear()
+        self._client.loop.create_task(self._listen())
+
+        for listener in self._listeners:
+            await listener.on_connected()
+            await listener.on_status_changed("connected")
+
+        await self._closed_event.wait()
+
+        if reconnect:
+            await self.connect()
 
     async def _connect(self):
         self._socket = await self._session.ws_connect(self._ws_endpoint)
@@ -68,25 +74,23 @@ class WebsocketsConnection(Connection):
 
     async def _receive(self, socket: aiohttp.ClientWebSocketResponse) -> EventData:
         msg = await socket.receive()
-        match msg.type:
-            case web.WSMsgType.CLOSE:
-                raise RuntimeError("Socket closed")
-            case web.WSMsgType.ERROR:
-                raise RuntimeError("Socket error")
-            case web.WSMsgType.CLOSED:
-                raise RuntimeError("Socket closed")
-            case web.WSMsgType.CLOSING:
-                raise RuntimeError("Socket closing")
+        if msg.type in {
+            web.WSMsgType.CLOSE,
+            web.WSMsgType.CLOSED,
+            web.WSMsgType.CLOSING,
+            web.WSMsgType.ERROR,
+        }:
+            raise RuntimeError(f"Socket {msg.type.name.lower()}")
         if msg.data is None:
             raise RuntimeError("Received empty message")
         if msg.type == web.WSMsgType.TEXT:
             raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
             reader = ByteReader(msg.data)
-            type = reader.read_string()
-            data = reader.read_byte_array()
+            event_type = reader.read_string()
+            event_data = reader.read_byte_array()
             reader.finish()
-            return EventData(type, data)
+            return EventData(event_type, event_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 
@@ -103,9 +107,9 @@ class WebsocketsConnection(Connection):
             await listener.on_event(event)
 
     async def disconnect(self) -> None:
-        if not self._socket:
+        if not self._socket or self._socket.closed:
             return
-        if not self._socket.closed:
+        if self._socket:
             try:
                 await self._socket.close()
             except AttributeError:

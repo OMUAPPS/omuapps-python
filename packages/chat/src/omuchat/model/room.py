@@ -33,7 +33,7 @@ class Room(Keyable, Model[RoomJson]):
         self.channel_id = channel_id
         self.name = name
         self.description = description
-        self.online = online
+        self.online = online  # TODO: Change to status (online, offline, etc.)
         self.url = url
         self.image_url = image_url
         self.viewers = viewers
@@ -43,13 +43,13 @@ class Room(Keyable, Model[RoomJson]):
         return cls(
             id=json["id"],
             provider_id=json["provider_id"],
-            channel_id=json.get("channel_id", None),
+            channel_id=json.get("channel_id"),
             name=json["name"],
-            description=json.get("description", None),
+            description=json.get("description"),
             online=json["online"],
             url=json["url"],
-            image_url=json.get("image_url", None),
-            viewers=json.get("viewers", None),
+            image_url=json.get("image_url"),
+            viewers=json.get("viewers"),
         )
 
     def key(self) -> str:

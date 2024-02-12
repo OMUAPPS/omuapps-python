@@ -33,7 +33,7 @@ class Gift(Model[GiftJson]):
             name=json["name"],
             amount=json["amount"],
             is_paid=json["is_paid"],
-            image_url=json.get("image_url", None) and json["image_url"],
+            image_url=json.get("image_url") and json["image_url"],
         )
 
     def to_json(self) -> GiftJson:

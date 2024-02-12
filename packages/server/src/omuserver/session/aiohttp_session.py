@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from typing import List
 
 from aiohttp import web
 from loguru import logger
 from omu.event import EVENTS, EventData, EventType
-from omu.extension.server.model.app import App
+from omu.extension.server import App
 from omu.helper import ByteReader, ByteWriter
 
 from omuserver.security import Permission
@@ -35,26 +36,27 @@ class AiohttpSession(Session):
         return self.permissions
 
     @classmethod
-    async def _receive(cls, socket: web.WebSocketResponse) -> EventData:
+    async def _receive(cls, socket: web.WebSocketResponse) -> EventData | None:
         msg = await socket.receive()
-        match msg.type:
-            case web.WSMsgType.CLOSE:
-                raise RuntimeError("Socket closed")
-            case web.WSMsgType.ERROR:
-                raise RuntimeError("Socket error")
-            case web.WSMsgType.CLOSED:
-                raise RuntimeError("Socket closed")
-            case web.WSMsgType.CLOSING:
-                raise RuntimeError("Socket closing")
+        if msg.type in {
+            web.WSMsgType.CLOSE,
+            web.WSMsgType.ERROR,
+            web.WSMsgType.CLOSED,
+            web.WSMsgType.CLOSING,
+        }:
+            if msg.type == web.WSMsgType.CLOSE:
+                return None
+            raise RuntimeError(f"Socket {msg.type.name.lower()}")
+
         if msg.data is None:
             raise RuntimeError("Received empty message")
         if msg.type == web.WSMsgType.TEXT:
             raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
             reader = ByteReader(msg.data)
-            type = reader.read_string()
-            data = reader.read_byte_array()
-            return EventData(type, data)
+            event_type = reader.read_string()
+            event_data = reader.read_byte_array()
+            return EventData(event_type, event_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 
@@ -63,25 +65,31 @@ class AiohttpSession(Session):
         cls, server: Server, socket: web.WebSocketResponse
     ) -> AiohttpSession:
         data = await cls._receive(socket)
+        if data is None:
+            raise RuntimeError("Socket closed before connect")
         if data.type != EVENTS.Connect.type:
             raise RuntimeError(f"Expected {EVENTS.Connect.type} but got {data.type}")
         event = EVENTS.Connect.serializer.deserialize(data.data)
-        permissions, token = await server.security.auth_app(event.app, event.token)
-        self = cls(socket, app=event.app, permissions=permissions)
-        await self.send(EVENTS.Token, token)
-        return self
+        permissions, token = await server.security.authenticate_app(
+            event.app, event.token
+        )
+        session = cls(socket, app=event.app, permissions=permissions)
+        await session.send(EVENTS.Token, token)
+        return session
 
     async def listen(self) -> None:
         try:
             while True:
-                try:
-                    event = await self._receive(self.socket)
-                    for listener in self._listeners:
-                        await listener.on_event(self, event)
-                except RuntimeError:
+                event = await self._receive(self.socket)
+                if event is None:
                     break
+                asyncio.create_task(self.dispatch_event(event))
         finally:
             await self.disconnect()
+
+    async def dispatch_event(self, event: EventData) -> None:
+        for listener in self._listeners:
+            await listener.on_event(self, event)
 
     async def disconnect(self) -> None:
         try:

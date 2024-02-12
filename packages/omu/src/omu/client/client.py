@@ -8,12 +8,11 @@ if TYPE_CHECKING:
     from omu.connection import Connection
     from omu.event import EventRegistry, EventType
     from omu.extension import ExtensionRegistry
-    from omu.extension.endpoint.endpoint_extension import EndpointExtension
-    from omu.extension.message.message_extension import MessageExtension
-    from omu.extension.registry.registry_extension import RegistryExtension
-    from omu.extension.server.model import App
-    from omu.extension.server.server_extension import ServerExtension
-    from omu.extension.table.table_extension import TableExtension
+    from omu.extension.endpoint import EndpointExtension
+    from omu.extension.message import MessageExtension
+    from omu.extension.registry import RegistryExtension
+    from omu.extension.server import App, ServerExtension
+    from omu.extension.table import TableExtension
 
 
 class ClientListener:

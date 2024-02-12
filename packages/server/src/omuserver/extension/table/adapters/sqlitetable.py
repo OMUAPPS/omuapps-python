@@ -68,7 +68,7 @@ class SqliteTableAdapter(TableAdapter):
             keys,
         )
 
-    async def fetch(
+    async def fetch_items(
         self, before: int | None, after: int | None, cursor: str | None
     ) -> Dict[str, bytes]:
         cursor_id: int | None = None

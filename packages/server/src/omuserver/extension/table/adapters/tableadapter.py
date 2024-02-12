@@ -44,7 +44,7 @@ class TableAdapter(abc.ABC):
         pass
 
     @abc.abstractmethod
-    async def fetch(
+    async def fetch_items(
         self, before: int | None, after: str | None, cursor: str | None
     ) -> Dict[str, bytes]:
         pass

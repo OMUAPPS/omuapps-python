@@ -4,15 +4,15 @@ from pathlib import Path
 from typing import List, TypedDict
 
 
-def safe_path(root: Path, path: Path) -> Path:
+def safe_path(root_path: Path, input_path: Path) -> Path:
     """
     How to prevent directory traversal attack from Python code
     https://stackoverflow.com/a/45190125
     """
-    result = root.joinpath(path).resolve()
-    if not result.is_relative_to(root.resolve()):
-        raise ValueError(f"Path {path} is not relative to {root}")
-    return result.relative_to(root.resolve())
+    resolved_path = root_path.joinpath(input_path).resolve()
+    if not resolved_path.is_relative_to(root_path.resolve()):
+        raise ValueError(f"Path {input_path} is not relative to {root_path}")
+    return resolved_path.relative_to(root_path.resolve())
 
 
 def safe_path_join(root: Path, *paths: Path | str) -> Path:
@@ -25,7 +25,8 @@ class LaunchCommand(TypedDict):
 
 
 def get_launch_command() -> LaunchCommand:
+    args = [sys.executable, "-m", "omuserver", *sys.argv[1:]]
     return {
         "cwd": os.getcwd(),
-        "args": [sys.executable, "-m", "omuserver", *sys.argv[1:]],
+        "args": args,
     }

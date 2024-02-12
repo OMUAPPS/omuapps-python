@@ -21,20 +21,20 @@ class ExtensionRegistry(abc.ABC):
 
 class ExtensionRegistryServer(ExtensionRegistry):
     def __init__(self, server: Server) -> None:
-        self._server = server
-        self._extensions: Dict[type[Extension], Extension] = {}
+        self.server = server
+        self.extensions: Dict[type[Extension], Extension] = {}
 
     def register[T: Extension](self, extension: type[T]) -> T:
-        if extension in self._extensions:
+        if extension in self.extensions:
             raise ValueError(f"Extension {extension} already registered")
-        instance = extension.create(self._server)
-        self._extensions[extension] = instance
-        return instance
+        new_extension = extension.create(self.server)
+        self.extensions[extension] = new_extension
+        return new_extension
 
     def get[T: Extension](self, extension: type[T]) -> T:
-        if extension not in self._extensions:
+        if extension not in self.extensions:
             raise ValueError(f"Extension {extension} not registered")
-        instance = self._extensions[extension]
+        instance = self.extensions[extension]
         if not isinstance(instance, extension):
             raise ValueError(f"Extension {extension} not registered")
         return instance

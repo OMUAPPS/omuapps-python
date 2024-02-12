@@ -1,7 +1,7 @@
 from .keyable import Keyable
 from .model import Model
 from .named import Named
-from .serializable import Serializable, Serializer
+from .serializable import Jsonable, Serializable, Serializer
 
 __all__ = [
     "Keyable",
@@ -9,4 +9,5 @@ __all__ = [
     "Named",
     "Serializable",
     "Serializer",
+    "Jsonable",
 ]

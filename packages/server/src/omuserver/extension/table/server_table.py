@@ -71,7 +71,7 @@ class ServerTable(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def fetch(
+    async def fetch_items(
         self,
         before: int | None = None,
         after: int | None = None,
@@ -80,7 +80,7 @@ class ServerTable(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def iterator(self) -> AsyncIterator[bytes]:
+    async def iterate(self) -> AsyncIterator[bytes]:
         ...
 
     @abc.abstractmethod

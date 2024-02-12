@@ -240,7 +240,7 @@ class MisskeyRoomService:
                 return
             user = note["user"]
             author = await self.instance.fetch_author(user["id"])
-            content = self._parse_message_text(note.get("text", None))
+            content = self._parse_message_text(note.get("text"))
             created_at = datetime.datetime.fromisoformat(note["createdAt"])
             message = Message(
                 id=note["id"],

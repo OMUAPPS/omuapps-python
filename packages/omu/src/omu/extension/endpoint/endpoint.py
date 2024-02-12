@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import abc
+from typing import TYPE_CHECKING
 
-from omu.extension.endpoint.model.endpoint_info import EndpointInfo
-from omu.extension.extension import ExtensionType
-from omu.extension.server.model.app import App
+from omu.identifier import Identifier
 from omu.interface import Serializable, Serializer
+
+from .endpoint_info import EndpointInfo
+
+if TYPE_CHECKING:
+    from omu.extension import ExtensionType
+    from omu.extension.server import App
 
 
 class EndpointType[Req, Res](abc.ABC):
@@ -45,7 +50,7 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(app.key(), name),
+            info=EndpointInfo(identifier=Identifier.create(app.key(), name)),
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
@@ -59,7 +64,7 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(extension.key, name),
+            info=EndpointInfo(identifier=Identifier.create(extension.key, name)),
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
@@ -95,7 +100,7 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
         name: str,
     ):
         return cls(
-            info=EndpointInfo(app.key(), name),
+            info=EndpointInfo(identifier=Identifier.create(app.key(), name)),
         )
 
     @classmethod
@@ -105,5 +110,5 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
         name: str,
     ):
         return cls(
-            info=EndpointInfo(extension.key, name),
+            info=EndpointInfo(identifier=Identifier.create(extension.key, name)),
         )

@@ -28,6 +28,11 @@ class ProviderService(abc.ABC):
 
 
 class ChatService(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def room(self) -> Room:
+        ...
+
     @abc.abstractmethod
     async def start(self):
         ...

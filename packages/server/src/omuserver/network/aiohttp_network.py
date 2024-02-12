@@ -72,9 +72,9 @@ class AiohttpNetwork(Network, ServerListener, SessionListener):
 
     def is_port_available(self) -> bool:
         try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(("127.0.0.1", 80))
-            sock.close()
+            socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = socket_connection.connect_ex(("127.0.0.1", 80))
+            socket_connection.close()
             return result != 0
         except OSError:
             return False
@@ -85,7 +85,9 @@ class AiohttpNetwork(Network, ServerListener, SessionListener):
         self._app.on_startup.append(self._handle_start)
         runner = web.AppRunner(self._app)
         await runner.setup()
-        site = web.TCPSite(runner, self._server.address.host, self._server.address.port)
+        site = web.TCPSite(
+            runner, host=self._server.address.host, port=self._server.address.port
+        )
         await site.start()
 
     def add_listener(self, listener: NetworkListener) -> None:

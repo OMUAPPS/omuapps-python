@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import abc
-from typing import AsyncGenerator, Awaitable, Callable, Dict, Mapping
+from typing import AsyncGenerator, Callable, Dict, Mapping
 
-from omu.extension.extension import ExtensionType
-from omu.extension.server.model.app import App
-from omu.extension.table.model.table_info import TableInfo
+from omu.extension import ExtensionType
+from omu.extension.server import App
+from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
-from omu.interface import Keyable, Serializable
-from omu.interface.serializable import Jsonable, Serializer
+from omu.interface import Jsonable, Keyable, Serializable, Serializer
 
-type AsyncCallback[**P] = Callable[P, Awaitable]
-type Coro[**P, T] = Callable[P, Awaitable[T]]
+from .table_info import TableInfo
 
 
 class Table[T: Keyable](abc.ABC):
@@ -41,7 +39,7 @@ class Table[T: Keyable](abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def fetch(
+    async def fetch_items(
         self,
         before: int | None = None,
         after: int | None = None,
@@ -50,7 +48,7 @@ class Table[T: Keyable](abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def iter(
+    async def iterate(
         self,
         backward: bool = False,
         cursor: str | None = None,
@@ -79,23 +77,12 @@ class Table[T: Keyable](abc.ABC):
 
 
 class TableListener[T: Keyable]:
-    async def on_add(self, items: Mapping[str, T]) -> None:
-        ...
+    _on_add = None
+    _on_update = None
+    _on_remove = None
+    _on_clear = None
+    _on_cache_update = None
 
-    async def on_update(self, items: Mapping[str, T]) -> None:
-        ...
-
-    async def on_remove(self, items: Mapping[str, T]) -> None:
-        ...
-
-    async def on_clear(self) -> None:
-        ...
-
-    async def on_cache_update(self, cache: Mapping[str, T]) -> None:
-        ...
-
-
-class CallbackTableListener[T: Keyable](TableListener[T]):
     def __init__(
         self,
         on_add: AsyncCallback[Mapping[str, T]] | None = None,

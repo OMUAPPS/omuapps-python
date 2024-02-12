@@ -67,6 +67,8 @@ class ServerEndpoint[Req, Res](Endpoint):
         return self._endpoint.info
 
     async def call(self, data: EndpointDataReq, session: Session) -> None:
+        if session.closed:
+            raise RuntimeError("Session already closed")
         try:
             req = self._endpoint.request_serializer.deserialize(data["data"])
             res = await self._callback(session, req)
@@ -195,8 +197,8 @@ class EndpointExtension(Extension, ServerListener):
             return
         return endpoint
 
-    async def on_start(self) -> None:
+    async def on_server_start(self) -> None:
         tables = self._server.extensions.get(TableExtension)
-        self.endpoints = tables.register_table(EndpointsTableType)
+        self.endpoints = await tables.register_table(EndpointsTableType)
         for endpoint in self._endpoints.values():
             await self.endpoints.add(endpoint.info)

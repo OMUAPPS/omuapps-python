@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Any, Dict, List, TypedDict
+from typing import TYPE_CHECKING, Any, Dict, List
 
-from omu.interface.serializable import Serializer
+from omu.interface import Serializer
 
 if TYPE_CHECKING:
     from omu.extension.extension import ExtensionType
-    from omu.extension.server.model.app import App
+    from omu.extension.server import App
     from omu.interface import Serializable
 
 
@@ -41,9 +41,7 @@ class EventType[T](abc.ABC):
         return self.type
 
 
-type Jsonable = (
-    str | int | float | bool | None | Dict[str, Jsonable] | List[Jsonable] | TypedDict
-)
+type Jsonable = str | int | float | bool | None | Dict[str, Jsonable] | List[Jsonable]
 
 
 class JsonEventType[T](EventType[T]):

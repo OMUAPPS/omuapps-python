@@ -8,12 +8,12 @@ from loguru import logger
 from omu.client import Client
 from omu.connection import Address, ConnectionListener, WebsocketsConnection
 from omu.event import EVENTS, EventRegistryImpl
-from omu.extension.endpoint.endpoint_extension import (
+from omu.extension.endpoint import (
     EndpointExtension,
     EndpointExtensionType,
 )
 from omu.extension.extension_registry import ExtensionRegistryImpl
-from omu.extension.message.message_extension import (
+from omu.extension.message import (
     MessageExtension,
     MessageExtensionType,
 )
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from omu.connection import Connection
     from omu.event import EventRegistry, EventType
     from omu.extension import ExtensionRegistry
-    from omu.extension.server.model.app import App
+    from omu.extension.server import App
 
 
 class OmuClient(Client, ConnectionListener):

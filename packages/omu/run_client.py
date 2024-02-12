@@ -1,7 +1,7 @@
 from omu.client import OmuClient
 from omu.connection import Address, ConnectionListener
 from omu.event import EVENTS
-from omu.extension.server.model.app import App
+from omu.extension.server import App
 from omu.helper import instance
 
 address = Address(

@@ -3,7 +3,7 @@ from typing import Any, Awaitable, Callable, TypedDict
 from omu.client.client import Client
 from omu.connection.connection import ConnectionListener
 from omu.event.event import JsonEventType
-from omu.extension.endpoint.endpoint import JsonEndpointType
+from omu.extension.endpoint import JsonEndpointType
 from omu.extension.extension import Extension, define_extension_type
 
 RegistryExtensionType = define_extension_type(

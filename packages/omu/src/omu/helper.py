@@ -3,6 +3,9 @@ from __future__ import annotations
 import io
 import typing
 
+type AsyncCallback[**P] = typing.Callable[P, typing.Awaitable]
+type Coro[**P, T] = typing.Callable[P, typing.Awaitable[T]]
+
 
 def instance[T](cls: typing.Type[T]) -> T:
     return cls()
@@ -40,7 +43,7 @@ class ByteWriter:
         return self
 
     def write_byte_array(self, value: bytes) -> ByteWriter:
-        if len(value) > 2**16:
+        if len(value) > 0xFFFFFFFF:
             raise ValueError("Byte array too large")
         self.write_int(len(value))
         self.write(value)

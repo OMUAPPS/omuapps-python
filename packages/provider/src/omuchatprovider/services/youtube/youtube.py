@@ -52,7 +52,15 @@ class ReactionEvent(TypedDict):
     reactions: Dict[str, int]
 
 
-REACTION = client.omu.message.register("youtube-reaction", ReactionEvent)
+REACTION_MESSAGE = client.omu.message.register("youtube-reaction", ReactionEvent)
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
+    )
+}
+YOUTUBE_URL = "https://www.youtube.com"
 
 
 class YoutubeService(ProviderService):
@@ -71,52 +79,49 @@ class YoutubeService(ProviderService):
 
         video_id = options.get("video_id") or options.get("video_id_short")
         if video_id is None:
-            channel_id = options.get("channel_id") or await self.channel_id_by_vanity(
+            channel_id = options.get(
+                "channel_id"
+            ) or await self.get_channel_id_by_vanity(
                 options.get("channel_id_vanity")
                 or options.get("channel_id_user")
                 or options.get("channel_id_c")
             )
             if channel_id is None:
                 raise ProviderFailed("Could not find channel id")
-            video_id = await self.video_id_by_channel(channel_id)
+            video_id = await self.get_video_id_by_channel(channel_id)
             if video_id is None:
                 raise ProviderFailed("Could not find video id")
         if not await YoutubeChat.is_online(video_id):
             return {}
         return {
-            f"https://www.youtube.com/watch?v={video_id}": lambda: YoutubeChatService.create(
+            f"{YOUTUBE_URL}/watch?v={video_id}": lambda: YoutubeChatService.create(
                 self.client, channel, video_id
             )
         }
 
-    async def channel_id_by_vanity(self, vanity: str | None) -> str | None:
+    async def get_channel_id_by_vanity(self, vanity: str | None) -> str | None:
         if vanity is None:
             return None
-        vanity_id = re.sub(r"[^a-zA-Z0-9_-]", "", vanity)
-        if not vanity_id:
+        clean_vanity = re.sub(r"[^a-zA-Z0-9_-]", "", vanity)
+        if not clean_vanity:
             return None
-        res = await session.get(f"https://www.youtube.com/@{vanity_id}")
-        soup = bs4.BeautifulSoup(await res.text(), "html.parser")
-        meta = soup.select_one('meta[itemprop="identifier"]')
-        if meta is None:
+        response = await session.get(f"{YOUTUBE_URL}/@{clean_vanity }")
+        soup = bs4.BeautifulSoup(await response.text(), "html.parser")
+        meta_tag = soup.select_one('meta[itemprop="identifier"]')
+        if meta_tag is None:
             return None
-        return meta.attrs.get("content")
+        return meta_tag.attrs.get("content")
 
-    async def video_id_by_channel(self, channel_id: str) -> str | None:
-        res = await session.get(
-            f"https://www.youtube.com/embed/live_stream?channel={channel_id}",
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
-                )
-            },
+    async def get_video_id_by_channel(self, channel_id: str) -> str | None:
+        response = await session.get(
+            f"{YOUTUBE_URL}/embed/live_stream?channel={channel_id}",
+            headers=HEADERS,
         )
-        soup = bs4.BeautifulSoup(await res.text(), "html.parser")
-        link = soup.select_one('link[rel="canonical"]')
-        if link is None:
-            return await self.video_id_by_channel_feeds(channel_id)
-        href = link.attrs.get("href")
+        soup = bs4.BeautifulSoup(await response.text(), "html.parser")
+        canonical_link = soup.select_one('link[rel="canonical"]')
+        if canonical_link is None:
+            return await self.get_video_id_by_channel_feeds(channel_id)
+        href = canonical_link.attrs.get("href")
         if href is None:
             return None
         match = re.search(INFO.regex, href)
@@ -125,17 +130,12 @@ class YoutubeService(ProviderService):
         options = match.groupdict()
         return options.get("video_id") or options.get("video_id_short")
 
-    async def video_id_by_channel_feeds(self, channel_id: str) -> str | None:
-        res = await session.get(
-            f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}",
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
-                )
-            },
+    async def get_video_id_by_channel_feeds(self, channel_id: str) -> str | None:
+        response = await session.get(
+            f"{YOUTUBE_URL}/feeds/videos.xml?channel_id={channel_id}",
+            headers=HEADERS,
         )
-        soup = bs4.BeautifulSoup(await res.text(), "xml")
+        soup = bs4.BeautifulSoup(await response.text(), "xml")
         link = soup.select_one("entry link")
         if link is None:
             return None
@@ -166,18 +166,13 @@ class YoutubeChat:
 
     @classmethod
     async def from_url(cls, video_id: str):
-        res = await session.get(
-            "https://www.youtube.com/live_chat",
+        response = await session.get(
+            f"{YOUTUBE_URL}/live_chat",
             params={"v": video_id},
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
-                )
-            },
+            headers=HEADERS,
         )
-        soup = bs4.BeautifulSoup(await res.text(), "html.parser")
-        data = cls.extract_ytcfg(soup)
+        soup = bs4.BeautifulSoup(await response.text(), "html.parser")
+        data = cls.extract_script(soup, "ytcfg.set")
         api_key = data["INNERTUBE_API_KEY"]
         continuation = cls.extract_continuation(soup)
         if continuation is None:
@@ -185,28 +180,9 @@ class YoutubeChat:
         return cls(api_key, continuation)
 
     @classmethod
-    def extract_ytcfg(cls, soup: bs4.BeautifulSoup) -> Dict:
-        for script in soup.select("script"):
-            text = script.text.strip()
-            if text.startswith("ytcfg.set"):
-                break
-        else:
-            raise ProviderFailed("Could not find ytcfg.set")
-        text = text[text.index("{") : text.rindex("}") + 1]
-        data = json.loads(text)
-        return data
-
-    @classmethod
     def extract_continuation(cls, soup: bs4.BeautifulSoup) -> str | None:
-        for script in soup.select("script"):
-            text = script.text.strip()
-            if text.startswith('window["ytInitialData"]'):
-                break
-        else:
-            raise ProviderFailed("Could not find ytInitialData")
-        text = text[text.index("{") : text.rindex("}") + 1]
-        data = json.loads(text)
-        contents = data["contents"]
+        initial_data = cls.extract_script(soup, 'window["ytInitialData"]')
+        contents = initial_data["contents"]
         if "liveChatRenderer" not in contents:
             return None
         return contents["liveChatRenderer"]["continuations"][0][
@@ -214,70 +190,76 @@ class YoutubeChat:
         ]["continuation"]
 
     @classmethod
+    def extract_script(cls, soup: bs4.BeautifulSoup, startswith: str) -> Dict:
+        for script in soup.select("script"):
+            script_text = script.text.strip()
+            if script_text.startswith(startswith):
+                break
+        else:
+            raise ProviderFailed(f"Could not find {startswith}")
+        data_text = script_text[script_text.index("{") : script_text.rindex("}") + 1]
+        data = json.loads(data_text)
+        return data
+
+    @classmethod
     async def is_online(cls, video_id: str) -> bool:
-        res = await session.get(
-            "https://www.youtube.com/live_chat",
-            params={"v": video_id},
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
-                )
-            },
+        live_chat_params = {"v": video_id}
+        live_chat_response = await session.get(
+            f"{YOUTUBE_URL}/live_chat",
+            params=live_chat_params,
+            headers=HEADERS,
         )
-        if res.status // 100 != 2:
+        if live_chat_response.status // 100 != 2:
             return False
-        soup = bs4.BeautifulSoup(await res.text(), "html.parser")
-        data = YoutubeChat.extract_ytcfg(soup)
-        api_key = data["INNERTUBE_API_KEY"]
+        soup = bs4.BeautifulSoup(await live_chat_response.text(), "html.parser")
+        ytcfg_data = YoutubeChat.extract_script(soup, "ytcfg.set")
+        api_key = ytcfg_data["INNERTUBE_API_KEY"]
         continuation = YoutubeChat.extract_continuation(soup)
         if continuation is None:
             return False
-        res = await session.post(
-            "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat",
-            params={"key": api_key},
-            json={
-                "context": {
-                    "client": {
-                        "clientName": "WEB",
-                        "clientVersion": "2.20230622.06.00",
-                    }
-                },
-                "continuation": continuation,
+        live_chat_request_params = {"key": api_key}
+        live_chat_request_json = {
+            "context": {
+                "client": {
+                    "clientName": "WEB",
+                    "clientVersion": "2.20230622.06.00",
+                }
             },
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
-                )
-            },
+            "continuation": continuation,
+        }
+        live_chat_request = await session.post(
+            f"{YOUTUBE_URL}/youtubei/v1/live_chat/get_live_chat",
+            params=live_chat_request_params,
+            json=live_chat_request_json,
+            headers=HEADERS,
         )
-        if res.status // 100 != 2:
+        if live_chat_request.status // 100 != 2:
             return False
-        data = await res.json()
-        return "continuationContents" in data
+        live_chat_response_data = await live_chat_request.json()
+        return "continuationContents" in live_chat_response_data
 
     async def fetch(self) -> api.Response:
-        res = await session.post(
-            "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat",
-            params={"key": self.api_key},
-            json={
-                "context": {
-                    "client": {
-                        "clientName": "WEB",
-                        "clientVersion": "2.20230622.06.00",
-                    }
-                },
-                "continuation": self.continuation,
+        url = f"{YOUTUBE_URL}/youtubei/v1/live_chat/get_live_chat"
+        params = {"key": self.api_key}
+        json_payload = {
+            "context": {
+                "client": {
+                    "clientName": "WEB",
+                    "clientVersion": "2.20230622.06.00",
+                }
             },
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                    "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
-                )
-            },
+            "continuation": self.continuation,
+        }
+
+        response = await session.post(
+            url,
+            params=params,
+            json=json_payload,
+            headers=HEADERS,
         )
-        data = await res.json()
+        if response.status // 100 != 2:
+            raise ProviderFailed(f"Could not fetch chat: {response.status=}")
+        data = await response.json()
         return data
 
     async def next(self) -> api.Response | None:
@@ -307,9 +289,13 @@ class YoutubeChatService(ChatService):
     ):
         self.client = client
         self.channel = channel
-        self.room = room
+        self._room = room
         self.chat = chat
         self.tasks = Tasks(client.loop)
+
+    @property
+    def room(self) -> Room:
+        return self._room
 
     @classmethod
     async def create(cls, client: Client, channel: Channel, video_id: str):
@@ -319,52 +305,55 @@ class YoutubeChatService(ChatService):
             channel_id=channel.key(),
             name="Youtube",
             online=False,
-            url=f"https://www.youtube.com/watch?v={video_id}",
+            url=f"{YOUTUBE_URL}/watch?v={video_id}",
             image_url=f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
         )
         chat = await YoutubeChat.from_url(video_id)
-        self = cls(client, channel, room, chat)
+        instance = cls(client, channel, room, chat)
         await client.rooms.add(room)
-
-        self.tasks.create_task(self.start())
-        return self
+        return instance
 
     async def start(self):
-        self.room.online = True
-        await self.client.rooms.update(self.room)
+        self._room.online = True
+        await self.client.rooms.update(self._room)
         while True:
-            data = await self.chat.next()
-            if data is None:
+            chat_data = await self.chat.next()
+            if chat_data is None:
                 break
-            for action in data["continuationContents"]["liveChatContinuation"].get(
-                "actions", []
-            ):
-                if "addChatItemAction" in action:
-                    await self.process_message_item(action["addChatItemAction"]["item"])
-                if "markChatItemAsDeletedAction" in action:
-                    await self.process_deleted_item(
-                        action["markChatItemAsDeletedAction"]
-                    )
-            await self.process_reactions(data)
+            await self.process_chat_data(chat_data)
             await asyncio.sleep(1 / 3)
         await self.stop()
 
-    async def process_message_item(self, item: api.MessageItemData):
+    async def process_chat_data(self, data: api.Response):
+        messages: List[Message] = []
+        for action in data["continuationContents"]["liveChatContinuation"].get(
+            "actions", []
+        ):
+            if "addChatItemAction" in action:
+                messages.extend(
+                    await self.process_message_item(action["addChatItemAction"]["item"])
+                )
+            if "markChatItemAsDeletedAction" in action:
+                await self.process_deleted_item(action["markChatItemAsDeletedAction"])
+        await self.client.messages.add(*messages)
+        await self.process_reactions(data)
+
+    async def process_message_item(self, item: api.MessageItemData) -> List[Message]:
         if "liveChatTextMessageRenderer" in item:
             message = item["liveChatTextMessageRenderer"]
             author = self._parse_author(message)
             content = self._parse_message(message["message"])
             created_at = self._parse_created_at(message)
             await self.client.authors.add(author)
-            await self.client.messages.add(
+            return [
                 Message(
                     id=message["id"],
-                    room_id=self.room.key(),
+                    room_id=self._room.key(),
                     author_id=author.key(),
                     content=content,
                     created_at=created_at,
                 )
-            )
+            ]
         elif "liveChatPaidMessageRenderer" in item:
             message = item["liveChatPaidMessageRenderer"]
             author = self._parse_author(message)
@@ -372,16 +361,16 @@ class YoutubeChatService(ChatService):
             paid = self._parse_paid(message)
             created_at = self._parse_created_at(message)
             await self.client.authors.add(author)
-            await self.client.messages.add(
+            return [
                 Message(
                     id=message["id"],
-                    room_id=self.room.key(),
+                    room_id=self._room.key(),
                     author_id=author.key(),
                     content=content,
                     paid=paid,
                     created_at=created_at,
                 )
-            )
+            ]
         elif "liveChatMembershipItemRenderer" in item:
             message = item["liveChatMembershipItemRenderer"]
             author = self._parse_author(message)
@@ -390,26 +379,30 @@ class YoutubeChatService(ChatService):
                 message["headerSubtext"]
             )  # TODO: システムメッセージとして送信できるようにする。
             await self.client.authors.add(author)
-            await self.client.messages.add(
+            return [
                 Message(
                     id=message["id"],
-                    room_id=self.room.key(),
+                    room_id=self._room.key(),
                     author_id=author.key(),
                     content=content,
                     created_at=created_at,
                 )
-            )
+            ]
+        elif "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer" in item:
+            """
+            {'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer': {'id': 'ChwKGkNLbkE1XzZkbzRRREZSWUcxZ0FkdkhnQWlR', 'timestampUsec': '1707652687762701', 'authorExternalChannelId': 'UCbk8N1Ne5l7VtjjT89MILNg', 'authorName': {'simpleText': 'ユキ'}, 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'message': {'runs': [{'text': 'was gifted a membership by ', 'italics': True}, {'text': 'みりんぼし', 'bold': True, 'italics': True}]}, 'contextMenuEndpoint': {'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMHR1UVRWZk5tUnZORkZFUmxKWlJ6Rm5RV1IyU0dkQmFWRWFLU29uQ2hoVlF5MW9UVFpaU25WT1dWWkJiVlZYZUdWSmNqbEdaVUVTQzJaQ1QyeGpSMkpDUzAxdklBSW9CRElhQ2hoVlEySnJPRTR4VG1VMWJEZFdkR3BxVkRnNVRVbE1UbWM0QWtnQVVDTSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}}}
+            """
         elif "liveChatPlaceholderItemRenderer" in item:
             """
-            item["liveChatPlaceholderItemRenderer"] = {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
+            {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
             """
-            pass
         else:
             raise ProviderError(f"Unknown message type: {list(item.keys())} {item=}")
+        return []
 
     async def process_deleted_item(self, item: api.MarkChatItemAsDeletedActionData):
         message = await self.client.messages.get(
-            f"{self.room.key()}#{item["targetItemId"]}"
+            f"{self._room.key()}#{item["targetItemId"]}"
         )
         if message:
             await self.client.messages.remove(message)
@@ -417,53 +410,58 @@ class YoutubeChatService(ChatService):
     async def process_reactions(self, data: api.Response):
         if "frameworkUpdates" not in data:
             return
-        reactions: Counter[str] = Counter()
+        reaction_counts: Counter[str] = Counter()
         for update in data["frameworkUpdates"]["entityBatchUpdate"]["mutations"]:
-            if "payload" not in update:
+            payload = update.get("payload")
+            if not payload or "emojiFountainDataEntity" not in payload:
                 continue
-            payload = update["payload"]
-            if "emojiFountainDataEntity" not in payload:
-                continue
-            emoji = payload["emojiFountainDataEntity"]
-            for bucket in emoji["reactionBuckets"]:
-                for reaction in bucket.get("reactions", []):
-                    reactions[reaction["key"]] += reaction["value"]
-                for reaction in bucket.get("reactionsData", []):
-                    reactions[reaction["unicodeEmojiId"]] += reaction["reactionCount"]
-        if len(reactions) == 0:
+            emoji_data = payload["emojiFountainDataEntity"]
+            for bucket in emoji_data["reactionBuckets"]:
+                reaction_counts.update(
+                    {
+                        reaction["key"]: reaction["value"]
+                        for reaction in bucket.get("reactions", [])
+                    }
+                )
+                reaction_counts.update(
+                    {
+                        reaction["unicodeEmojiId"]: reaction["reactionCount"]
+                        for reaction in bucket.get("reactionsData", [])
+                    }
+                )
+        if not reaction_counts:
             return
         await self.client.omu.message.broadcast(
-            REACTION,
+            REACTION_MESSAGE,
             ReactionEvent(
-                room_id=self.room.key(),
-                reactions=dict(reactions),
+                room_id=self._room.key(),
+                reactions=dict(reaction_counts),
             ),
         )
 
     def _parse_author(self, message: api.LiveChatMessageRenderer) -> Author:
-        author = message.get("authorName", {}).get("simpleText")
-        author_id = message.get("authorExternalChannelId")
+        name = message.get("authorName", {}).get("simpleText")
+        id = message.get("authorExternalChannelId")
         avatar_url = message.get("authorPhoto", {}).get("thumbnails", [])[0].get("url")
         roles: List[Role] = []
         for badge in message.get("authorBadges", []):
             if "icon" in badge["liveChatAuthorBadgeRenderer"]:
-                match badge["liveChatAuthorBadgeRenderer"]["icon"]["iconType"]:
-                    case "MODERATOR":
-                        roles.append(MODERATOR)
-                    case "OWNER":
-                        roles.append(OWNER)
-                    case type:
-                        raise ProviderFailed(f"Unknown badge type: {type}")
+                icon_type = badge["liveChatAuthorBadgeRenderer"]["icon"]["iconType"]
+                if icon_type == "MODERATOR":
+                    roles.append(MODERATOR)
+                elif icon_type == "OWNER":
+                    roles.append(OWNER)
+                else:
+                    raise ProviderFailed(f"Unknown badge type: {type}")
             elif "customThumbnail" in badge["liveChatAuthorBadgeRenderer"]:
+                custom_thumbnail = badge["liveChatAuthorBadgeRenderer"][
+                    "customThumbnail"
+                ]
                 roles.append(
                     Role(
-                        id=badge["liveChatAuthorBadgeRenderer"]["customThumbnail"][
-                            "thumbnails"
-                        ][0]["url"],
+                        id=custom_thumbnail["thumbnails"][0]["url"],
                         name=badge["liveChatAuthorBadgeRenderer"]["tooltip"],
-                        icon_url=badge["liveChatAuthorBadgeRenderer"][
-                            "customThumbnail"
-                        ]["thumbnails"][0]["url"],
+                        icon_url=custom_thumbnail["thumbnails"][0]["url"],
                         is_owner=False,
                         is_moderator=False,
                     )
@@ -471,8 +469,8 @@ class YoutubeChatService(ChatService):
 
         return Author(
             provider_id=INFO.key(),
-            id=author_id,
-            name=author,
+            id=id,
+            name=name,
             avatar_url=avatar_url,
             roles=roles,
         )
@@ -485,11 +483,14 @@ class YoutubeChatService(ChatService):
                 root.add(TextContent.of(run["text"]))
             elif "emoji" in run:
                 emoji = run["emoji"]
+                image_url = emoji["image"]["thumbnails"][0]["url"]
+                emoji_id = emoji["emojiId"]
+                name = emoji["shortcuts"][0] if emoji.get("shortcuts") else None
                 root.add(
                     ImageContent.of(
-                        url=emoji["image"]["thumbnails"][0]["url"],
-                        id=emoji["emojiId"],
-                        name=emoji["shortcuts"][0] if emoji.get("shortcuts") else None,
+                        url=image_url,
+                        id=emoji_id,
+                        name=name,
                     )
                 )
             else:
@@ -497,18 +498,22 @@ class YoutubeChatService(ChatService):
         return root
 
     def _parse_paid(self, message: api.LiveChatPaidMessageRenderer) -> Paid:
-        _currency = re.search(r"[^0-9]+", message["purchaseAmountText"]["simpleText"])
-        if _currency is None:
+        currency_match = re.search(
+            r"[^0-9]+", message["purchaseAmountText"]["simpleText"]
+        )
+        if currency_match is None:
             raise ProviderFailed(
                 f"Could not parse currency: {message['purchaseAmountText']['simpleText']}"
             )
-        currency = _currency.group(0)
-        _amount = re.search(r"[\d,\.]+", message["purchaseAmountText"]["simpleText"])
-        if _amount is None:
+        currency = currency_match.group(0)
+        amount_match = re.search(
+            r"[\d,\.]+", message["purchaseAmountText"]["simpleText"]
+        )
+        if amount_match is None:
             raise ProviderFailed(
                 f"Could not parse amount: {message['purchaseAmountText']['simpleText']}"
             )
-        amount = float(_amount.group(0).replace(",", ""))
+        amount = float(amount_match.group(0).replace(",", ""))
 
         return Paid(
             currency=currency,
@@ -516,12 +521,13 @@ class YoutubeChatService(ChatService):
         )
 
     def _parse_created_at(self, message: api.LiveChatMessageRenderer) -> datetime:
+        timestamp_usec = int(message["timestampUsec"])
         return datetime.fromtimestamp(
-            int(message["timestampUsec"]) / 1000000,
+            timestamp_usec / 1000000,
             tz=datetime.now().astimezone().tzinfo,
         )
 
     async def stop(self):
         self.tasks.terminate()
-        self.room.online = False
-        await self.client.rooms.update(self.room)
+        self._room.online = False
+        await self.client.rooms.update(self._room)

@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from omu.client.client import Client
 from omu.connection.connection import ConnectionListener
-from omu.extension.endpoint.endpoint import JsonEndpointType
+from omu.extension.endpoint import JsonEndpointType
 from omu.extension.extension import Extension, define_extension_type
 
 AssetExtensionType = define_extension_type(

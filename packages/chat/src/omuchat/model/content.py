@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Literal, NotRequired, TypedDict
+from typing import Generator, Iterable, List, Literal, NotRequired, TypedDict
 
 from omu.interface import Model
 
@@ -29,6 +29,11 @@ class ContentComponent[T: ContentComponentJson](Model[T]):
                 return ImageContent.from_json(json)
             case "root":
                 return RootContent.from_json(json)
+
+    def traverse(self) -> Generator[ContentComponent, None, None]:
+        yield self
+        for sibling in self.siblings or []:
+            yield from sibling.traverse()
 
     def to_json(self) -> ContentComponentJson:
         return ContentComponentJson(

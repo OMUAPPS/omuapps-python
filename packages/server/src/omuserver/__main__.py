@@ -13,11 +13,17 @@ from omuserver.security.permission import AdminPermissions
 from omuserver.server.omuserver import OmuServer
 
 
-def set_output_utf8():
+def setup_logging():
     if isinstance(sys.stdout, io.TextIOWrapper):
         sys.stdout.reconfigure(encoding="utf-8")
     if isinstance(sys.stderr, io.TextIOWrapper):
         sys.stderr.reconfigure(encoding="utf-8")
+    logger.add(
+        "logs/{time:YYYY-MM-DD}.log",
+        rotation="1 day",
+        colorize=False,
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+    )
 
 
 @click.command()
@@ -25,29 +31,18 @@ def set_output_utf8():
 @click.option("--token", type=str, default=None)
 def main(debug: bool, token: str | None):
     loop = asyncio.get_event_loop()
-    logger.add(
-        sys.stdout,
-        colorize=True,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    )
-    logger.add(
-        "logs/{time:YYYY-MM-DD}.log",
-        rotation="1 day",
-        colorize=False,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-    )
-    if debug:
-        logger.warning("Debug mode enabled")
-        tracemalloc.start()
-
     directories = get_directories()
-    if debug:
-        directories.plugins = (Path.cwd() / ".." / "packages" / "plugins").resolve()
     address = Address(
         host="0.0.0.0",
         port=26423,
         secure=False,
     )
+
+    if debug:
+        logger.warning("Debug mode enabled")
+        directories.plugins = (Path.cwd() / ".." / "packages" / "plugins").resolve()
+        tracemalloc.start()
+
     server = OmuServer(address, directories=directories, loop=loop)
     if token:
         loop.run_until_complete(
@@ -59,5 +54,5 @@ def main(debug: bool, token: str | None):
 
 
 if __name__ == "__main__":
-    set_output_utf8()
+    setup_logging()
     main()

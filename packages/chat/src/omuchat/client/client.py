@@ -1,7 +1,6 @@
 from typing import Callable, Dict
 
 import omu.client
-from loguru import logger
 from omu import Address, App, ConnectionListener, OmuClient
 from omu.extension.table import Table, TableListener
 
@@ -145,12 +144,6 @@ class Client(ConnectionListener):
 
     async def on_connected(self) -> None:
         await self.event_registry.dispatch(events.Ready)
-
-    async def on_disconnected(self) -> None:
-        await self.event_registry.dispatch(events.Disconnect)
-        logger.warning("Trying to reconnect...")
-        self.loop.create_task(self.omu.connection.connect())
-        logger.debug("Reconnected!")
 
     def run(self):
         self.omu.run()

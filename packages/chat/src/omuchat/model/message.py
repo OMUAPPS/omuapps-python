@@ -45,7 +45,7 @@ class Message(Keyable, Model[MessageJson]):
     @classmethod
     def from_json(cls, json: MessageJson) -> "Message":
         created_at = None
-        if json.get("created_at", None) and json["created_at"]:
+        if json.get("created_at") and json["created_at"]:
             created_at = datetime.fromisoformat(json["created_at"])
 
         return cls(

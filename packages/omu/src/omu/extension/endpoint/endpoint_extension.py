@@ -6,13 +6,12 @@ from typing import Any, Awaitable, Callable, Dict, Tuple, TypedDict
 from omu.client import Client
 from omu.connection import ConnectionListener
 from omu.event.event import JsonEventType, SerializeEventType
-from omu.extension.endpoint.endpoint import EndpointType, JsonEndpointType
-from omu.extension.endpoint.model.endpoint_info import EndpointInfo
+from omu.extension.endpoint import EndpointInfo, EndpointType, JsonEndpointType
 from omu.extension.extension import Extension, define_extension_type
-from omu.extension.table.table import ModelTableType
+from omu.extension.table import ModelTableType
 from omu.helper import ByteReader, ByteWriter
-from omu.interface import Serializer
-from omu.interface.serializable import Serializable
+from omu.identifier import Identifier
+from omu.interface import Serializable, Serializer
 
 EndpointExtensionType = define_extension_type(
     "endpoint",
@@ -85,8 +84,9 @@ class EndpointExtension(Extension, ConnectionListener):
     ) -> Callable[[Coro], Coro]:
         def decorator(func: Coro) -> Coro:
             info = EndpointInfo(
-                owner=app or self.client.app.key(),
-                name=name or func.__name__,
+                identifier=Identifier.create(
+                    app or self.client.app.key(), name or func.__name__
+                ),
                 description=getattr(func, "__doc__", ""),
             )
             type = JsonEndpointType(info)
