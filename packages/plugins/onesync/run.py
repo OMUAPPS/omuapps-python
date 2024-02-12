@@ -155,7 +155,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
     await ws.prepare(request)
     messages = [
         await to_comment(message)
-        for message in (await client.chat.messages.fetch(before=35)).values()
+        for message in (await client.chat.messages.fetch_items(before=35)).values()
     ]
 
     await ws.send_json(

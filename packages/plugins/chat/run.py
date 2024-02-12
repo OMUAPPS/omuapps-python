@@ -56,7 +56,7 @@ async def create_channel_tree(url: str) -> List[ChannelJson]:
     if results is None:
         return []
     channels: List[Channel] = []
-    providers = await chat.providers.fetch()
+    providers = await chat.providers.fetch_items()
     for result in results.to_list():
         for provider in providers.values():
             if provider.id == "misskey":
