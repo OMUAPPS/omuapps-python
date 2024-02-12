@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List
 
-from loguru import logger
 from omu.extension.table import Table, TableType
 from omu.extension.table import TableInfo
 from omu.extension.table.table_extension import (
@@ -102,16 +101,8 @@ class TableExtension(Extension, ServerListener):
         return await table.size()
 
     async def _on_table_register(self, session: Session, info: TableInfo) -> None:
-        if info.key() in self._tables:
-            logger.warning(f"Skipping table {info.key()} already registered")
-            return
-        path = self.get_table_path(info.identifier)
-        adapter = SqliteTableAdapter.create(path)
-        await adapter.load()
-        table = CachedTable(self._server, info.key())
-        table.set_adapter(adapter)
+        table = await self.create_table(info)
         table.cache_size = info.cache_size
-        self._tables[info.key()] = table
 
     async def _on_table_listen(self, session: Session, type: str) -> None:
         table = await self.get_table(type)
