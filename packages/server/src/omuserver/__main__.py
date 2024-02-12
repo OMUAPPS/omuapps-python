@@ -3,7 +3,6 @@ import io
 import sys
 import tracemalloc
 from pathlib import Path
-from typing import Callable, Coroutine
 
 import click
 from loguru import logger
@@ -21,14 +20,22 @@ def set_output_utf8():
         sys.stderr.reconfigure(encoding="utf-8")
 
 
-type Coro[**P, T] = Callable[P, Coroutine[None, None, T]]
-
-
 @click.command()
 @click.option("--debug", is_flag=True)
 @click.option("--token", type=str, default=None)
 def main(debug: bool, token: str | None):
     loop = asyncio.get_event_loop()
+    logger.add(
+        sys.stdout,
+        colorize=True,
+        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+    )
+    logger.add(
+        "logs/{time:YYYY-MM-DD}.log",
+        rotation="1 day",
+        colorize=False,
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+    )
     if debug:
         logger.warning("Debug mode enabled")
         tracemalloc.start()
