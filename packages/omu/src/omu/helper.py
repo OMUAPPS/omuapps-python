@@ -30,6 +30,10 @@ class ByteWriter:
         self.stream.write(data)
         return self
 
+    def write_big_int(self, value: int) -> ByteWriter:
+        self.write(value.to_bytes(8, "big"))
+        return self
+
     def write_int(self, value: int) -> ByteWriter:
         self.write(value.to_bytes(4, "big"))
         return self
@@ -65,10 +69,15 @@ class ByteReader:
         self.stream = io.BytesIO(buffer)
         self.finished = False
 
-    def read(self, size: int | None = None) -> bytes:
+    def read(self, size: int) -> bytes:
         if self.finished:
             raise ValueError("Reader already finished")
+        if size < 0:
+            raise ValueError("Size must be positive")
         return self.stream.read(size)
+
+    def read_big_int(self) -> int:
+        return int.from_bytes(self.read(8), "big")
 
     def read_int(self) -> int:
         return int.from_bytes(self.read(4), "big")
