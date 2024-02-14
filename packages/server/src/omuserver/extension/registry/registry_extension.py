@@ -8,7 +8,7 @@ from omu.extension.registry.registry_extension import (
     RegistryListenEvent,
     RegistryUpdateEvent,
 )
-
+from omu.identifier import Identifier
 from omuserver.extension import Extension
 from omuserver.session.session import Session
 
@@ -44,12 +44,10 @@ class RegistryExtension(Extension):
         return registry.data
 
     async def get(self, key: str) -> Registry:
-        if ":" not in key:
-            raise ValueError(f"Invalid registry key: {key}")
-        app, name = key.split(":", 1)
+        identifier = Identifier.from_key(key)
         registry = self.registries.get(key)
         if registry is None:
-            registry = Registry(self._server, app, name)
+            registry = Registry(self._server, identifier.namespace, identifier.name)
             self.registries[key] = registry
             await registry.load()
         return registry
