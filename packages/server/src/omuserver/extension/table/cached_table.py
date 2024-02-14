@@ -26,18 +26,30 @@ class CachedTable(ServerTable, SessionListener):
         self._key = key
         self._listeners: List[ServerTableListener] = []
         self._sessions: Dict[Session, SessionTableListener] = {}
-        self._proxy_sessions: List[Session] = []
+        self._proxy_sessions: Dict[str, Session] = {}
         self._changed = False
         self._proxy_id = 0
         self._save_task: asyncio.Task | None = None
         self._adapter: TableAdapter | None = None
 
         self._cache: Dict[str, bytes] = {}
-        self.cache_size: int | None = None
+        self._cache_size: int | None = None
 
     @property
     def adapter(self) -> TableAdapter | None:
         return self._adapter
+
+    @property
+    def cache(self) -> Dict[str, bytes]:
+        return self._cache
+
+    @property
+    def cache_size(self) -> int | None:
+        return self._cache_size
+
+    @cache_size.setter
+    def cache_size(self, value: int | None) -> None:
+        self._cache_size = value
 
     def set_adapter(self, adapter: TableAdapter) -> None:
         self._adapter = adapter
@@ -50,10 +62,6 @@ class CachedTable(ServerTable, SessionListener):
         self._changed = False
         await self._adapter.store()
 
-    @property
-    def cache(self) -> Dict[str, bytes]:
-        return self._cache
-
     def attach_session(self, session: Session) -> None:
         if session in self._sessions:
             return
@@ -64,7 +72,7 @@ class CachedTable(ServerTable, SessionListener):
 
     def detach_session(self, session: Session) -> None:
         if session in self._proxy_sessions:
-            self._proxy_sessions.remove(session)
+            del self._proxy_sessions[session.app.key()]
         if session in self._sessions:
             handler = self._sessions.pop(session)
             self.remove_listener(handler)
@@ -73,7 +81,7 @@ class CachedTable(ServerTable, SessionListener):
         self.detach_session(session)
 
     def attach_proxy_session(self, session: Session) -> None:
-        self._proxy_sessions.append(session)
+        self._proxy_sessions[session.app.key()] = session
 
     async def get(self, key: str) -> bytes | None:
         if self._adapter is None:
@@ -115,7 +123,7 @@ class CachedTable(ServerTable, SessionListener):
         self.mark_changed()
 
     async def send_proxy_event(self, items: Dict[str, bytes]) -> None:
-        session = self._proxy_sessions[0]
+        session = tuple(self._proxy_sessions.values())[0]
         self._proxy_id += 1
         await session.send(
             TableProxyEvent,
@@ -127,19 +135,24 @@ class CachedTable(ServerTable, SessionListener):
         )
 
     async def proxy(self, session: Session, key: int, items: Dict[str, bytes]) -> int:
-        if self._adapter is None:
+        adapter = self._adapter
+        if adapter is None:
             raise Exception("Table not set")
-        if session not in self._proxy_sessions:
+        if session.app.key() not in self._proxy_sessions:
             raise ValueError("Session not in proxy sessions")
-        index = self._proxy_sessions.index(session)
+        session_key = session.app.key()
+        index = tuple(self._proxy_sessions.keys()).index(session_key)
         if index == len(self._proxy_sessions) - 1:
-            await self._adapter.set_all(items)
+            adapter = self._adapter
+            if adapter is None:
+                raise Exception("Table not set")
+            await adapter.set_all(items)
             for listener in self._listeners:
                 await listener.on_add(items)
             await self.update_cache(items)
             self.mark_changed()
             return 0
-        session = self._proxy_sessions[index + 1]
+        session = tuple(self._proxy_sessions.values())[index + 1]
         await session.send(
             TableProxyEvent,
             TableProxyData(
@@ -193,7 +206,7 @@ class CachedTable(ServerTable, SessionListener):
     async def iterate(self) -> AsyncIterator[bytes]:
         cursor: str | None = None
         while True:
-            items = await self.fetch_items(self.cache_size, cursor)
+            items = await self.fetch_items(self._cache_size, cursor)
             if len(items) == 0:
                 break
             for item in items.values():
@@ -220,11 +233,11 @@ class CachedTable(ServerTable, SessionListener):
             self._save_task = asyncio.create_task(self.save_task())
 
     async def update_cache(self, items: Dict[str, bytes]) -> None:
-        if self.cache_size is None or self.cache_size <= 0:
+        if self._cache_size is None or self._cache_size <= 0:
             return
         for key, item in items.items():
             self._cache[key] = item
-            if len(self._cache) > self.cache_size:
+            if len(self._cache) > self._cache_size:
                 del self._cache[next(iter(self._cache))]
         for listener in self._listeners:
             await listener.on_cache_update(self._cache)

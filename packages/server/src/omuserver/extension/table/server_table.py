@@ -19,6 +19,16 @@ class ServerTable(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def cache_size(self) -> int | None:
+        ...
+
+    @cache_size.setter
+    @abc.abstractmethod
+    def cache_size(self, value: int | None) -> None:
+        ...
+
+    @property
+    @abc.abstractmethod
     def adapter(self) -> TableAdapter | None:
         ...
 

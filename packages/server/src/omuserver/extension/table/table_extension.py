@@ -101,7 +101,7 @@ class TableExtension(Extension, ServerListener):
         return await table.size()
 
     async def _on_table_register(self, session: Session, info: TableInfo) -> None:
-        table = await self.create_table(info)
+        table = await self.get_table(info.key())
         table.cache_size = info.cache_size
 
     async def _on_table_listen(self, session: Session, type: str) -> None:
@@ -139,20 +139,8 @@ class TableExtension(Extension, ServerListener):
         table = await self.get_table(event["type"])
         await table.clear()
 
-    async def create_table(self, info: TableInfo):
-        path = self.get_table_path(info.identifier)
-        table = CachedTable(self._server, info.key())
-        adapter = SqliteTableAdapter.create(path)
-        await adapter.load()
-        table.set_adapter(adapter)
-        table.cache_size = info.cache_size
-        self._tables[info.key()] = table
-        return table
-
     async def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
-        if table_type.info.key() in self._tables:
-            raise Exception(f"Table {table_type.info.key()} already registered")
-        table = await self.create_table(table_type.info)
+        table = await self.get_table(table_type.info.key())
         return SerializedTable(table, table_type)
 
     async def get_table(self, key: str) -> ServerTable:
