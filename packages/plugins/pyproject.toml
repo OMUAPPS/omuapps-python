@@ -6,7 +6,7 @@ authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" }
 ]
 dependencies = [
-    "edgetrans>=0.2.1",
+    "edgetrans>=0.2.3",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
