@@ -16,7 +16,7 @@ AssetExtensionType = define_extension_type(
 type Files = Dict[str, bytes]
 
 
-class FileSerializer(Serializable[Files, bytes]):
+class FilesSerializer(Serializable[Files, bytes]):
     def serialize(self, data: Files) -> bytes:
         writer = ByteWriter()
         writer.write_int(len(data))
@@ -39,7 +39,7 @@ class FileSerializer(Serializable[Files, bytes]):
 AssetUploadEndpoint = SerializeEndpointType[Files, List[str]].of_extension(
     AssetExtensionType,
     "upload",
-    request_serializer=FileSerializer(),
+    request_serializer=FilesSerializer(),
     response_serializer=Serializer.json(),
 )
 
