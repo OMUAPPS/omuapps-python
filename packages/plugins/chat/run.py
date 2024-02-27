@@ -3,22 +3,19 @@ from typing import List
 
 import iwashi
 from omu import Address, OmuClient
-from omu.client import Client, ClientListener
-from omu.extension import Extension, define_extension_type
-from omu.extension.table import TableExtensionType
 from omuchat import App
-from omuchat.chat.chat_extension import (
+from omuchat.chat import (
     AuthorsTableKey,
     ChannelsTableKey,
     MessagesTableKey,
     ProviderTableKey,
     RoomTableKey,
+    IDENTIFIER,
 )
 from omuchat.model.channel import Channel, ChannelJson
 
-app = App(
-    name="chat-service",
-    group="omu.chat",
+app = App.from_identifier(
+    IDENTIFIER,
     description="",
     version="0.1.0",
     authors=["omu"],
@@ -29,36 +26,22 @@ address = Address("127.0.0.1", 26423)
 client = OmuClient(app, address=address)
 
 
-class ChatServiceExt(Extension, ClientListener):
-    def __init__(self, client: Client) -> None:
-        self.client = client
-        client.add_listener(self)
-        tables = client.extensions.get(TableExtensionType)
-        self.messages = tables.register(MessagesTableKey)
-        self.authors = tables.register(AuthorsTableKey)
-        self.channels = tables.register(ChannelsTableKey)
-        self.providers = tables.register(ProviderTableKey)
-        self.rooms = tables.register(RoomTableKey)
+messages = client.tables.register(MessagesTableKey)
+authors = client.tables.register(AuthorsTableKey)
+channels = client.tables.register(ChannelsTableKey)
+providers = client.tables.register(ProviderTableKey)
+rooms = client.tables.register(RoomTableKey)
 
 
-ChatServiceExtType = define_extension_type(
-    "chat-service",
-    lambda client: ChatServiceExt(client),
-    lambda: [],
-)
-
-chat = client.extensions.register(ChatServiceExtType)
-
-
-@client.endpoints.listen(name="create_channel_tree", app="chat")
+@client.endpoints.listen(name="create_channel_tree")
 async def create_channel_tree(url: str) -> List[ChannelJson]:
     results = await iwashi.visit(url)
     if results is None:
         return []
     channels: List[Channel] = []
-    providers = await chat.providers.fetch_items()
+    services = await providers.fetch_items()
     for result in results.to_list():
-        for provider in providers.values():
+        for provider in services.values():
             if provider.id == "misskey":
                 continue
             if re.search(provider.regex, result.url) is None:

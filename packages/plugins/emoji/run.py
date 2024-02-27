@@ -2,14 +2,14 @@ import re
 from dataclasses import dataclass
 from typing import Dict, TypedDict
 
-from omuchat import App, Client, model
+from omuchat import App, Client, content, Message
 
 APP = App(
     name="emoji",
     group="omu.chat.plugins",
     version="0.1.0",
 )
-client = Client(APP)
+chat = Client(APP)
 
 
 class Emoji(TypedDict):
@@ -23,7 +23,7 @@ class registry:
     emojis: Dict[str, Emoji] = {}
 
 
-@client.omu.registry.listen("emojis")
+@chat.omu.registry.listen("emojis")
 async def on_emojis_update(emojis: Dict[str, Emoji]) -> None:
     registry.emojis = emojis or {}
 
@@ -42,20 +42,22 @@ class EmojiMatch:
     end: int
 
 
-def transform(component: model.ContentComponent) -> model.ContentComponent:
-    if isinstance(component, model.TextContent):
+def transform(component: content.Component) -> content.Component:
+    if isinstance(component, content.Text):
         parts = transform_text_content(component)
         if len(parts) == 1:
             return parts[0]
-        return model.RootContent(parts)
-    if component.siblings:
-        component.siblings = [transform(sibling) for sibling in component.siblings]
+        return content.Root(parts)
+    if isinstance(component, content.Parent):
+        component.set_children(
+            [transform(sibling) for sibling in component.get_children()]
+        )
     return component
 
 
 def transform_text_content(
-    component: model.TextContent,
-) -> list[model.ContentComponent]:
+    component: content.Text,
+) -> list[content.Component]:
     text = component.text
     parts = []
     while text:
@@ -69,25 +71,23 @@ def transform_text_content(
             if not match or result.start() < match.start:
                 match = EmojiMatch(emoji, result, result.start(), result.end())
         if not match:
-            parts.append(model.TextContent(text))
+            parts.append(content.Text.of(text))
             break
         if match.start > 0:
-            parts.append(model.TextContent(text[: match.start]))
+            parts.append(content.Text.of(text[: match.start]))
         parts.append(
-            model.ImageContent(
-                match.emoji["image_url"],
-                match.emoji["id"],
-                match.emoji["name"],
+            content.Image.of(
+                url=match.emoji["image_url"],
+                id=match.emoji["id"],
+                name=match.emoji["name"],
             )
         )
         text = text[match.end :]
     return parts
 
 
-@client.chat.messages.proxy
-async def on_message(message: model.Message):
-    if not message.author_id:
-        return message
+@chat.messages.proxy
+async def on_message(message: Message):
     if not message.content:
         return message
     message.content = transform(message.content)
@@ -95,8 +95,8 @@ async def on_message(message: model.Message):
 
 
 async def main():
-    await client.start()
+    await chat.start()
 
 
 if __name__ == "__main__":
-    client.run()
+    chat.run()

@@ -1,72 +1,77 @@
-from typing import NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict, Hashable
 
 from omu.interface import Keyable, Model
+
+
+class RoomMetadata(TypedDict):
+    url: NotRequired[str]
+    title: NotRequired[str]
+    description: NotRequired[str]
+    thumbnail: NotRequired[str]
+    viewers: NotRequired[int]
+    created_at: NotRequired[str]
+    started_at: NotRequired[str]
+    ended_at: NotRequired[str]
+
+
+type Status = Literal["online", "reserved", "offline"]
 
 
 class RoomJson(TypedDict):
     id: str
     provider_id: str
+    connected: bool
+    status: Status
+    metadata: NotRequired[RoomMetadata] | None
     channel_id: NotRequired[str] | None
-    name: str
-    description: NotRequired[str] | None
-    online: bool
-    url: str
-    image_url: NotRequired[str] | None
-    viewers: NotRequired[int] | None
 
 
-class Room(Keyable, Model[RoomJson]):
+class Room(Keyable, Model[RoomJson], Hashable):
     def __init__(
         self,
+        *,
         id: str,
         provider_id: str,
-        name: str,
-        online: bool,
-        url: str,
+        connected: bool,
+        status: Status,
+        metadata: RoomMetadata | None = None,
         channel_id: str | None = None,
-        description: str | None = None,
-        image_url: str | None = None,
-        viewers: int | None = None,
     ) -> None:
         self.id = id
         self.provider_id = provider_id
+        self.connected = connected
+        self.status: Status = status
+        self.metadata = metadata
         self.channel_id = channel_id
-        self.name = name
-        self.description = description
-        self.online = online  # TODO: Change to status (online, offline, etc.)
-        self.url = url
-        self.image_url = image_url
-        self.viewers = viewers
 
-    @classmethod
-    def from_json(cls, json: RoomJson) -> "Room":
-        return cls(
+    @staticmethod
+    def from_json(json: RoomJson) -> "Room":
+        return Room(
             id=json["id"],
             provider_id=json["provider_id"],
+            connected=json["connected"],
+            status=json["status"],
+            metadata=json.get("metadata"),
             channel_id=json.get("channel_id"),
-            name=json["name"],
-            description=json.get("description"),
-            online=json["online"],
-            url=json["url"],
-            image_url=json.get("image_url"),
-            viewers=json.get("viewers"),
         )
-
-    def key(self) -> str:
-        return f"{self.id}@{self.provider_id}"
 
     def to_json(self) -> RoomJson:
         return RoomJson(
             id=self.id,
             provider_id=self.provider_id,
+            connected=self.connected,
+            status=self.status,
+            metadata=self.metadata,
             channel_id=self.channel_id,
-            name=self.name,
-            description=self.description,
-            online=self.online,
-            url=self.url,
-            image_url=self.image_url,
-            viewers=self.viewers,
         )
 
-    def __str__(self) -> str:
-        return self.name
+    def key(self) -> str:
+        return f"{self.id}@{self.provider_id}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Room):
+            return NotImplemented
+        return self.key() == other.key()
+
+    def __hash__(self) -> int:
+        return hash(self.key())

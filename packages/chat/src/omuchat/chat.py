@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from typing import List, TypedDict
 
-from omu.client import Client, ClientListener
-from omu.extension import Extension, define_extension_type
+from omu import Identifier
 from omu.extension.endpoint import SerializeEndpointType
-from omu.extension.table import TableExtensionType
 from omu.extension.table import ModelTableType
 from omu.interface import Model, Serializer
 
@@ -15,55 +13,40 @@ from omuchat.model.message import Message, MessageJson
 from omuchat.model.provider import Provider
 from omuchat.model.room import Room
 
-ChatExtensionType = define_extension_type(
-    "chat", lambda client: ChatExtension(client), lambda: []
+IDENTIFIER = Identifier(
+    name="chat",
+    namespace="cc.omuchat",
 )
 
-
-class ChatExtension(Extension, ClientListener):
-    def __init__(self, client: Client) -> None:
-        self.client = client
-        client.add_listener(self)
-        tables = client.extensions.get(TableExtensionType)
-        self.messages = tables.get(MessagesTableKey)
-        self.authors = tables.get(AuthorsTableKey)
-        self.channels = tables.get(ChannelsTableKey)
-        self.providers = tables.get(ProviderTableKey)
-        self.rooms = tables.get(RoomTableKey)
-
-    async def on_initialized(self) -> None:
-        ...
-
-
-MessagesTableKey = ModelTableType.of_extension(
-    ChatExtensionType,
+MessagesTableKey = ModelTableType.of(
+    IDENTIFIER,
     "messages",
     Message,
 )
 MessagesTableKey.info.cache_size = 1000
-AuthorsTableKey = ModelTableType.of_extension(
-    ChatExtensionType,
+AuthorsTableKey = ModelTableType.of(
+    IDENTIFIER,
     "authors",
     Author,
 )
 AuthorsTableKey.info.cache_size = 1000
-ChannelsTableKey = ModelTableType.of_extension(
-    ChatExtensionType,
+ChannelsTableKey = ModelTableType.of(
+    IDENTIFIER,
     "channels",
     Channel,
 )
-ProviderTableKey = ModelTableType.of_extension(
-    ChatExtensionType,
+ProviderTableKey = ModelTableType.of(
+    IDENTIFIER,
     "providers",
     Provider,
 )
-RoomTableKey = ModelTableType.of_extension(
-    ChatExtensionType,
+RoomTableKey = ModelTableType.of(
+    IDENTIFIER,
     "rooms",
     Room,
 )
-CreateChannelTreeEndpoint = SerializeEndpointType[str, List[Channel]].of_extension(
-    ChatExtensionType,
+CreateChannelTreeEndpoint = SerializeEndpointType[str, List[Channel]].of(
+    IDENTIFIER,
     "create_channel_tree",
     Serializer.json(),
     Serializer.model(Channel).array().json(),
@@ -92,8 +75,8 @@ class MessageEventData(
         )
 
 
-MessageEvent = SerializeEndpointType[MessageEventData, str].of_extension(
-    ChatExtensionType,
+MessageEvent = SerializeEndpointType[MessageEventData, str].of(
+    IDENTIFIER,
     "message",
     Serializer.model(MessageEventData).json(),
     Serializer.noop(),

@@ -14,6 +14,7 @@ class GiftJson(TypedDict):
 class Gift(Model[GiftJson]):
     def __init__(
         self,
+        *,
         id: str,
         name: str,
         amount: int,
@@ -45,5 +46,5 @@ class Gift(Model[GiftJson]):
             "image_url": self.image_url,
         }
 
-    def __str__(self) -> str:
-        return self.name
+    def __repr__(self) -> str:
+        return f"Gift(id={self.id}, name={self.name}, amount={self.amount}, is_paid={self.is_paid})"

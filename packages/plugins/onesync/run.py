@@ -12,7 +12,7 @@ APP = App(
     group="omu.chat.plugins",
     version="0.1.0",
 )
-client = Client(APP)
+chat = Client(APP)
 app = web.Application()
 
 
@@ -74,26 +74,30 @@ class Comment(TypedDict):
     serviceData: CommentServiceData
 
 
-def format_content(content: model.ContentComponent | None) -> str:
-    if not content:
+def format_content(*components: model.content.Component | None) -> str:
+    if not components:
         return ""
     parts = []
-    components = list(content.siblings or [content])
-    while components:
-        component = components.pop(0)
-        if isinstance(component, model.TextContent):
+    stack = [*components]
+    while stack:
+        component = stack.pop(0)
+        if isinstance(component, model.content.Text):
             parts.append(component.text)
-        elif isinstance(component, model.ImageContent):
+        elif isinstance(component, model.content.Image):
             parts.append(f'<img src="{component.url}" alt="{component.id}" />')
-        if component.siblings:
-            components.extend(component.siblings)
+        elif isinstance(component, model.content.Link):
+            parts.append(
+                f'<a href="{component.url}">{format_content(*component.children)}</a>'
+            )
+        elif isinstance(component, model.content.Parent):
+            stack.extend(component.get_children())
     return "".join(parts)
 
 
 async def to_comment(message: model.Message) -> Comment | None:
-    room = await client.chat.rooms.get(message.room_id)
-    author = message.author_id and await client.chat.authors.get(message.author_id)
-    if not room or not author:
+    room = await chat.rooms.get(message.room_id)
+    author = message.author_id and await chat.authors.get(message.author_id)
+    if not room or not room.metadata or not author:
         return None
     badges = []
     for badge in author.roles:
@@ -107,8 +111,8 @@ async def to_comment(message: model.Message) -> Comment | None:
     return Comment(
         id=room.key(),
         service=room.provider_id,
-        name=room.name,
-        url=room.url,
+        name=room.metadata.get("title", ""),
+        url=room.metadata.get("url", ""),
         color={"r": 190, "g": 44, "b": 255},
         data=CommentData(
             id=message.key(),
@@ -130,8 +134,8 @@ async def to_comment(message: model.Message) -> Comment | None:
         meta={"no": 1, "tc": 1},
         serviceData=CommentServiceData(
             id=room.key(),
-            name=room.name,
-            url=room.url,
+            name=room.metadata.get("title", ""),
+            url=room.metadata.get("url", ""),
             write=True,
             speech=False,
             options={},
@@ -155,7 +159,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
     await ws.prepare(request)
     messages = [
         await to_comment(message)
-        for message in (await client.chat.messages.fetch_items(before=35)).values()
+        for message in (await chat.messages.fetch_items(before=35)).values()
     ]
 
     await ws.send_json(
@@ -176,7 +180,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
     return ws
 
 
-@client.on(events.MessageCreate)
+@chat.on(events.MessageCreate)
 async def on_message_add(message: model.Message) -> None:
     comment = await to_comment(message)
     if not comment:
@@ -192,7 +196,7 @@ async def on_message_add(message: model.Message) -> None:
         )
 
 
-@client.on(events.MessageUpdate)
+@chat.on(events.MessageUpdate)
 async def on_message_update(message: model.Message) -> None:
     comment = await to_comment(message)
     if comment is None:
@@ -208,7 +212,7 @@ async def on_message_update(message: model.Message) -> None:
         )
 
 
-@client.on(events.MessageDelete)
+@chat.on(events.MessageDelete)
 async def on_message_delete(message: model.Message) -> None:
     for ws in sessions:
         await ws.send_json({"type": "deleted", "data": [message.key()]})
@@ -220,8 +224,8 @@ async def main():
     await runner.setup()
     site = web.TCPSite(runner, "localhost", 11180)
     asyncio.create_task(site.start())
-    await client.start()
+    await chat.start()
 
 
 if __name__ == "__main__":
-    client.run()
+    chat.run()

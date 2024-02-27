@@ -1,8 +1,8 @@
 from __future__ import annotations
-
 import asyncio
-import threading
+
 from pathlib import Path
+import threading
 from typing import TYPE_CHECKING, Dict
 
 from loguru import logger
@@ -59,7 +59,8 @@ class PluginExtension(Extension, ServerListener):
     async def _load_plugin(self, path: Path) -> None:
         plugin = await self.loader.load(path)
         self.plugins[path.name] = plugin
-        # loop = asyncio.new_event_loop()
-        # loop.create_task(plugin.start())
-        # threading.Thread(target=loop.run_forever).start()
-        await plugin.start()
+        loop = asyncio.new_event_loop()
+        loop.create_task(plugin.start())
+        thread = threading.Thread(target=loop.run_forever, daemon=True, name=path.name)
+        thread.start()
+        # await plugin.start()

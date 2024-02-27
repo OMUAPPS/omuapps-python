@@ -18,6 +18,7 @@ class AuthorJson(TypedDict):
 class Author(Keyable, Model[AuthorJson]):
     def __init__(
         self,
+        *,
         provider_id: str,
         id: str,
         name: str,
@@ -31,9 +32,6 @@ class Author(Keyable, Model[AuthorJson]):
         self.screen_id = screen_id
         self.avatar_url = avatar_url
         self.roles = roles or []
-
-    def key(self) -> str:
-        return f"{self.provider_id}:{self.id}"
 
     def to_json(self) -> AuthorJson:
         return {
@@ -59,6 +57,9 @@ class Author(Keyable, Model[AuthorJson]):
                 [],
             ),
         )
+
+    def key(self) -> str:
+        return f"{self.provider_id}:{self.id}"
 
     def __str__(self) -> str:
         return f"Author(id={self.id}, name={self.name})"

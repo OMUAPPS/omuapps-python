@@ -6,16 +6,16 @@ from typing import List, NotRequired, TypedDict
 from omu.helper import map_optional
 from omu.interface import Keyable, Model
 
-from .content import ContentComponent, ContentJson, ImageContent, TextContent
 from .gift import Gift, GiftJson
 from .paid import Paid, PaidJson
+from . import content
 
 
 class MessageJson(TypedDict):
     room_id: str
     id: str
     author_id: NotRequired[str] | None
-    content: NotRequired[ContentJson] | None
+    content: NotRequired[content.ComponentJson] | None
     paid: NotRequired[PaidJson] | None
     gifts: NotRequired[List[GiftJson]] | None
     created_at: NotRequired[str] | None  # ISO 8601 date string
@@ -24,10 +24,11 @@ class MessageJson(TypedDict):
 class Message(Keyable, Model[MessageJson]):
     def __init__(
         self,
+        *,
         room_id: str,
         id: str,
         author_id: str | None = None,
-        content: ContentComponent | None = None,
+        content: content.Component | None = None,
         paid: Paid | None = None,
         gifts: List[Gift] | None = None,
         created_at: datetime | None = None,
@@ -52,7 +53,7 @@ class Message(Keyable, Model[MessageJson]):
             room_id=json["room_id"],
             id=json["id"],
             author_id=json.get("author_id"),
-            content=map_optional(json.get("content"), ContentComponent.from_json),
+            content=map_optional(json.get("content"), content.deserialize),
             paid=map_optional(json.get("paid"), Paid.from_json),
             gifts=map_optional(
                 json.get("gifts"),
@@ -66,17 +67,7 @@ class Message(Keyable, Model[MessageJson]):
     def text(self) -> str:
         if not self.content:
             return ""
-        parts = []
-        components: List[ContentComponent] = [self.content]
-        while components:
-            component = components.pop(0)
-            if isinstance(component, TextContent):
-                parts.append(component.text)
-            elif isinstance(component, ImageContent):
-                parts.append(f":{component.id}:")
-            if component.siblings:
-                components.extend(component.siblings)
-        return "".join(parts)
+        return str(self.content)
 
     def key(self) -> str:
         return f"{self.room_id}#{self.id}"
@@ -86,7 +77,7 @@ class Message(Keyable, Model[MessageJson]):
             room_id=self.room_id,
             id=self.id,
             author_id=self.author_id,
-            content=self.content.to_json() if self.content else None,
+            content=content.serialize(self.content) if self.content else None,
             paid=self.paid.to_json() if self.paid else None,
             gifts=[gift.to_json() for gift in self.gifts] if self.gifts else None,
             created_at=self.created_at.isoformat() if self.created_at else None,

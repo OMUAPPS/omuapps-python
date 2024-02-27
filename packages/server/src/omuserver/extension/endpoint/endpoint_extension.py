@@ -44,7 +44,7 @@ class SessionEndpoint(Endpoint):
 
     async def call(self, data: EndpointDataReq, session: Session) -> None:
         if self._session.closed:
-            raise RuntimeError("Session already closed")
+            raise RuntimeError(f"Session {self._session.app.key()} already closed")
         await self._session.send(EndpointCallEvent, data)
 
 

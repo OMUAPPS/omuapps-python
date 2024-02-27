@@ -1,6 +1,7 @@
 from .client import Client, OmuClient
 from .connection import Address, Connection, ConnectionListener, ConnectionStatus
 from .extension.server import App
+from .identifier import Identifier
 
 __all__ = [
     "Address",
@@ -10,4 +11,5 @@ __all__ = [
     "Client",
     "OmuClient",
     "App",
+    "Identifier",
 ]

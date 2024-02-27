@@ -8,27 +8,27 @@ from datetime import datetime
 from typing import Dict, List, TypedDict
 
 import bs4
+from loguru import logger
 from omu.helper import map_optional
 from omuchat.client import Client
 from omuchat.model import (
     MODERATOR,
     OWNER,
+    VERIFIED,
     Author,
     Channel,
-    Content,
-    ImageContent,
     Message,
     Paid,
     Provider,
     Role,
     Room,
-    RootContent,
-    TextContent,
+    RoomMetadata,
+    content,
 )
 
 from ...chatprovider import client
 from ...errors import ProviderError, ProviderFailed
-from ...helper import HTTP_REGEX, get_session
+from ...helper import HTTP_REGEX, assert_none, get_session
 from ...tasks import Tasks
 from .. import ChatService, ProviderService
 from ..service import ChatSupplier
@@ -71,7 +71,7 @@ class YoutubeService(ProviderService):
     def info(self) -> Provider:
         return INFO
 
-    async def fetch_rooms(self, channel: Channel) -> dict[str, ChatSupplier]:
+    async def fetch_rooms(self, channel: Channel) -> dict[Room, ChatSupplier]:
         match = re.search(INFO.regex, channel.url)
         if match is None:
             raise ProviderFailed("Could not match url")
@@ -93,11 +93,15 @@ class YoutubeService(ProviderService):
                 raise ProviderFailed("Could not find video id")
         if not await YoutubeChat.is_online(video_id):
             return {}
-        return {
-            f"{YOUTUBE_URL}/watch?v={video_id}": lambda: YoutubeChatService.create(
-                self.client, channel, video_id
-            )
-        }
+
+        room = Room(
+            id=video_id,
+            provider_id=INFO.key(),
+            connected=False,
+            status="offline",
+            channel_id=channel.key(),
+        )
+        return {room: lambda: YoutubeChatService.create(self.client, room)}
 
     async def get_channel_id_by_vanity(self, vanity: str | None) -> str | None:
         if vanity is None:
@@ -149,14 +153,7 @@ class YoutubeService(ProviderService):
         return options.get("video_id") or options.get("video_id_short")
 
     async def is_online(self, room: Room) -> bool:
-        match = re.search(INFO.regex, room.url)
-        if match is None:
-            return False
-        options = match.groupdict()
-        video_id = options.get("video_id") or options.get("video_id_short")
-        if video_id is None:
-            return False
-        return await YoutubeChat.is_online(video_id)
+        return await YoutubeChat.is_online(room.id)
 
 
 class YoutubeChat:
@@ -238,7 +235,7 @@ class YoutubeChat:
         live_chat_response_data = await live_chat_request.json()
         return "continuationContents" in live_chat_response_data
 
-    async def fetch(self) -> api.Response:
+    async def fetch(self, retry: int = 3) -> api.Response:
         url = f"{YOUTUBE_URL}/youtubei/v1/live_chat/get_live_chat"
         params = {"key": self.api_key}
         json_payload = {
@@ -258,8 +255,19 @@ class YoutubeChat:
             headers=HEADERS,
         )
         if response.status // 100 != 2:
-            raise ProviderFailed(f"Could not fetch chat: {response.status=}")
+            if response.status != 503:
+                raise ProviderFailed(f"Could not fetch chat: {response.status=}")
+            if retry <= 0:
+                raise ProviderFailed("Could not fetch chat: too many retries")
+            logger.warning("Retrying fetch chat")
+            await asyncio.sleep(1)
+            return await self.fetch(retry - 1)
+        if not response.headers["content-type"].startswith("application/json"):
+            raise ProviderFailed(
+                f"Invalid content type: {response.headers["content-type"]}"
+            )
         data = await response.json()
+
         return data
 
     async def next(self) -> api.Response | None:
@@ -283,46 +291,87 @@ class YoutubeChatService(ChatService):
     def __init__(
         self,
         client: Client,
-        channel: Channel,
         room: Room,
         chat: YoutubeChat,
     ):
         self.client = client
-        self.channel = channel
         self._room = room
         self.chat = chat
         self.tasks = Tasks(client.loop)
+        self._closed = False
 
     @property
     def room(self) -> Room:
         return self._room
 
+    @property
+    def closed(self) -> bool:
+        return self._closed
+
     @classmethod
-    async def create(cls, client: Client, channel: Channel, video_id: str):
-        room = Room(
-            id=video_id,
-            provider_id=INFO.key(),
-            channel_id=channel.key(),
-            name="Youtube",
-            online=False,
-            url=f"{YOUTUBE_URL}/watch?v={video_id}",
-            image_url=f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
+    async def get_metadata(cls, video_id: str) -> RoomMetadata:
+        response = await session.get(
+            f"{YOUTUBE_URL}/watch?v={video_id}",
+            headers=HEADERS,
         )
-        chat = await YoutubeChat.from_url(video_id)
-        instance = cls(client, channel, room, chat)
+        if response.status // 100 != 2:
+            raise ProviderFailed(f"Could not fetch video: {response.status=}")
+        soup = bs4.BeautifulSoup(await response.text(), "html.parser")
+        title = assert_none(
+            soup.select_one('meta[property="og:title"]'),
+            "Could not find title",
+        ).attrs["content"]
+        description = assert_none(
+            soup.select_one('meta[property="og:description"]'),
+            "Could not find description",
+        ).attrs["content"]
+        thumbnail = assert_none(
+            soup.select_one('meta[property="og:image"]'),
+            "Could not find thumbnail",
+        ).attrs["content"]
+        viewers = int(
+            assert_none(
+                soup.select_one('meta[itemprop="interactionCount"]'),
+                "Could not find viewers",
+            ).attrs["content"]
+        )
+        created_at = datetime.strptime(
+            assert_none(
+                soup.select_one('meta[itemprop="datePublished"]'),
+                "Could not find created_at",
+            ).attrs["content"],
+            "%Y-%m-%dT%H:%M:%S%z",
+        ).isoformat()
+        return RoomMetadata(
+            url=f"{YOUTUBE_URL}/watch?v={video_id}",
+            title=title,
+            description=description,
+            thumbnail=thumbnail,
+            viewers=viewers,
+            created_at=created_at,
+        )
+
+    @classmethod
+    async def create(cls, client: Client, room: Room):
+        room.metadata = await cls.get_metadata(room.id)
+        await client.rooms.update(room)
+        chat = await YoutubeChat.from_url(room.id)
+        instance = cls(client, room, chat)
         await client.rooms.add(room)
         return instance
 
     async def start(self):
-        self._room.online = True
-        await self.client.rooms.update(self._room)
-        while True:
-            chat_data = await self.chat.next()
-            if chat_data is None:
-                break
-            await self.process_chat_data(chat_data)
-            await asyncio.sleep(1 / 3)
-        await self.stop()
+        try:
+            self._room.connected = True
+            await self.client.rooms.update(self._room)
+            while True:
+                chat_data = await self.chat.next()
+                if chat_data is None:
+                    break
+                await self.process_chat_data(chat_data)
+                await asyncio.sleep(1 / 3)
+        finally:
+            await self.stop()
 
     async def process_chat_data(self, data: api.Response):
         messages: List[Message] = []
@@ -335,7 +384,8 @@ class YoutubeChatService(ChatService):
                 )
             if "markChatItemAsDeletedAction" in action:
                 await self.process_deleted_item(action["markChatItemAsDeletedAction"])
-        await self.client.messages.add(*messages)
+        if len(messages) > 0:
+            await self.client.messages.add(*messages)
         await self.process_reactions(data)
 
     async def process_message_item(self, item: api.MessageItemData) -> List[Message]:
@@ -388,13 +438,23 @@ class YoutubeChatService(ChatService):
                     created_at=created_at,
                 )
             ]
+        # TODO: これらのメッセージを処理する
         elif "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer" in item:
             """
             {'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer': {'id': 'ChwKGkNLbkE1XzZkbzRRREZSWUcxZ0FkdkhnQWlR', 'timestampUsec': '1707652687762701', 'authorExternalChannelId': 'UCbk8N1Ne5l7VtjjT89MILNg', 'authorName': {'simpleText': 'ユキ'}, 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'message': {'runs': [{'text': 'was gifted a membership by ', 'italics': True}, {'text': 'みりんぼし', 'bold': True, 'italics': True}]}, 'contextMenuEndpoint': {'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMHR1UVRWZk5tUnZORkZFUmxKWlJ6Rm5RV1IyU0dkQmFWRWFLU29uQ2hoVlF5MW9UVFpaU25WT1dWWkJiVlZYZUdWSmNqbEdaVUVTQzJaQ1QyeGpSMkpDUzAxdklBSW9CRElhQ2hoVlEySnJPRTR4VG1VMWJEZFdkR3BxVkRnNVRVbE1UbWM0QWtnQVVDTSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}}}
             """
+            message = item["liveChatSponsorshipsGiftRedemptionAnnouncementRenderer"]
+        elif "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer" in item:
+            """
+            {'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer': {'id': 'ChwKGkNPWEU1OERlcW9RREZhekV3Z1FkVGdNS013', 'timestampUsec': '1707910568302677', 'authorExternalChannelId': 'UCJcRzyF_5IqKwuezuzid5eQ', 'header': {'liveChatSponsorshipsHeaderRenderer': {'authorName': {'simpleText': '♾️野うさぎ'}, 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'primaryText': {'runs': [{'text': 'Gifted ', 'bold': True}, {'text': '5', 'bold': True}, {'text': ' ', 'bold': True}, {'text': 'Pekora Ch. 兎田ぺこら', 'bold': True}, {'text': ' memberships', 'bold': True}]}, 'authorBadges': [{'liveChatAuthorBadgeRenderer': {'customThumbnail': {'thumbnails': [{'url': 'https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s16-c-k', 'width': 16, 'height': 16}, {'url': 'https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s32-c-k', 'width': 32, 'height': 32}]}, 'tooltip': 'Member (2 months)', 'accessibility': {'accessibilityData': {'label': 'Member (2 months)'}}}}], 'contextMenuEndpoint': {'clickTrackingParams': 'CAUQ3MMKIhMIgbSe1t6qhAMVVkP1BR04yA_O', 'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMDlZUlRVNFJHVnhiMUZFUm1GNlJYZG5VV1JVWjAxTFRYY2FLU29uQ2hoVlF6RkVRMlZrVW1kSFNFSmtiVGd4UlRGc2JFeG9UMUVTQ3pOa2FIRlFWRXhzTkRoQklBSW9CRElhQ2hoVlEwcGpVbnA1Umw4MVNYRkxkM1ZsZW5WNmFXUTFaVkU0QWtnQVVDUSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}, 'image': {'thumbnails': [{'url': 'https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png'}]}}}}}
+            """
         elif "liveChatPlaceholderItemRenderer" in item:
             """
-            {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
+            item["liveChatPlaceholderItemRenderer"] = {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
+            """
+        elif "liveChatPaidStickerRenderer" in item:
+            """
+            {'liveChatPaidStickerRenderer': {'id': 'ChwKGkNMWHQzNG1Dc29RREZUdmJsQWtkbDIwSWtn', 'contextMenuEndpoint': {'clickTrackingParams': 'CAIQ77sEIhMIjvfykIKyhAMV8W8PAh0tjA73', 'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMHhZZERNMGJVTnpiMUZFUmxSMllteEJhMlJzTWpCSmEyY2FLU29uQ2hoVlEweGZjV2huZEU5NU1HUjVNVUZuY0RoMmEzbFRVV2NTQzFkaFVWRlFlaTFKWmpoTklBSW9CRElhQ2hoVlEybEhhbEZZVDJKV1p6VjNRMG96VjNKRVZHSmhVbEU0QWtnQVVCUSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}, 'timestampUsec': '1708160603335775', 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/6kb67OyfasuRvwameqsKtZidxDl6bU7PGVFL1M5i9yWX9r_gYDC3BDWzhD5C-1ImKrWYHsdaEg=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/6kb67OyfasuRvwameqsKtZidxDl6bU7PGVFL1M5i9yWX9r_gYDC3BDWzhD5C-1ImKrWYHsdaEg=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'authorName': {'simpleText': 'UntitledOne'}, 'authorExternalChannelId': 'UCiGjQXObVg5wCJ3WrDTbaRQ', 'sticker': {'thumbnails': [{'url': '//lh3.googleusercontent.com/sE214N2V_KPOY00qwan1wn1xnI3Rf1OzEtA9T_iImdoS7toVw8PWMS_4YH7gS975SgCxiATt6jxgp-YJ830=s32-rp', 'width': 32, 'height': 32}, {'url': '//lh3.googleusercontent.com/sE214N2V_KPOY00qwan1wn1xnI3Rf1OzEtA9T_iImdoS7toVw8PWMS_4YH7gS975SgCxiATt6jxgp-YJ830=s64-rp', 'width': 64, 'height': 64}], 'accessibility': {'accessibilityData': {'label': '100 underlined twice'}}}, 'authorBadges': [{'liveChatAuthorBadgeRenderer': {'customThumbnail': {'thumbnails': [{'url': 'https://yt3.ggpht.com/F0YU4PUesWXUyOENvw51yhHC75hBmpbw0Xe0cJEn54xZeeVoeXTmvjNNa612Uz5BuF7Bd5DGZg=s16-c-k', 'width': 16, 'height': 16}, {'url': 'https://yt3.ggpht.com/F0YU4PUesWXUyOENvw51yhHC75hBmpbw0Xe0cJEn54xZeeVoeXTmvjNNa612Uz5BuF7Bd5DGZg=s32-c-k', 'width': 32, 'height': 32}]}, 'tooltip': 'Member (1 year)', 'accessibility': {'accessibilityData': {'label': 'Member (1 year)'}}}}], 'moneyChipBackgroundColor': 4280191205, 'moneyChipTextColor': 4294967295, 'purchaseAmountText': {'simpleText': '$0.99'}, 'stickerDisplayWidth': 32, 'stickerDisplayHeight': 32, 'backgroundColor': 4280191205, 'authorNameTextColor': 3019898879, 'trackingParams': 'CAIQ77sEIhMIjvfykIKyhAMV8W8PAh0tjA73', 'isV2Style': True}}
             """
         else:
             raise ProviderError(f"Unknown message type: {list(item.keys())} {item=}")
@@ -451,8 +511,10 @@ class YoutubeChatService(ChatService):
                     roles.append(MODERATOR)
                 elif icon_type == "OWNER":
                     roles.append(OWNER)
+                elif icon_type == "VERIFIED":
+                    roles.append(VERIFIED)
                 else:
-                    raise ProviderFailed(f"Unknown badge type: {type}")
+                    raise ProviderFailed(f"Unknown badge type: {icon_type}")
             elif "customThumbnail" in badge["liveChatAuthorBadgeRenderer"]:
                 custom_thumbnail = badge["liveChatAuthorBadgeRenderer"][
                     "customThumbnail"
@@ -475,19 +537,27 @@ class YoutubeChatService(ChatService):
             roles=roles,
         )
 
-    def _parse_message(self, message: api.Message) -> Content:
+    def _parse_message(self, message: api.Message) -> content.Component:
         runs: api.Runs = message.get("runs", [])
-        root = RootContent()
+        root = content.Root()
         for run in runs:
             if "text" in run:
-                root.add(TextContent.of(run["text"]))
+                if "navigationEndpoint" in run:
+                    endpoint = run.get("navigationEndpoint")
+                    if endpoint is None:
+                        root.add(content.Text.of(run["text"]))
+                    elif "urlEndpoint" in endpoint:
+                        url = endpoint["urlEndpoint"]["url"]
+                        root.add(content.Link.of(url, content.Text.of(run["text"])))
+                else:
+                    root.add(content.Text.of(run["text"]))
             elif "emoji" in run:
                 emoji = run["emoji"]
                 image_url = emoji["image"]["thumbnails"][0]["url"]
                 emoji_id = emoji["emojiId"]
                 name = emoji["shortcuts"][0] if emoji.get("shortcuts") else None
                 root.add(
-                    ImageContent.of(
+                    content.Image.of(
                         url=image_url,
                         id=emoji_id,
                         name=name,
@@ -528,6 +598,7 @@ class YoutubeChatService(ChatService):
         )
 
     async def stop(self):
+        self._closed = True
         self.tasks.terminate()
-        self._room.online = False
+        self._room.connected = False
         await self.client.rooms.update(self._room)

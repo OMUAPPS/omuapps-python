@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import List
+from typing import Dict, List
 
 from aiohttp import web
 from loguru import logger
@@ -22,6 +22,7 @@ class AiohttpSession(Session):
         self._app = app
         self._permissions = permissions
         self._listeners: List[SessionListener] = []
+        self._event_times: Dict[str, float] = {}
 
     @property
     def app(self) -> App:
@@ -119,3 +120,6 @@ class AiohttpSession(Session):
 
     def __repr__(self) -> str:
         return str(self)
+
+    def hash(self) -> int:
+        return hash(self._app)

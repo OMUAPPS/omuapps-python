@@ -28,6 +28,7 @@ iwashi==2.1.6
 loguru==0.7.2
 lxml==5.0.0
 multidict==6.0.4
+pydub==0.25.1
 soupsieve==2.5
 sqlitedict==2.1.0
 win32-setctime==1.1.0

@@ -1,39 +1,18 @@
 from .author import Author, AuthorJson
 from .channel import Channel, ChannelJson
-from .content import (
-    Content,
-    ContentComponent,
-    ContentComponentJson,
-    ContentJson,
-    ImageContent,
-    ImageContentJson,
-    RootContent,
-    RootContentJson,
-    TextContent,
-    TextContentJson,
-)
+from . import content
 from .gift import Gift, GiftJson
 from .message import Message, MessageJson
 from .paid import Paid, PaidJson
 from .provider import Provider, ProviderJson
-from .role import MODERATOR, OWNER, Role, RoleJson
-from .room import Room, RoomJson
+from .role import MODERATOR, OWNER, VERIFIED, Role, RoleJson
+from .room import Room, RoomJson, RoomMetadata
 
 __all__ = [
     "Author",
     "AuthorJson",
     "Channel",
     "ChannelJson",
-    "Content",
-    "ContentComponent",
-    "ContentComponentJson",
-    "ContentJson",
-    "RootContent",
-    "RootContentJson",
-    "ImageContent",
-    "ImageContentJson",
-    "TextContent",
-    "TextContentJson",
     "Gift",
     "GiftJson",
     "Message",
@@ -46,6 +25,9 @@ __all__ = [
     "RoleJson",
     "MODERATOR",
     "OWNER",
+    "VERIFIED",
     "Room",
     "RoomJson",
+    "RoomMetadata",
+    "content",
 ]

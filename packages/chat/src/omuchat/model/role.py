@@ -15,6 +15,7 @@ class RoleJson(TypedDict):
 class Role(Keyable, Model[RoleJson]):
     def __init__(
         self,
+        *,
         id: str,
         name: str,
         is_owner: bool,
@@ -28,9 +29,6 @@ class Role(Keyable, Model[RoleJson]):
         self.is_moderator = is_moderator
         self.icon_url = icon_url
         self.color = color
-
-    def key(self) -> str:
-        return self.id
 
     def to_json(self) -> RoleJson:
         return {
@@ -53,8 +51,8 @@ class Role(Keyable, Model[RoleJson]):
             color=json["color"],
         )
 
-    def __str__(self) -> str:
-        return self.name
+    def key(self) -> str:
+        return self.id
 
 
 MODERATOR = Role(

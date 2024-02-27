@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from edgetrans import EdgeTranslator, Translator
-from omuchat import App, Client, ContentComponent, TextContent, model
+from omuchat import App, Client, content, model
 
 APP = App(
     name="translator",
@@ -12,18 +12,18 @@ client = Client(APP)
 translator: Translator | None = None
 
 
-async def translate(content: ContentComponent) -> ContentComponent:
+async def translate(component: content.Component) -> content.Component:
     if not translator:
-        return content
+        return component
     texts = [
-        sibling for sibling in content.traverse() if isinstance(sibling, TextContent)
+        sibling for sibling in component.iter() if isinstance(sibling, content.Text)
     ]
     translated = await translator.translate(
         [text.text for text in texts if text.text], "ar"
     )
     for text, (translation, _) in zip(texts, translated):
         text.text = translation
-    return content
+    return component
 
 
 @client.messages.proxy

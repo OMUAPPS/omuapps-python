@@ -2,13 +2,18 @@ from typing import Callable, Dict
 
 import omu.client
 from omu import Address, App, ConnectionListener, OmuClient
-from omu.extension.table import Table, TableListener
+from omu.extension.table import TableListener
+from .chat import (
+    AuthorsTableKey,
+    ChannelsTableKey,
+    MessagesTableKey,
+    ProviderTableKey,
+    RoomTableKey,
+)
 
-from omuchat.event import EventHandler, EventKey, EventRegistry, events
-from omuchat.model import Channel, Message, Provider, Room
-from omuchat.model.author import Author
-
-from ..chat import ChatExtensionType
+from .event import EventHandler, EventKey, EventRegistry, events
+from .model import Channel, Message, Provider, Room
+from .model.author import Author
 
 
 class _MessageListener(TableListener[Message]):
@@ -110,37 +115,21 @@ class Client(ConnectionListener):
             address=self.address,
         )
         self.event_registry = EventRegistry()
-        self.chat = self.omu.extensions.register(ChatExtensionType)
-        self.chat.messages.add_listener(_MessageListener(self.event_registry))
-        self.chat.authors.add_listener(_AuthorListener(self.event_registry))
-        self.chat.channels.add_listener(_ChannelListener(self.event_registry))
-        self.chat.providers.add_listener(_ProviderListener(self.event_registry))
-        self.chat.rooms.add_listener(_RoomListener(self.event_registry))
+        self.messages = self.omu.tables.get(MessagesTableKey)
+        self.authors = self.omu.tables.get(AuthorsTableKey)
+        self.channels = self.omu.tables.get(ChannelsTableKey)
+        self.providers = self.omu.tables.get(ProviderTableKey)
+        self.rooms = self.omu.tables.get(RoomTableKey)
+        self.messages.add_listener(_MessageListener(self.event_registry))
+        self.authors.add_listener(_AuthorListener(self.event_registry))
+        self.channels.add_listener(_ChannelListener(self.event_registry))
+        self.providers.add_listener(_ProviderListener(self.event_registry))
+        self.rooms.add_listener(_RoomListener(self.event_registry))
         self.omu.connection.add_listener(self)
 
     @property
     def loop(self):
         return self.omu.loop
-
-    @property
-    def messages(self) -> Table[Message]:
-        return self.chat.messages
-
-    @property
-    def authors(self) -> Table[Author]:
-        return self.chat.authors
-
-    @property
-    def channels(self) -> Table[Channel]:
-        return self.chat.channels
-
-    @property
-    def providers(self) -> Table[Provider]:
-        return self.chat.providers
-
-    @property
-    def rooms(self) -> Table[Room]:
-        return self.chat.rooms
 
     async def on_connected(self) -> None:
         await self.event_registry.dispatch(events.Ready)

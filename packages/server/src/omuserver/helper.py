@@ -1,4 +1,6 @@
+import hashlib
 import os
+import re
 import sys
 from pathlib import Path
 from typing import List, TypedDict
@@ -17,6 +19,17 @@ def safe_path(root_path: Path, input_path: Path) -> Path:
 
 def safe_path_join(root: Path, *paths: Path | str) -> Path:
     return root / safe_path(root, root.joinpath(*paths))
+
+
+sanitize_re = re.compile(r"[^\w]")
+
+
+def sanitize_filename(name: str) -> str:
+    return sanitize_re.sub("_", name)
+
+
+def generate_md5_hash(id: str) -> str:
+    return hashlib.md5(id.encode()).hexdigest()
 
 
 class LaunchCommand(TypedDict):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from omuchat import App, Client, ContentComponent, TextContent, model
+from omuchat import App, Client, content, model
 
 APP = App(
     name="nyanya",
@@ -14,13 +14,12 @@ replaces = {
 }
 
 
-async def translate(content: ContentComponent) -> ContentComponent:
-    texts = [
-        sibling for sibling in content.traverse() if isinstance(sibling, TextContent)
-    ]
-    for text in texts:
-        text.text = "".join(replaces.get(char, char) for char in text.text)
-    return content
+async def translate(component: content.Component) -> content.Component:
+    for child in component.iter():
+        if not isinstance(child, content.Text):
+            continue
+        child.text = "".join(replaces.get(char, char) for char in child.text)
+    return component
 
 
 @client.messages.proxy

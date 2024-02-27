@@ -9,7 +9,7 @@ class PaidJson(TypedDict):
 
 
 class Paid(Model[PaidJson]):
-    def __init__(self, amount: float, currency: str) -> None:
+    def __init__(self, *, amount: float, currency: str) -> None:
         self.amount = amount
         self.currency = currency
 
@@ -20,5 +20,10 @@ class Paid(Model[PaidJson]):
     def to_json(self) -> PaidJson:
         return {"amount": self.amount, "currency": self.currency}
 
-    def __str__(self) -> str:
-        return f"{self.amount} {self.currency}"
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Paid):
+            return NotImplemented
+        return self.amount == other.amount and self.currency == other.currency
+
+    def __repr__(self) -> str:
+        return f"Paid(amount={self.amount}, currency={self.currency})"

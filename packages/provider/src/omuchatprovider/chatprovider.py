@@ -9,8 +9,8 @@ from omuchatprovider.errors import ProviderError
 from .services import ChatService, ProviderService, get_services
 
 APP = App(
-    name="provider",
-    group="omu.chat",
+    name="chatprovider",
+    group="cc.omuchat",
     description="Chat provider for Omu",
     version="0.1.0",
     authors=["omu"],
@@ -36,13 +36,13 @@ async def update_channel(channel: Channel, service: ProviderService):
         if not channel.active:
             return
         available_rooms = await service.fetch_rooms(channel)
-        for url, create_chat in available_rooms.items():
-            if url in chats:
+        for room, create_chat in available_rooms.items():
+            if room.key() in chats:
                 continue
             chat = await create_chat()
-            chats[url] = chat
+            chats[room.key()] = chat
             asyncio.create_task(chat.start())
-            logger.info(f"Started chat for {url}")
+            logger.info(f"Started chat for {room.key()}")
     except ProviderError as e:
         logger.error(f"Failed to update channel {channel.id}: {e}")
 
@@ -86,8 +86,11 @@ async def recheck_task():
 
 
 async def recheck_rooms():
+    for chat in tuple(chats.values()):
+        if chat.closed:
+            del chats[chat.room.key()]
     rooms = await client.rooms.fetch_items()
-    for room in filter(lambda r: r.online, rooms.values()):
+    for room in filter(lambda r: r.connected, rooms.values()):
         if room.provider_id not in services:
             continue
         if not await should_remove(room, services[room.provider_id]):
@@ -96,12 +99,12 @@ async def recheck_rooms():
 
 
 async def stop_room(room: Room):
-    room.online = False
+    room.status = "offline"
     await client.rooms.update(room)
-    for url, chat in tuple(chats.items()):
+    for key, chat in tuple(chats.items()):
         if chat.room.key() == room.key():
             await chat.stop()
-            del chats[url]
+            del chats[key]
 
 
 async def should_remove(room: Room, provider_service: ProviderService):

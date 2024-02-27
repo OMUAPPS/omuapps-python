@@ -16,6 +16,7 @@ class ChannelJson(TypedDict):
 class Channel(Keyable, Model[ChannelJson]):
     def __init__(
         self,
+        *,
         provider_id: str,
         id: str,
         url: str,
@@ -44,9 +45,6 @@ class Channel(Keyable, Model[ChannelJson]):
             icon_url=json["icon_url"],
         )
 
-    def key(self) -> str:
-        return f"{self.provider_id}:{self.url}"
-
     def to_json(self) -> ChannelJson:
         return ChannelJson(
             provider_id=self.provider_id,
@@ -58,5 +56,8 @@ class Channel(Keyable, Model[ChannelJson]):
             icon_url=self.icon_url,
         )
 
-    def __str__(self):
+    def key(self) -> str:
+        return f"{self.provider_id}:{self.url}"
+
+    def __repr__(self):
         return f"Channel({self.provider_id}, {self.url}, {self.name})"

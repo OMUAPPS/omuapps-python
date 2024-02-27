@@ -3,7 +3,7 @@ name = "omuchatprovider"
 version = "0.1.4"
 description = "Add your description here"
 authors = [
-    { name = "am230", email = "111672334+am230@users.noreply.github.com" }
+    { name = "am230", email = "111672334+am230@users.noreply.github.com" },
 ]
 dependencies = [
     "aiohttp>=3.9.1",
@@ -23,7 +23,11 @@ managed = true
 dev-dependencies = []
 
 [tool.pylint]
-disable = ["missing-module-docstring", "missing-function-docstring", "missing-class-docstring"]
+disable = [
+    "missing-module-docstring",
+    "missing-function-docstring",
+    "missing-class-docstring",
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true

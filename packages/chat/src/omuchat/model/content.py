@@ -1,200 +1,252 @@
 from __future__ import annotations
+import abc
 
-from typing import Generator, Iterable, List, Literal, NotRequired, TypedDict
+from typing import (
+    Callable,
+    Iterable,
+    List,
+    LiteralString,
+    Literal,
+    Protocol,
+    TypedDict,
+)
 
-from omu.interface import Model
-
-type ContentJson = TextContentJson | ImageContentJson | RootContentJson
-type Content = TextContent | ImageContent | RootContent
+type Primitive = dict[str | int, Primitive] | list | str | int | float | bool | None
 
 
-class ContentComponentJson[T: str](TypedDict):
-    type: T
-    siblings: NotRequired[List[ContentJson]] | None
+class ComponentJson(TypedDict):
+    type: str
+    data: Primitive
 
 
-class ContentComponent[T: ContentComponentJson](Model[T]):
-    def __init__(
-        self, type: str, siblings: List[ContentComponent] | None = None
-    ) -> None:
-        self.type = type
-        self.siblings = siblings
+class Component[T: LiteralString, D](abc.ABC):
+    @classmethod
+    @abc.abstractmethod
+    def type(cls) -> T:
+        ...
+
+    @staticmethod
+    @abc.abstractmethod
+    def from_json(json: D) -> Component:
+        ...
+
+    @abc.abstractmethod
+    def to_json(self) -> D:
+        ...
+
+    def walk(self, cb: Callable[[Component], None]) -> None:
+        stack: List[Component] = [self]
+        while stack:
+            component = stack.pop()
+            if not component:
+                continue
+            cb(component)
+            if isinstance(component, Parent):
+                stack.extend(component.get_children())
+
+    def iter(self) -> Iterable[Component]:
+        stack: List[Component] = [self]
+        while stack:
+            component = stack.pop()
+            if not component:
+                continue
+            yield component
+            if isinstance(component, Parent):
+                stack.extend(component.get_children())
+
+
+class Parent(abc.ABC):
+    @abc.abstractmethod
+    def get_children(self) -> List[Component]:
+        ...
+
+    @abc.abstractmethod
+    def set_children(self, children: List[Component]) -> None:
+        ...
+
+
+class ComponentType[D, C: Component](Protocol):
+    @classmethod
+    def type(cls) -> str:
+        ...
+
+    @staticmethod
+    def from_json(json: D) -> C:
+        ...
+
+
+component_types: dict[str, ComponentType] = {}
+
+
+def deserialize(json: ComponentJson) -> Component:
+    type = component_types.get(json["type"])
+    if not type:
+        raise ValueError(f'Unknown component type: {json["type"]}')
+    return type.from_json(json["data"])
+
+
+def serialize(component: Component) -> ComponentJson:
+    return {
+        "type": component.type(),
+        "data": component.to_json(),
+    }
+
+
+def register[D: ComponentJson, C: Component](
+    component_type: type[Component] | ComponentType[D, C],
+):
+    type = component_type.type()
+    if type in component_types:
+        raise ValueError(f"Component type already registered: {type}")
+    component_types[type] = component_type
+
+
+type RootData = List[ComponentJson]
+
+
+class Root(Component[Literal["root"], RootData], Parent):
+    def __init__(self, children: List[Component] | None = None):
+        self.children = children or []
 
     @classmethod
-    def from_json(cls, json: ContentJson) -> Content:
-        match json["type"]:
-            case "text":
-                return TextContent.from_json(json)
-            case "image":
-                return ImageContent.from_json(json)
-            case "root":
-                return RootContent.from_json(json)
+    def type(cls):
+        return "root"
 
-    def traverse(self) -> Generator[ContentComponent, None, None]:
-        yield self
-        for sibling in self.siblings or []:
-            yield from sibling.traverse()
+    @staticmethod
+    def from_json(json: RootData) -> Root:
+        return Root([deserialize(child) for child in json])
 
-    def to_json(self) -> ContentComponentJson:
-        return ContentComponentJson(
-            type=self.type,
-            siblings=[sibling.to_json() for sibling in self.siblings]
-            if self.siblings
-            else [],
+    def to_json(self) -> RootData:
+        return [serialize(child) for child in self.children]
+
+    def get_children(self) -> List[Component]:
+        return self.children
+
+    def set_children(self, children: List[Component]) -> None:
+        self.children = children
+
+    def add(self, component: Component):
+        if not self.children:
+            self.children = []
+        self.children.append(component)
+
+    def text(self) -> str:
+        return "".join(
+            component.text for component in self.iter() if isinstance(component, Text)
         )
 
 
-class RootContentJson(ContentComponentJson[Literal["root"]]):
-    ...
+type TextData = str
 
 
-class RootContent(ContentComponent, Model[RootContentJson]):
-    def __init__(self, siblings: List[ContentComponent] | None = None) -> None:
-        super().__init__(type="root", siblings=siblings)
-        self.siblings = siblings
-
-    def to_json(self) -> RootContentJson:
-        return {
-            "type": "root",
-            "siblings": [sibling.to_json() for sibling in self.siblings]
-            if self.siblings
-            else [],
-        }
-
-    @classmethod
-    def of(cls, *siblings: ContentComponent) -> RootContent:
-        return cls(siblings=list(siblings))
-
-    @classmethod
-    def empty(cls) -> RootContent:
-        return cls()
-
-    @classmethod
-    def from_json(cls, json: RootContentJson) -> RootContent:
-        return cls(
-            siblings=[
-                ContentComponent.from_json(sibling)
-                for sibling in json.get("siblings", []) or []
-            ]
-        )
-
-    def add(self, *siblings: Content) -> RootContent:
-        if self.siblings is None:
-            self.siblings = []
-        self.siblings.extend(siblings)
-        return self
-
-    def __str__(self) -> str:
-        return "".join(str(sibling) for sibling in self.siblings or [])
-
-
-class TextContentJson(ContentComponentJson[Literal["text"]]):
-    text: str
-
-
-class TextContent(ContentComponent, Model[TextContentJson]):
-    def __init__(
-        self, text: str, siblings: List[ContentComponent] | None = None
-    ) -> None:
-        super().__init__(type="text", siblings=siblings)
+class Text(Component[Literal["text"], TextData]):
+    def __init__(self, text: str):
         self.text = text
 
-    def to_json(self) -> TextContentJson:
-        return {
-            "type": "text",
-            "text": self.text,
-            "siblings": [sibling.to_json() for sibling in self.siblings]
-            if self.siblings
-            else [],
-        }
-
     @classmethod
-    def of(cls, text: str) -> TextContent:
-        return cls(text=text)
+    def type(cls):
+        return "text"
 
-    @classmethod
-    def from_json(cls, json: TextContentJson) -> TextContent:
-        return cls(text=json["text"])
+    @staticmethod
+    def from_json(json: TextData) -> Text:
+        return Text(json)
 
-    def __str__(self) -> str:
+    def to_json(self) -> TextData:
         return self.text
 
+    @classmethod
+    def of(cls, text: str) -> Text:
+        return cls(text)
 
-class ImageContentJson(ContentComponentJson[Literal["image"]]):
+
+class ImageData(TypedDict):
     url: str
     id: str
-    name: NotRequired[str] | None
+    name: str | None
 
 
-class ImageContent(ContentComponent, Model[ImageContentJson]):
-    def __init__(
-        self,
-        url: str,
-        id: str,
-        name: str | None = None,
-        siblings: List[ContentComponent] | None = None,
-    ) -> None:
-        super().__init__(type="image", siblings=siblings)
+class Image(Component[Literal["image"], ImageData]):
+    def __init__(self, url: str, id: str, name: str | None = None):
         self.url = url
         self.id = id
         self.name = name
 
-    def to_json(self) -> ImageContentJson:
+    @classmethod
+    def type(cls):
+        return "image"
+
+    @staticmethod
+    def from_json(json: ImageData) -> Image:
+        return Image(json["url"], json["id"], json.get("name"))
+
+    def to_json(self) -> ImageData:
         return {
-            "type": "image",
             "url": self.url,
             "id": self.id,
             "name": self.name,
-            "siblings": [sibling.to_json() for sibling in self.siblings]
-            if self.siblings
-            else [],
         }
 
     @classmethod
-    def of(cls, url: str, id: str, name: str | None = None) -> ImageContent:
-        return cls(url=url, id=id, name=name)
+    def of(cls, *, url: str, id: str, name: str | None = None) -> Image:
+        return cls(url, id, name)
+
+
+class LinkData(TypedDict):
+    url: str
+    children: List[ComponentJson]
+
+
+class Link(Component[Literal["link"], LinkData], Parent):
+    def __init__(self, url: str, children: List[Component]):
+        self.url = url
+        self.children = children
 
     @classmethod
-    def from_json(cls, json: ImageContentJson) -> ImageContent:
-        return cls(url=json["url"], id=json["id"], name=json.get("name"))
+    def type(cls):
+        return "link"
 
-    def __str__(self) -> str:
-        return f"[{self.name}]({self.url})"
+    @classmethod
+    def of(cls, url: str, *children: Component) -> Link:
+        return cls(url, list(children))
 
+    @staticmethod
+    def from_json(json: LinkData) -> Link:
+        return Link(json["url"], [deserialize(child) for child in json["children"]])
 
-class SystemContentJson(ContentComponentJson[Literal["system"]]):
-    text: str
-    color: NotRequired[str] | None
-
-
-class SystemContent(ContentComponent, Model[SystemContentJson]):
-    def __init__(
-        self,
-        text: str,
-        color: str | None = None,
-        siblings: List[ContentComponent] | None = None,
-    ) -> None:
-        super().__init__(type="system", siblings=siblings)
-        self.text = text
-        self.color = color
-
-    def to_json(self) -> SystemContentJson:
+    def to_json(self) -> LinkData:
         return {
-            "type": "system",
-            "text": self.text,
-            "color": self.color,
-            "siblings": [sibling.to_json() for sibling in self.siblings]
-            if self.siblings
-            else [],
+            "url": self.url,
+            "children": [serialize(child) for child in self.children],
         }
 
-    @classmethod
-    def of(cls, text: str, color: str | None = None) -> SystemContent:
-        return cls(text=text, color=color)
+    def get_children(self) -> List[Component]:
+        return self.children
+
+    def set_children(self, children: List[Component]) -> None:
+        self.children = children
+
+
+class System(Component[Literal["system"], RootData], Parent):
+    def __init__(self, children: List[Component]):
+        self.children = children
 
     @classmethod
-    def from_json(cls, json: SystemContentJson) -> SystemContent:
-        return cls(text=json["text"], color=json.get("color"))
+    def type(cls):
+        return "system"
 
-    def __str__(self) -> str:
-        return self.text
+    @staticmethod
+    def from_json(json: RootData) -> System:
+        return System([deserialize(child) for child in json])
+
+    def to_json(self) -> RootData:
+        return [serialize(child) for child in self.children]
+
+    def get_children(self) -> List[Component]:
+        return self.children
+
+    def set_children(self, children: List[Component]) -> None:
+        self.children = children
+
+
+for component_type in {Root, Text, Image, Link, System}:
+    register(component_type)

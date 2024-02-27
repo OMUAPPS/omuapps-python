@@ -140,10 +140,10 @@ class ModelTableType[T: Keyable, D](TableType[T]):
 
     @classmethod
     def of[_T: Keyable, _D](
-        cls, app: App, name: str, model: type[ModelEntry[_T, _D]]
+        cls, identifier: Identifier | App, name: str, model: type[ModelEntry[_T, _D]]
     ) -> ModelTableType[_T, _D]:
         return ModelTableType(
-            info=TableInfo.of(Identifier.create(app.key(), name)),
+            info=TableInfo.of(Identifier.create(identifier.key(), name)),
             model=model,
         )
 

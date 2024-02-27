@@ -19,7 +19,7 @@ class ProviderService(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def fetch_rooms(self, channel: Channel) -> dict[str, ChatSupplier]:
+    async def fetch_rooms(self, channel: Channel) -> dict[Room, ChatSupplier]:
         ...
 
     @abc.abstractmethod
@@ -31,6 +31,11 @@ class ChatService(abc.ABC):
     @property
     @abc.abstractmethod
     def room(self) -> Room:
+        ...
+
+    @property
+    @abc.abstractmethod
+    def closed(self) -> bool:
         ...
 
     @abc.abstractmethod

@@ -19,6 +19,7 @@ class ProviderJson(TypedDict):
 class Provider(Keyable, Model[ProviderJson]):
     def __init__(
         self,
+        *,
         id: str,
         url: str,
         name: str,
@@ -50,9 +51,6 @@ class Provider(Keyable, Model[ProviderJson]):
             regex=json["regex"],
         )
 
-    def key(self) -> str:
-        return self.id
-
     def to_json(self) -> ProviderJson:
         return ProviderJson(
             id=self.id,
@@ -65,5 +63,8 @@ class Provider(Keyable, Model[ProviderJson]):
             regex=self.regex,
         )
 
-    def __str__(self) -> str:
+    def key(self) -> str:
+        return self.id
+
+    def __repr__(self) -> str:
         return f"Provider({self.key()})"

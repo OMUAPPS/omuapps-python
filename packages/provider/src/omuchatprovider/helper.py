@@ -34,6 +34,12 @@ def normalize_url(url: str) -> str:
     return f"{match.group('protocol') or 'https'}://{match.group('domain')}{match.group('path') or ''}{match.group('query') or ''}"
 
 
+def assert_none[T](value: T | None, message: str) -> T:
+    if value is None:
+        raise ValueError(message)
+    return value
+
+
 def timeit[**P, R](func: Callable[P, R]) -> Callable[P, R]:
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         start = time.time()

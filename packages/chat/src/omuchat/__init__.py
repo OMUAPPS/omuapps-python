@@ -1,6 +1,5 @@
 from omu import App
 
-from .chat import ChatExtension, ChatExtensionType
 from .client import Client
 from .event import events
 from .model import (
@@ -8,14 +7,9 @@ from .model import (
     AuthorJson,
     Channel,
     ChannelJson,
-    Content,
-    ContentComponent,
-    ContentComponentJson,
-    ContentJson,
+    content,
     Gift,
     GiftJson,
-    ImageContent,
-    ImageContentJson,
     Message,
     MessageJson,
     Paid,
@@ -26,28 +20,19 @@ from .model import (
     RoleJson,
     Room,
     RoomJson,
-    TextContent,
-    TextContentJson,
 )
 
 __all__ = [
     "App",
-    "ChatExtension",
-    "ChatExtensionType",
     "Client",
     "events",
     "Author",
     "AuthorJson",
     "Channel",
     "ChannelJson",
-    "Content",
-    "ContentComponent",
-    "ContentComponentJson",
-    "ContentJson",
+    "content",
     "Gift",
     "GiftJson",
-    "ImageContent",
-    "ImageContentJson",
     "Message",
     "MessageJson",
     "Paid",
@@ -58,6 +43,4 @@ __all__ = [
     "RoleJson",
     "Room",
     "RoomJson",
-    "TextContent",
-    "TextContentJson",
 ]

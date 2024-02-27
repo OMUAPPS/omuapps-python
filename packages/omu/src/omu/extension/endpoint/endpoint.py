@@ -44,13 +44,13 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
     @classmethod
     def of(
         cls,
-        app: App,
+        identifier: Identifier | App,
         name: str,
         request_serializer: Serializable[Req, bytes],
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(app.key(), name)),
+            info=EndpointInfo(identifier=Identifier.create(identifier.key(), name)),
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
@@ -96,11 +96,11 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
     @classmethod
     def of(
         cls,
-        app: App,
+        identifier: Identifier | App,
         name: str,
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(app.key(), name)),
+            info=EndpointInfo(identifier=Identifier.create(identifier.key(), name)),
         )
 
     @classmethod
