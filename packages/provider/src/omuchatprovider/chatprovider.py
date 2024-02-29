@@ -100,6 +100,7 @@ async def recheck_rooms():
 
 async def stop_room(room: Room):
     room.status = "offline"
+    room.connected = False
     await client.rooms.update(room)
     for key, chat in tuple(chats.items()):
         if chat.room.key() == room.key():
