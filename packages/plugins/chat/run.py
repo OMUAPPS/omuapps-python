@@ -26,11 +26,13 @@ address = Address("127.0.0.1", 26423)
 client = OmuClient(app, address=address)
 
 
-messages = client.tables.register(MessagesTableKey)
-authors = client.tables.register(AuthorsTableKey)
-channels = client.tables.register(ChannelsTableKey)
-providers = client.tables.register(ProviderTableKey)
-rooms = client.tables.register(RoomTableKey)
+messages = client.tables.get(MessagesTableKey)
+authors = client.tables.get(AuthorsTableKey)
+messages.set_config({"cache_size": 1000})
+authors.set_config({"cache_size": 500})
+channels = client.tables.get(ChannelsTableKey)
+providers = client.tables.get(ProviderTableKey)
+rooms = client.tables.get(RoomTableKey)
 
 
 @client.endpoints.listen(name="create_channel_tree")

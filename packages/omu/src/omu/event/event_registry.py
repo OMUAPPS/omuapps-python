@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List
 
 from loguru import logger
 
-from omu.connection import ConnectionListener
+from omu.network import ConnectionListener
 
 if TYPE_CHECKING:
     from omu.client import Client

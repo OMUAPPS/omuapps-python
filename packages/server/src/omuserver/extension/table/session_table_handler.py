@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
 
 class SessionTableListener(ServerTableListener):
-    def __init__(self, key: str, session: Session) -> None:
-        self._key = key
+    def __init__(self, id: str, session: Session) -> None:
+        self._id = id
         self._session = session
 
     async def on_add(self, items: Dict[str, Any]) -> None:
@@ -29,7 +29,7 @@ class SessionTableListener(ServerTableListener):
             TableItemAddEvent,
             TableItemsData(
                 items=items,
-                type=self._key,
+                type=self._id,
             ),
         )
 
@@ -40,7 +40,7 @@ class SessionTableListener(ServerTableListener):
             TableItemUpdateEvent,
             TableItemsData(
                 items=items,
-                type=self._key,
+                type=self._id,
             ),
         )
 
@@ -51,14 +51,14 @@ class SessionTableListener(ServerTableListener):
             TableItemRemoveEvent,
             TableItemsData(
                 items=items,
-                type=self._key,
+                type=self._id,
             ),
         )
 
     async def on_clear(self) -> None:
         if self._session.closed:
             return
-        await self._session.send(TableItemClearEvent, TableEventData(type=self._key))
+        await self._session.send(TableItemClearEvent, TableEventData(type=self._id))
 
     def __repr__(self) -> str:
-        return f"<SessionTableHandler key={self._key} app={self._session.app}>"
+        return f"<SessionTableHandler key={self._id} app={self._session.app}>"

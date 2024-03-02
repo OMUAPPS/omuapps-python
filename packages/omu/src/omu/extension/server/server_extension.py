@@ -1,14 +1,14 @@
 from omu.client import Client
 from omu.extension.endpoint import JsonEndpointType
-from omu.extension.extension import Extension, define_extension_type
-from omu.extension.server import App, AppJson
-from omu.extension.table import ModelTableType, TableExtensionType
+from omu.extension.extension import Extension, ExtensionType
+from omu.extension.server import App
+from omu.extension.table import TableExtensionType, TableType
 
-ServerExtensionType = define_extension_type(
+ServerExtensionType = ExtensionType(
     "server", lambda client: ServerExtension(client), lambda: []
 )
 
-AppsTableType = ModelTableType[App, AppJson].of_extension(
+AppsTableType = TableType.model(
     ServerExtensionType,
     "apps",
     App,

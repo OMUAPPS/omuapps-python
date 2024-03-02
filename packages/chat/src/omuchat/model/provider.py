@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from omu.interface import Keyable, Model
+from omu.interface import Keyable
+from omu.extension.table import Model
 
 
 class ProviderJson(TypedDict):

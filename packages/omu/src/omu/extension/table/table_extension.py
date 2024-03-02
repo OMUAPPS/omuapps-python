@@ -1,31 +1,44 @@
-from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, TypedDict
+from typing import (
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    TypedDict,
+)
 
-from omu.client.client import Client
-from omu.connection import ConnectionListener
-from omu.event.event import JsonEventType, SerializeEventType
+from omu.client import Client
+from omu.event import JsonEventType, SerializeEventType
+from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType, SerializeEndpointType
-from omu.extension.extension import Extension, define_extension_type
-from omu.helper import ByteReader, ByteWriter
-from omu.interface import Keyable, Serializable, Serializer
+from omu.extension.table.table_config import TableConfig
+from omu.helper import AsyncCallback
+from omu.identifier import Identifier
+from omu.interface import Keyable
+from omu.network import ConnectionListener
+from omu.network.bytebuffer import ByteReader, ByteWriter
+from omu.serializer import JsonSerializable, Serializable, Serializer
 
 from .table import (
-    AsyncCallback,
-    ModelTableType,
     Table,
     TableListener,
     TableType,
 )
-from .table_info import TableInfo
 
 type Coro[**P, T] = Callable[P, Awaitable[T]]
+
+
+type ModelType[T: Keyable, D] = JsonSerializable[T, D]
 
 
 class TableExtension(Extension):
     def __init__(self, client: Client):
         self._client = client
-        self._tables: Dict[str, Table] = {}
+        self._tables: Dict[Identifier, Table] = {}
         client.events.register(
-            TableRegisterEvent,
+            TableConfigSetEvent,
             TableListenEvent,
             TableProxyListenEvent,
             TableProxyEvent,
@@ -34,27 +47,45 @@ class TableExtension(Extension):
             TableItemRemoveEvent,
             TableItemClearEvent,
         )
-        self.tables = self.get(TablesTableType)
 
-    def register[K: Keyable](self, type: TableType[K]) -> Table[K]:
-        if self.has(type):
-            raise Exception(f"Table for key {type.info.key()} already registered")
-        table = TableImpl(self._client, type, owner=True)
-        self._tables[type.info.key()] = table
+    def create[T](
+        self,
+        identifier: Identifier,
+        serializer: Serializable[T, bytes],
+        key_function: Callable[[T], str],
+    ) -> Table[T]:
+        if self.has(identifier):
+            raise ValueError(f"Table with identifier {identifier} already exists")
+        table = TableImpl(
+            self._client,
+            identifier=identifier,
+            serializer=serializer,
+            key_function=key_function,
+        )
+        self._tables[identifier] = table
         return table
 
-    def get[K: Keyable](self, type: TableType[K]) -> Table[K]:
-        if self.has(type):
-            return self._tables[type.info.key()]
-        table = TableImpl(self._client, type)
-        self._tables[type.info.key()] = table
-        return table
+    def get[T](self, type: TableType[T]) -> Table[T]:
+        if self.has(type.identifier):
+            return self._tables[type.identifier]
+        return self.create(type.identifier, type.serializer, type.key_function)
 
-    def has(self, type: TableType) -> bool:
-        return type.info.key() in self._tables
+    def model[T: Keyable, D](
+        self, identifier: Identifier, type: type[ModelType[T, D]]
+    ) -> Table[T]:
+        if self.has(identifier):
+            return self._tables[identifier]
+        return self.create(
+            identifier,
+            Serializer.model(type).pipe(Serializer.json()),
+            lambda item: item.key(),
+        )
+
+    def has(self, identifier: Identifier) -> bool:
+        return identifier.key() in self._tables
 
 
-TableExtensionType = define_extension_type(
+TableExtensionType = ExtensionType(
     "table", lambda client: TableExtension(client), lambda: []
 )
 
@@ -86,15 +117,14 @@ class TableItemsSerielizer(Serializable[TableItemsData, bytes]):
         return writer.finish()
 
     def deserialize(self, data: bytes) -> TableItemsData:
-        reader = ByteReader(data)
-        type = reader.read_string()
-        item_count = reader.read_int()
-        items = {}
-        for _ in range(item_count):
-            key = reader.read_string()
-            value = reader.read_byte_array()
-            items[key] = value
-        reader.finish()
+        with ByteReader(data) as reader:
+            type = reader.read_string()
+            item_count = reader.read_int()
+            items = {}
+            for _ in range(item_count):
+                key = reader.read_string()
+                value = reader.read_byte_array()
+                items[key] = value
         return {"type": type, "items": items}
 
 
@@ -110,21 +140,25 @@ class TableProxySerielizer(Serializable[TableProxyData, bytes]):
         return writer.finish()
 
     def deserialize(self, data: bytes) -> TableProxyData:
-        reader = ByteReader(data)
-        type = reader.read_string()
-        key = reader.read_int()
-        item_count = reader.read_int()
-        items = {}
-        for _ in range(item_count):
-            item_key = reader.read_string()
-            value = reader.read_byte_array()
-            items[item_key] = value
-        reader.finish()
+        with ByteReader(data) as reader:
+            type = reader.read_string()
+            key = reader.read_int()
+            item_count = reader.read_int()
+            items = {}
+            for _ in range(item_count):
+                item_key = reader.read_string()
+                value = reader.read_byte_array()
+                items[item_key] = value
         return {"type": type, "key": key, "items": items}
 
 
-TableRegisterEvent = JsonEventType.of_extension(
-    TableExtensionType, "register", Serializer.model(TableInfo)
+class SetConfigReq(TypedDict):
+    type: str
+    config: TableConfig
+
+
+TableConfigSetEvent = JsonEventType[SetConfigReq].of_extension(
+    TableExtensionType, "config_set"
 )
 TableListenEvent = JsonEventType[str].of_extension(TableExtensionType, name="listen")
 TableProxyListenEvent = JsonEventType[str].of_extension(
@@ -185,23 +219,26 @@ TableItemFetchEndpoint = SerializeEndpointType[
 TableItemSizeEndpoint = JsonEndpointType[TableEventData, int].of_extension(
     TableExtensionType, "item_size"
 )
-TablesTableType = ModelTableType.of_extension(
-    TableExtensionType,
-    "tables",
-    TableInfo,
-)
 
 
-class TableImpl[T: Keyable](Table[T], ConnectionListener):
-    def __init__(self, client: Client, type: TableType[T], owner: bool = False):
+class TableImpl[T](Table[T], ConnectionListener):
+    def __init__(
+        self,
+        client: Client,
+        identifier: Identifier,
+        serializer: Serializable[T, bytes],
+        key_function: Callable[[T], str],
+    ):
         self._client = client
-        self._type = type
-        self._owner = owner
+        self._serializer = serializer
+        self._key_function = key_function
         self._cache: Dict[str, T] = {}
         self._listeners: List[TableListener[T]] = []
         self._proxies: List[Coro[[T], T | None]] = []
-        self.key = type.info.key()
+        self._chunk_size = 100
         self._listening = False
+        self._config: TableConfig | None = None
+        self.key = identifier.key()
 
         client.events.add_listener(TableProxyEvent, self._on_proxy)
         client.events.add_listener(TableItemAddEvent, self._on_item_add)
@@ -227,19 +264,19 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
         return None
 
     async def add(self, *items: T) -> None:
-        data = {item.key(): self._type.serializer.serialize(item) for item in items}
+        data = self._serialize_items(items)
         await self._client.send(
             TableItemAddEvent, TableItemsData(type=self.key, items=data)
         )
 
     async def update(self, *items: T) -> None:
-        data = {item.key(): self._type.serializer.serialize(item) for item in items}
+        data = self._serialize_items(items)
         await self._client.send(
             TableItemUpdateEvent, TableItemsData(type=self.key, items=data)
         )
 
     async def remove(self, *items: T) -> None:
-        data = {item.key(): self._type.serializer.serialize(item) for item in items}
+        data = self._serialize_items(items)
         await self._client.send(
             TableItemRemoveEvent, TableItemsData(type=self.key, items=data)
         )
@@ -269,8 +306,8 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
         cursor: str | None = None,
     ) -> AsyncGenerator[T, None]:
         items = await self.fetch_items(
-            before=self._type.info.cache_size if backward else None,
-            after=self._type.info.cache_size if not backward else None,
+            before=self._chunk_size if backward else None,
+            after=self._chunk_size if not backward else None,
             cursor=cursor,
         )
         for item in items.values():
@@ -278,8 +315,8 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
         while len(items) > 0:
             cursor = next(iter(items.keys()))
             items = await self.fetch_items(
-                before=self._type.info.cache_size if backward else None,
-                after=self._type.info.cache_size if not backward else None,
+                before=self._chunk_size if backward else None,
+                after=self._chunk_size if not backward else None,
                 cursor=cursor,
             )
             for item in items.values():
@@ -291,13 +328,6 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
             TableItemSizeEndpoint, TableEventData(type=self.key)
         )
         return res
-
-    def add_listener(self, listener: TableListener[T]) -> None:
-        self._listeners.append(listener)
-        self._listening = True
-
-    def remove_listener(self, listener: TableListener[T]) -> None:
-        self._listeners.remove(listener)
 
     def listen(
         self, callback: AsyncCallback[Mapping[str, T]] | None = None
@@ -311,9 +341,14 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
         self._proxies.append(callback)
         return lambda: self._proxies.remove(callback)
 
+    def set_config(self, config: TableConfig) -> None:
+        self._config = config
+
     async def on_connected(self) -> None:
-        if self._owner:
-            await self._client.send(TableRegisterEvent, self._type.info)
+        if self._config is not None:
+            await self._client.send(
+                TableConfigSetEvent, SetConfigReq(type=self.key, config=self._config)
+            )
         if self._listening:
             await self._client.send(TableListenEvent, self.key)
         if len(self._proxies) > 0:
@@ -330,9 +365,7 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
                     del items[key]
                 else:
                     items[key] = updated_item
-        serialized_items = {
-            item.key(): self._type.serializer.serialize(item) for item in items.values()
-        }
+        serialized_items = self._serialize_items(items.values())
         await self._client.endpoints.call(
             TableProxyEndpoint,
             TableProxyData(
@@ -383,8 +416,22 @@ class TableImpl[T: Keyable](Table[T], ConnectionListener):
     def _parse_items(self, items: Dict[str, bytes]) -> Dict[str, T]:
         parsed_items: Dict[str, T] = {}
         for key, item_bytes in items.items():
-            item = self._type.serializer.deserialize(item_bytes)
+            item = self._serializer.deserialize(item_bytes)
             if item is None:
                 raise ValueError(f"Failed to deserialize item with key: {key}")
             parsed_items[key] = item
         return parsed_items
+
+    def _serialize_items(self, items: Iterable[T]) -> Dict[str, bytes]:
+        serialized_items: Dict[str, bytes] = {}
+        for item in items:
+            key = self._key_function(item)
+            serialized_items[key] = self._serializer.serialize(item)
+        return serialized_items
+
+    def add_listener(self, listener: TableListener[T]) -> None:
+        self._listeners.append(listener)
+        self._listening = True
+
+    def remove_listener(self, listener: TableListener[T]) -> None:
+        self._listeners.remove(listener)

@@ -4,6 +4,8 @@ import asyncio
 from typing import TYPE_CHECKING, AsyncIterator, Dict, List
 
 from omu.extension.table.table_extension import TableProxyData, TableProxyEvent
+from omu.extension.table import TableConfig
+from omu.identifier import Identifier
 
 from omuserver.session import SessionListener
 
@@ -20,10 +22,10 @@ class CachedTable(ServerTable, SessionListener):
     def __init__(
         self,
         server: Server,
-        key: str,
+        identifier: Identifier,
     ):
         self._server = server
-        self._key = key
+        self._identifier = identifier
         self._listeners: List[ServerTableListener] = []
         self._sessions: Dict[Session, SessionTableListener] = {}
         self._proxy_sessions: Dict[str, Session] = {}
@@ -31,6 +33,7 @@ class CachedTable(ServerTable, SessionListener):
         self._proxy_id = 0
         self._save_task: asyncio.Task | None = None
         self._adapter: TableAdapter | None = None
+        self._config: TableConfig = {}
 
         self._cache: Dict[str, bytes] = {}
         self._cache_size: int | None = None
@@ -43,13 +46,9 @@ class CachedTable(ServerTable, SessionListener):
     def cache(self) -> Dict[str, bytes]:
         return self._cache
 
-    @property
-    def cache_size(self) -> int | None:
-        return self._cache_size
-
-    @cache_size.setter
-    def cache_size(self, value: int | None) -> None:
-        self._cache_size = value
+    def set_config(self, config: TableConfig) -> None:
+        self._config = config
+        self._cache_size = config.get("cache_size", None)
 
     def set_adapter(self, adapter: TableAdapter) -> None:
         self._adapter = adapter
@@ -65,7 +64,7 @@ class CachedTable(ServerTable, SessionListener):
     def attach_session(self, session: Session) -> None:
         if session in self._sessions:
             return
-        handler = SessionTableListener(self._key, session)
+        handler = SessionTableListener(self._identifier.key(), session)
         self._sessions[session] = handler
         self.add_listener(handler)
         session.add_listener(self)
@@ -129,7 +128,7 @@ class CachedTable(ServerTable, SessionListener):
             TableProxyEvent,
             TableProxyData(
                 items=items,
-                type=self._key,
+                type=self._identifier.key(),
                 key=self._proxy_id,
             ),
         )
@@ -157,7 +156,7 @@ class CachedTable(ServerTable, SessionListener):
             TableProxyEvent,
             TableProxyData(
                 items=items,
-                type=self._key,
+                type=self._identifier.key(),
                 key=self._proxy_id,
             ),
         )

@@ -1,30 +1,22 @@
 from typing import AsyncGenerator, Callable, Dict, List, Mapping
 
-from omu.extension.table import Table, TableListener, TableType
-from omu.interface import Keyable, Serializable
+from omu.extension.table import Table, TableListener, TableType, TableConfig
+from omu.interface import Keyable
 from omu.helper import AsyncCallback
+from omu.serializer import Serializable
 
 from .server_table import ServerTable, ServerTableListener
 
 type Coro[**P, T] = Callable[P, T]
 
 
-class SerializedCache[T: Keyable](Mapping[str, T]):
+class SerializeAdapter[T: Keyable](Mapping[str, T]):
     def __init__(self, cache: Mapping[str, bytes], serializer: Serializable[T, bytes]):
         self._cache = cache
         self._serializer = serializer
 
     def __getitem__(self, key: str) -> T:
         return self._serializer.deserialize(self._cache[key])
-
-    def __setitem__(self, key: str, value: T) -> None:
-        raise Exception("Cache is read-only")
-
-    def __delitem__(self, key: str) -> None:
-        raise Exception("Cache is read-only")
-
-    def clear(self) -> None:
-        raise Exception("Cache is read-only")
 
 
 class SerializedTable[T: Keyable](Table[T], ServerTableListener):
@@ -33,12 +25,16 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
         self._type = type
         self._listeners: List[TableListener[T]] = []
         self._proxies: List[Coro[[T], T | None]] = []
-        self.key = type.info.key()
+        self._chunk_size = 100
+        self.key = type.identifier.key()
         table.add_listener(self)
 
     @property
     def cache(self) -> Mapping[str, T]:
-        return SerializedCache(self._table.cache, self._type.serializer)
+        return SerializeAdapter(self._table.cache, self._type.serializer)
+
+    def set_config(self, config: TableConfig) -> None:
+        self._table.set_config(config)
 
     async def get(self, key: str) -> T | None:
         if key in self._table.cache:
@@ -77,8 +73,8 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
         cursor: str | None = None,
     ) -> AsyncGenerator[T, None]:
         items = await self.fetch_items(
-            before=self._type.info.cache_size if backward else None,
-            after=self._type.info.cache_size if not backward else None,
+            before=self._chunk_size if backward else None,
+            after=self._chunk_size if not backward else None,
             cursor=cursor,
         )
         for item in items.values():
@@ -86,8 +82,8 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
         while len(items) > 0:
             cursor = next(iter(items.keys()))
             items = await self.fetch_items(
-                before=self._type.info.cache_size if backward else None,
-                after=self._type.info.cache_size if not backward else None,
+                before=self._chunk_size if backward else None,
+                after=self._chunk_size if not backward else None,
                 cursor=cursor,
             )
             for item in items.values():

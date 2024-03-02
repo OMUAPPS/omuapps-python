@@ -1,11 +1,11 @@
 from typing import Any, Awaitable, Callable, TypedDict
 
-from omu.client.client import Client
-from omu.connection.connection import ConnectionListener
-from omu.event.event import JsonEventType
-from omu.extension.extension import Extension, define_extension_type
+from omu.client import Client
+from omu.event import JsonEventType
+from omu.extension import Extension, ExtensionType
+from omu.network import ConnectionListener
 
-MessageExtensionType = define_extension_type(
+MessageExtensionType = ExtensionType(
     "message",
     lambda client: MessageExtension(client),
     lambda: [],

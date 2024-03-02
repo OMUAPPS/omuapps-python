@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Dict, List
 
 from omu.extension.table import Table, TableType
-from omu.extension.table import TableInfo
 from omu.extension.table.table_extension import (
     TableEventData,
     TableFetchReq,
@@ -22,7 +21,8 @@ from omu.extension.table.table_extension import (
     TableProxyEndpoint,
     TableProxyEvent,
     TableProxyListenEvent,
-    TableRegisterEvent,
+    TableConfigSetEvent,
+    SetConfigReq,
 )
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -42,10 +42,10 @@ from .server_table import ServerTable
 class TableExtension(Extension, ServerListener):
     def __init__(self, server: Server) -> None:
         self._server = server
-        self._tables: Dict[str, ServerTable] = {}
+        self._tables: Dict[Identifier, ServerTable] = {}
         self._adapters: List[TableAdapter] = []
         server.events.register(
-            TableRegisterEvent,
+            TableConfigSetEvent,
             TableListenEvent,
             TableProxyListenEvent,
             TableProxyEvent,
@@ -54,7 +54,7 @@ class TableExtension(Extension, ServerListener):
             TableItemRemoveEvent,
             TableItemClearEvent,
         )
-        server.events.add_listener(TableRegisterEvent, self._on_table_register)
+        server.events.add_listener(TableConfigSetEvent, self._on_table_set_config)
         server.events.add_listener(TableListenEvent, self._on_table_listen)
         server.events.add_listener(TableProxyListenEvent, self._on_table_proxy_listen)
         server.events.add_listener(TableItemAddEvent, self._on_table_item_add)
@@ -101,9 +101,11 @@ class TableExtension(Extension, ServerListener):
         table = await self.get_table(req["type"])
         return await table.size()
 
-    async def _on_table_register(self, session: Session, info: TableInfo) -> None:
-        table = await self.get_table(info.key())
-        table.cache_size = info.cache_size
+    async def _on_table_set_config(
+        self, session: Session, config: SetConfigReq
+    ) -> None:
+        table = await self.get_table(config["type"])
+        table.set_config(config["config"])
 
     async def _on_table_listen(self, session: Session, type: str) -> None:
         table = await self.get_table(type)
@@ -141,19 +143,18 @@ class TableExtension(Extension, ServerListener):
         await table.clear()
 
     async def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
-        table = await self.get_table(table_type.info.key())
+        table = await self.get_table(table_type.identifier.key())
         return SerializedTable(table, table_type)
 
-    async def get_table(self, key: str) -> ServerTable:
-        if key in self._tables:
-            return self._tables[key]
-        table = CachedTable(self._server, key)
-        adapter = SqliteTableAdapter.create(
-            self.get_table_path(Identifier.from_key(key))
-        )
+    async def get_table(self, id: str) -> ServerTable:
+        identifier = Identifier.from_key(id)
+        if identifier in self._tables:
+            return self._tables[identifier]
+        table = CachedTable(self._server, identifier)
+        adapter = SqliteTableAdapter.create(self.get_table_path(identifier))
         await adapter.load()
         table.set_adapter(adapter)
-        self._tables[key] = table
+        self._tables[identifier] = table
         return table
 
     def get_table_path(self, id: Identifier) -> Path:

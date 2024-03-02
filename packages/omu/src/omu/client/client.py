@@ -5,7 +5,6 @@ import asyncio
 from typing import TYPE_CHECKING, Awaitable, Callable
 
 if TYPE_CHECKING:
-    from omu.connection import Connection
     from omu.event import EventRegistry, EventType
     from omu.extension import ExtensionRegistry
     from omu.extension.endpoint import EndpointExtension
@@ -13,6 +12,7 @@ if TYPE_CHECKING:
     from omu.extension.registry import RegistryExtension
     from omu.extension.server import App, ServerExtension
     from omu.extension.table import TableExtension
+    from omu.network import Connection
 
 
 class ClientListener:

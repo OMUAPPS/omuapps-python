@@ -1,8 +1,8 @@
 from omu.client import OmuClient
-from omu.connection import Address, ConnectionListener
 from omu.event import EVENTS
 from omu.extension.server import App
 from omu.helper import instance
+from omu.network import Address, ConnectionListener
 
 address = Address(
     host="localhost",

@@ -135,6 +135,8 @@ class Root(Component[Literal["root"], RootData], Parent):
             component.text for component in self.iter() if isinstance(component, Text)
         )
 
+    __str__ = text
+
 
 type TextData = str
 
@@ -234,6 +236,10 @@ class System(Component[Literal["system"], RootData], Parent):
     def type(cls):
         return "system"
 
+    @classmethod
+    def of(cls, *children: Component) -> System:
+        return cls(list(children))
+
     @staticmethod
     def from_json(json: RootData) -> System:
         return System([deserialize(child) for child in json])
@@ -248,5 +254,34 @@ class System(Component[Literal["system"], RootData], Parent):
         self.children = children
 
 
-for component_type in {Root, Text, Image, Link, System}:
+class LogData(TypedDict):
+    level: Literal["info", "warning", "error"]
+    message: str
+
+
+class Log(Component[Literal["log"], LogData]):
+    def __init__(self, level: Literal["info", "warning", "error"], message: str):
+        self.level = level
+        self.message = message
+
+    @classmethod
+    def type(cls):
+        return "log"
+
+    @classmethod
+    def of(cls, level: Literal["info", "warning", "error"], message: str) -> Log:
+        return cls(level, message)
+
+    @staticmethod
+    def from_json(json: LogData) -> Log:
+        return Log(json["level"], json["message"])
+
+    def to_json(self) -> LogData:
+        return {
+            "level": self.level,
+            "message": self.message,
+        }
+
+
+for component_type in {Root, Text, Image, Link, System, Log}:
     register(component_type)

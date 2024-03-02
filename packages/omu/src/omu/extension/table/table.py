@@ -1,18 +1,22 @@
 from __future__ import annotations
 
 import abc
-from typing import AsyncGenerator, Callable, Dict, Mapping
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, AsyncGenerator, Callable, Dict, Mapping
 
-from omu.extension import ExtensionType
-from omu.extension.server import App
-from omu.helper import AsyncCallback, Coro
+from omu.extension.table.table_config import TableConfig
 from omu.identifier import Identifier
-from omu.interface import Jsonable, Keyable, Serializable, Serializer
+from omu.interface.keyable import Keyable
+from omu.serializer import Serializer
 
-from .table_info import TableInfo
+if TYPE_CHECKING:
+    from omu.extension.extension import ExtensionType
+    from omu.extension.server import App
+    from omu.helper import AsyncCallback, Coro
+    from omu.serializer import JsonSerializable, Serializable
 
 
-class Table[T: Keyable](abc.ABC):
+class Table[T](abc.ABC):
     @property
     @abc.abstractmethod
     def cache(self) -> Mapping[str, T]:
@@ -60,14 +64,6 @@ class Table[T: Keyable](abc.ABC):
         ...
 
     @abc.abstractmethod
-    def add_listener(self, listener: TableListener[T]) -> None:
-        ...
-
-    @abc.abstractmethod
-    def remove_listener(self, listener: TableListener[T]) -> None:
-        ...
-
-    @abc.abstractmethod
     def listen(self, listener: AsyncCallback[Dict[str, T]] | None = None) -> None:
         ...
 
@@ -75,8 +71,20 @@ class Table[T: Keyable](abc.ABC):
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
         ...
 
+    @abc.abstractmethod
+    def set_config(self, config: TableConfig) -> None:
+        ...
 
-class TableListener[T: Keyable]:
+    @abc.abstractmethod
+    def add_listener(self, listener: TableListener[T]) -> None:
+        ...
+
+    @abc.abstractmethod
+    def remove_listener(self, listener: TableListener[T]) -> None:
+        ...
+
+
+class TableListener[T]:
     _on_add = None
     _on_update = None
     _on_remove = None
@@ -118,52 +126,24 @@ class TableListener[T: Keyable]:
             await self._on_cache_update(cache)
 
 
-class TableType[T: Keyable](abc.ABC):
-    @property
-    @abc.abstractmethod
-    def info(self) -> TableInfo:
-        ...
-
-    @property
-    @abc.abstractmethod
-    def serializer(self) -> Serializable[T, bytes]:
-        ...
+type ModelEntry[T: Keyable, D] = JsonSerializable[T, D]
 
 
-type ModelEntry[T: Keyable, D] = Jsonable[T, D]
-
-
-class ModelTableType[T: Keyable, D](TableType[T]):
-    def __init__(self, info: TableInfo, model: type[ModelEntry[T, D]]):
-        self._info = info
-        self._serializer = Serializer.model(model).pipe(Serializer.json())
+@dataclass
+class TableType[T]:
+    identifier: Identifier
+    serializer: Serializable[T, bytes]
+    key_function: Callable[[T], str]
 
     @classmethod
-    def of[_T: Keyable, _D](
-        cls, identifier: Identifier | App, name: str, model: type[ModelEntry[_T, _D]]
-    ) -> ModelTableType[_T, _D]:
-        return ModelTableType(
-            info=TableInfo.of(Identifier.create(identifier.key(), name)),
-            model=model,
+    def model[_T: Keyable, _D](
+        cls,
+        identifier: Identifier | App | ExtensionType,
+        name: str,
+        model: type[ModelEntry[_T, _D]],
+    ) -> TableType[_T]:
+        return TableType(
+            identifier=Identifier.create(identifier.key(), name),
+            serializer=Serializer.model(model).pipe(Serializer.json()),
+            key_function=lambda item: item.key(),
         )
-
-    @classmethod
-    def of_extension[_T: Keyable, _D](
-        cls, extension: ExtensionType, name: str, model: type[ModelEntry[_T, _D]]
-    ) -> ModelTableType[_T, _D]:
-        return ModelTableType(
-            info=TableInfo.of(Identifier.create(extension.key, name)),
-            model=model,
-        )
-
-    @property
-    def info(self) -> TableInfo:
-        return self._info
-
-    @property
-    def key(self) -> str:
-        return self._info.key()
-
-    @property
-    def serializer(self) -> Serializable[T, bytes]:
-        return self._serializer

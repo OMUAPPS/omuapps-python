@@ -4,7 +4,7 @@ import abc
 from typing import TYPE_CHECKING
 
 from omu.identifier import Identifier
-from omu.interface import Serializable, Serializer
+from omu.serializer import Serializable, Serializer
 
 from .endpoint_info import EndpointInfo
 
@@ -64,7 +64,7 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(extension.key, name)),
+            info=EndpointInfo(identifier=Identifier.create(extension.name, name)),
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
@@ -110,5 +110,5 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
         name: str,
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(extension.key, name)),
+            info=EndpointInfo(identifier=Identifier.create(extension.name, name)),
         )

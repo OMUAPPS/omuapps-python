@@ -64,7 +64,7 @@ class Accessibility(TypedDict):
 
 class Image(TypedDict):
     thumbnails: List[Thumbnail]
-    accessibility: Accessibility
+    accessibility: NotRequired[Accessibility]
 
 
 class Emoji(TypedDict):
@@ -211,7 +211,7 @@ class LiveChatMessageRenderer(TypedDict):
     authorExternalChannelId: str
     authorName: SimpleText
     authorPhoto: Thumbnails
-    authorBadges: List[AuthorBadge]
+    authorBadges: NotRequired[List[AuthorBadge]]
     message: Message
 
 
@@ -221,8 +221,8 @@ class LiveChatTextMessageRenderer(LiveChatMessageRenderer):
     authorExternalChannelId: str
     authorName: SimpleText
     authorPhoto: Thumbnails
-    authorBadges: List[AuthorBadge]
     message: Message
+    authorBadges: NotRequired[List[AuthorBadge]]
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
 
@@ -244,7 +244,7 @@ class LiveChatPaidMessageRenderer(LiveChatMessageRenderer):
     timestampColor: int
     contextMenuAccessibility: Accessibility
     trackingParams: str
-    authorBadges: List[AuthorBadge]
+    authorBadges: NotRequired[List[AuthorBadge]]
     textInputBackgroundColor: int
     creatorHeartButton: CreatorHeartButton
     isV2Style: bool
@@ -254,15 +254,146 @@ class LiveChatMembershipItemRenderer(LiveChatMessageRenderer):
     headerSubtext: Message
 
 
+class LiveChatSponsorshipsHeaderRenderer(TypedDict):
+    """
+    "liveChatSponsorshipsHeaderRenderer": {
+        "authorName": {
+            "simpleText": "\u267e\ufe0f\u91ce\u3046\u3055\u304e"
+        },
+        "authorPhoto": {
+            "thumbnails": [
+                {
+                    "url": "https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s32-c-k-c0x00ffffff-no-rj",
+                    "width": 32,
+                    "height": 32
+                },
+                {
+                    "url": "https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s64-c-k-c0x00ffffff-no-rj",
+                    "width": 64,
+                    "height": 64
+                }
+            ]
+        },
+        "primaryText": {
+            "runs": [
+                {
+                    "text": "Gifted ",
+                    "bold": true
+                },
+                {
+                    "text": "5",
+                    "bold": true
+                },
+                {
+                    "text": " ",
+                    "bold": true
+                },
+                {
+                    "text": "Pekora Ch. \u514e\u7530\u307a\u3053\u3089",
+                    "bold": true
+                },
+                {
+                    "text": " memberships",
+                    "bold": true
+                }
+            ]
+        },
+        "authorBadges": [
+            {
+                "liveChatAuthorBadgeRenderer": {
+                    "customThumbnail": {
+                        "thumbnails": [
+                            {
+                                "url": "https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s16-c-k",
+                                "width": 16,
+                                "height": 16
+                            },
+                            {
+                                "url": "https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s32-c-k",
+                                "width": 32,
+                                "height": 32
+                            }
+                        ]
+                    },
+                    "tooltip": "Member (2 months)",
+                    "accessibility": {
+                        "accessibilityData": {
+                            "label": "Member (2 months)"
+                        }
+                    }
+                }
+            }
+        ],
+        "contextMenuEndpoint": {
+            "clickTrackingParams": "CAUQ3MMKIhMIgbSe1t6qhAMVVkP1BR04yA_O",
+            "commandMetadata": {
+                "webCommandMetadata": {
+                    "ignoreNavigation": true
+                }
+            },
+            "liveChatItemContextMenuEndpoint": {
+                "params": "Q2g0S0hBb2FRMDlZUlRVNFJHVnhiMUZFUm1GNlJYZG5VV1JVWjAxTFRYY2FLU29uQ2hoVlF6RkVRMlZrVW1kSFNFSmtiVGd4UlRGc2JFeG9UMUVTQ3pOa2FIRlFWRXhzTkRoQklBSW9CRElhQ2hoVlEwcGpVbnA1Umw4MVNYRkxkM1ZsZW5WNmFXUTFaVkU0QWtnQVVDUSUzRA=="
+            }
+        },
+        "contextMenuAccessibility": {
+            "accessibilityData": {
+                "label": "Chat actions"
+            }
+        },
+        "image": {
+            "thumbnails": [
+                {
+                    "url": "https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png"
+                }
+            ]
+        }
+    }
+    """
+
+    authorName: SimpleText
+    authorPhoto: Thumbnails
+    primaryText: Message
+    authorBadges: NotRequired[List[AuthorBadge]]
+    contextMenuEndpoint: ContextMenuEndpoint
+    contextMenuAccessibility: Accessibility
+    image: Image
+
+
+class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRenderer):
+    """
+    {
+        "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": {
+            "id": "ChwKGkNPWEU1OERlcW9RREZhekV3Z1FkVGdNS013",
+            "timestampUsec": "1707910568302677",
+            "authorExternalChannelId": "UCJcRzyF_5IqKwuezuzid5eQ",
+            "header": {
+
+            }
+        }
+    }
+    """
+
+    id: str
+    timestampUsec: str
+    authorExternalChannelId: str
+    header: Message
+    authorPhoto: Thumbnails
+    authorName: SimpleText
+    authorBadges: NotRequired[List[AuthorBadge]]
+    contextMenuEndpoint: ContextMenuEndpoint
+    contextMenuAccessibility: Accessibility
+    trackingParams: str
+
+
 class MessageItemData(TypedDict):
     liveChatTextMessageRenderer: NotRequired[LiveChatTextMessageRenderer]
     liveChatPaidMessageRenderer: NotRequired[LiveChatPaidMessageRenderer]
     liveChatMembershipItemRenderer: NotRequired[LiveChatMembershipItemRenderer]
-    """
-    {'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer': {'id': 'ChwKGkNLbkE1XzZkbzRRREZSWUcxZ0FkdkhnQWlR', 'timestampUsec': '1707652687762701', 'authorExternalChannelId': 'UCbk8N1Ne5l7VtjjT89MILNg', 'authorName': {'simpleText': 'ユキ'}, 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'message': {'runs': [{'text': 'was gifted a membership by ', 'italics': True}, {'text': 'みりんぼし', 'bold': True, 'italics': True}]}, 'contextMenuEndpoint': {'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMHR1UVRWZk5tUnZORkZFUmxKWlJ6Rm5RV1IyU0dkQmFWRWFLU29uQ2hoVlF5MW9UVFpaU25WT1dWWkJiVlZYZUdWSmNqbEdaVUVTQzJaQ1QyeGpSMkpDUzAxdklBSW9CRElhQ2hoVlEySnJPRTR4VG1VMWJEZFdkR3BxVkRnNVRVbE1UbWM0QWtnQVVDTSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}}}
-    """
     liveChatSponsorshipsGiftRedemptionAnnouncementRenderer: NotRequired[
         LiveChatTextMessageRenderer
+    ]
+    liveChatSponsorshipsGiftPurchaseAnnouncementRenderer: NotRequired[
+        LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer
     ]
 
 

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, List
 from loguru import logger
 
 from omu.client import Client
-from omu.connection import Address, ConnectionListener, WebsocketsConnection
 from omu.event import EVENTS, EventRegistryImpl
 from omu.extension.endpoint import (
     EndpointExtension,
@@ -23,13 +22,14 @@ from omu.extension.registry.registry_extension import (
 )
 from omu.extension.server import ServerExtension, ServerExtensionType
 from omu.extension.table import TableExtension, TableExtensionType
+from omu.network import Address, ConnectionListener, WebsocketsConnection
 
 if TYPE_CHECKING:
     from omu.client import ClientListener
-    from omu.connection import Connection
     from omu.event import EventRegistry, EventType
     from omu.extension import ExtensionRegistry
     from omu.extension.server import App
+    from omu.network import Connection
 
 
 class OmuClient(Client, ConnectionListener):

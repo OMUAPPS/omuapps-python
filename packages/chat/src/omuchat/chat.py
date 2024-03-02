@@ -4,8 +4,9 @@ from typing import List, TypedDict
 
 from omu import Identifier
 from omu.extension.endpoint import SerializeEndpointType
-from omu.extension.table import ModelTableType
-from omu.interface import Model, Serializer
+from omu.extension.table import TableType
+from omu.serializer import Serializer
+from omu.extension.table import Model
 
 from omuchat.model.author import Author, AuthorJson
 from omuchat.model.channel import Channel
@@ -18,29 +19,27 @@ IDENTIFIER = Identifier(
     namespace="cc.omuchat",
 )
 
-MessagesTableKey = ModelTableType.of(
+MessagesTableKey = TableType.model(
     IDENTIFIER,
     "messages",
     Message,
 )
-MessagesTableKey.info.cache_size = 1000
-AuthorsTableKey = ModelTableType.of(
+AuthorsTableKey = TableType.model(
     IDENTIFIER,
     "authors",
     Author,
 )
-AuthorsTableKey.info.cache_size = 1000
-ChannelsTableKey = ModelTableType.of(
+ChannelsTableKey = TableType.model(
     IDENTIFIER,
     "channels",
     Channel,
 )
-ProviderTableKey = ModelTableType.of(
+ProviderTableKey = TableType.model(
     IDENTIFIER,
     "providers",
     Provider,
 )
-RoomTableKey = ModelTableType.of(
+RoomTableKey = TableType.model(
     IDENTIFIER,
     "rooms",
     Room,

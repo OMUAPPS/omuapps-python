@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, AsyncIterator, Dict, List, Union
 
 if TYPE_CHECKING:
     from omuserver.session import Session
-
+    from omu.extension.table import TableConfig
     from .adapters.tableadapter import TableAdapter
 
 type Json = Union[str, int, float, bool, None, Dict[str, Json], List[Json]]
@@ -17,14 +17,8 @@ class ServerTable(abc.ABC):
     def cache(self) -> Dict[str, bytes]:
         ...
 
-    @property
     @abc.abstractmethod
-    def cache_size(self) -> int | None:
-        ...
-
-    @cache_size.setter
-    @abc.abstractmethod
-    def cache_size(self, value: int | None) -> None:
+    def set_config(self, config: TableConfig) -> None:
         ...
 
     @property

@@ -4,16 +4,16 @@ from asyncio import Future
 from typing import Any, Awaitable, Callable, Dict, Tuple, TypedDict
 
 from omu.client import Client
-from omu.connection import ConnectionListener
-from omu.event.event import JsonEventType, SerializeEventType
+from omu.event import JsonEventType, SerializeEventType
 from omu.extension.endpoint import EndpointInfo, EndpointType, JsonEndpointType
-from omu.extension.extension import Extension, define_extension_type
-from omu.extension.table import ModelTableType
-from omu.helper import ByteReader, ByteWriter
+from omu.extension.extension import Extension, ExtensionType
+from omu.extension.table import TableType
 from omu.identifier import Identifier
-from omu.interface import Serializable, Serializer
+from omu.network import ConnectionListener
+from omu.network.bytebuffer import ByteReader, ByteWriter
+from omu.serializer import Serializable, Serializer
 
-EndpointExtensionType = define_extension_type(
+EndpointExtensionType = ExtensionType(
     "endpoint",
     lambda client: EndpointExtension(client),
     lambda: [],
@@ -146,11 +146,10 @@ class CallSerializer(Serializable[EndpointDataReq, bytes]):
         return writer.finish()
 
     def deserialize(self, item: bytes) -> EndpointDataReq:
-        reader = ByteReader(item)
-        type = reader.read_string()
-        id = reader.read_int()
-        data = reader.read_byte_array()
-        reader.finish()
+        with ByteReader(item) as reader:
+            type = reader.read_string()
+            id = reader.read_int()
+            data = reader.read_byte_array()
         return EndpointDataReq(type=type, id=id, data=data)
 
 
@@ -170,7 +169,7 @@ EndpointErrorEvent = JsonEventType[EndpointError].of_extension(
     EndpointExtensionType,
     "error",
 )
-EndpointsTableType = ModelTableType.of_extension(
+EndpointsTableType = TableType.model(
     EndpointExtensionType,
     "endpoints",
     EndpointInfo,

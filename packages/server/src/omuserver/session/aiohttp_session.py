@@ -7,7 +7,7 @@ from aiohttp import web
 from loguru import logger
 from omu.event import EVENTS, EventData, EventType
 from omu.extension.server import App
-from omu.helper import ByteReader, ByteWriter
+from omu.network.bytebuffer import ByteReader, ByteWriter
 
 from omuserver.security import Permission
 from omuserver.server import Server
@@ -54,9 +54,9 @@ class AiohttpSession(Session):
         if msg.type == web.WSMsgType.TEXT:
             raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
-            reader = ByteReader(msg.data)
-            event_type = reader.read_string()
-            event_data = reader.read_byte_array()
+            with ByteReader(msg.data) as reader:
+                event_type = reader.read_string()
+                event_data = reader.read_byte_array()
             return EventData(event_type, event_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")

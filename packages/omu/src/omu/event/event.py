@@ -1,26 +1,21 @@
 from __future__ import annotations
 
 import abc
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from omu.interface import Serializer
+from omu.serializer import Serializer
 
 if TYPE_CHECKING:
     from omu.extension.extension import ExtensionType
     from omu.extension.server import App
-    from omu.interface import Serializable
+    from omu.serializer import Serializable
 
 
+@dataclass
 class EventData:
-    def __init__(self, type: str, data: bytes):
-        self.type = type
-        self.data = data
-
-    def __str__(self) -> str:
-        return f"{self.type}:{self.data}"
-
-    def __repr__(self) -> str:
-        return f"{self.type}:{self.data}"
+    type: str
+    data: bytes
 
 
 class EventType[T](abc.ABC):
@@ -79,7 +74,7 @@ class JsonEventType[T](EventType[T]):
         serializer: Serializable[T, Any] | None = None,
     ) -> JsonEventType[T]:
         return cls(
-            owner=extension.key,
+            owner=extension.name,
             name=name,
             serializer=serializer,
         )
@@ -113,7 +108,7 @@ class SerializeEventType[T](EventType[T]):
         cls, extension: ExtensionType, name: str, serializer: Serializable[T, bytes]
     ) -> SerializeEventType[T]:
         return cls(
-            owner=extension.key,
+            owner=extension.name,
             name=name,
             serializer=serializer,
         )

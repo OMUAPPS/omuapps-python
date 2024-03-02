@@ -18,7 +18,7 @@ class Serializable[T, D](abc.ABC):
         ...
 
 
-class Jsonable[T, D](Protocol):
+class JsonSerializable[T, D](Protocol):
     def to_json(self) -> D:
         ...
 
@@ -43,7 +43,7 @@ class Serializer[T, D](Serializable[T, D]):
         return NoopSerializer()
 
     @classmethod
-    def model[_T, _D](cls, model: type[Jsonable[_T, _D]]) -> Serializer[_T, _D]:
+    def model[_T, _D](cls, model: type[JsonSerializable[_T, _D]]) -> Serializer[_T, _D]:
         return ModelSerializer(model)
 
     @classmethod
@@ -68,8 +68,8 @@ class NoopSerializer[T](Serializer[T, T]):
         return "NoopSerializer()"
 
 
-class ModelSerializer[M: Jsonable, D](Serializer[M, D]):
-    def __init__(self, model: type[Jsonable[M, D]]):
+class ModelSerializer[M: JsonSerializable, D](Serializer[M, D]):
+    def __init__(self, model: type[JsonSerializable[M, D]]):
         self._model = model
         super().__init__(
             lambda item: item.to_json(), lambda item: model.from_json(item)

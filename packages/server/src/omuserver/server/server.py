@@ -5,7 +5,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from omu.connection import Address
+    from omu.network import Address
 
     from omuserver.directories import Directories
     from omuserver.event.event_registry import EventRegistry

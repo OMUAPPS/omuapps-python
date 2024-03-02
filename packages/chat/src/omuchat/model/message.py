@@ -4,7 +4,8 @@ from datetime import datetime
 from typing import List, NotRequired, TypedDict
 
 from omu.helper import map_optional
-from omu.interface import Keyable, Model
+from omu.interface import Keyable
+from omu.extension.table import Model
 
 from .gift import Gift, GiftJson
 from .paid import Paid, PaidJson

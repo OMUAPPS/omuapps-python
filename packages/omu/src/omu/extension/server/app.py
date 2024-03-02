@@ -2,19 +2,20 @@ from __future__ import annotations
 
 from typing import List, NotRequired, TypedDict
 
+from omu.extension.table import Model
 from omu.identifier import Identifier
-from omu.interface import Keyable, Model
+from omu.interface import Keyable
 
 
 class AppJson(TypedDict):
     identifier: str
-    version: str
-    license: NotRequired[str]
-    description: NotRequired[str]
-    authors: NotRequired[List[str]]
-    site_url: NotRequired[str]
-    repository_url: NotRequired[str]
-    image_url: NotRequired[str]
+    version: NotRequired[str] | None
+    license: NotRequired[str] | None
+    description: NotRequired[str] | None
+    authors: NotRequired[List[str]] | None
+    site_url: NotRequired[str] | None
+    repository_url: NotRequired[str] | None
+    image_url: NotRequired[str] | None
 
 
 class App(Keyable, Model[AppJson]):
@@ -82,16 +83,16 @@ class App(Keyable, Model[AppJson]):
         )
 
     def to_json(self) -> AppJson:
-        return {
-            "identifier": self.key(),
-            "version": self.version,
-            "license": self.license,
-            "description": self.description,
-            "authors": self.authors,
-            "site_url": self.site_url,
-            "repository_url": self.repository_url,
-            "image_url": self.image_url,
-        }
+        return AppJson(
+            identifier=self.key(),
+            version=self.version,
+            license=self.license,
+            description=self.description,
+            authors=self.authors,
+            site_url=self.site_url,
+            repository_url=self.repository_url,
+            image_url=self.image_url,
+        )
 
     def key(self) -> str:
         return Identifier.format(self.group, self.name)

@@ -1,6 +1,7 @@
-from .table import ModelTableType, Table, TableListener, TableType
+from .model import Model
+from .table import Table, TableListener, TableType
+from .table_config import TableConfig
 from .table_extension import TableExtension, TableExtensionType
-from .table_info import TableInfo
 
 __all__ = [
     "Table",
@@ -8,6 +9,6 @@ __all__ = [
     "TableType",
     "TableExtension",
     "TableExtensionType",
-    "TableInfo",
-    "ModelTableType",
+    "TableConfig",
+    "Model",
 ]

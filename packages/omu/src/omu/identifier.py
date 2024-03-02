@@ -43,3 +43,17 @@ class Identifier(Keyable):
 
     def key(self) -> str:
         return f"{self.namespace}:{self.name}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Identifier):
+            return NotImplemented
+        return self.namespace == other.namespace and self.name == other.name
+
+    def __hash__(self) -> int:
+        return hash((self.namespace, self.name))
+
+    def __repr__(self) -> str:
+        return f"Identifier({self.namespace!r}, {self.name!r})"
+
+    def __str__(self) -> str:
+        return self.key()

@@ -5,7 +5,7 @@ from typing import List, Optional
 import aiohttp
 from aiohttp import web
 from loguru import logger
-from omu.connection import Address
+from omu.network import Address
 from omu.event import EVENTS
 
 from omuserver import __version__

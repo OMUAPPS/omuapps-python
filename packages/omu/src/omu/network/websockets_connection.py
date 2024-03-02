@@ -6,11 +6,10 @@ from typing import TYPE_CHECKING, List
 import aiohttp
 from aiohttp import web
 
-from omu.connection import Address, Connection, ConnectionListener
-from omu.event import EVENTS, EventData
-from omu.event.event import EventType
-from omu.event.events import ConnectEvent
-from omu.helper import ByteReader, ByteWriter
+from omu.event.event import EventData, EventType
+from omu.event.events import EVENTS, ConnectEvent
+from omu.network import Address, Connection, ConnectionListener
+from omu.network.bytebuffer import ByteReader, ByteWriter
 
 if TYPE_CHECKING:
     from omu.client import Client
@@ -86,10 +85,9 @@ class WebsocketsConnection(Connection):
         if msg.type == web.WSMsgType.TEXT:
             raise RuntimeError("Received text message")
         elif msg.type == web.WSMsgType.BINARY:
-            reader = ByteReader(msg.data)
-            event_type = reader.read_string()
-            event_data = reader.read_byte_array()
-            reader.finish()
+            with ByteReader(msg.data) as reader:
+                event_type = reader.read_string()
+                event_data = reader.read_byte_array()
             return EventData(event_type, event_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")

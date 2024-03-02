@@ -1,6 +1,10 @@
 from typing import Literal, NotRequired, TypedDict, Hashable
 
-from omu.interface import Keyable, Model
+from omu.interface import Keyable
+from omu.extension.table import Model
+from omu.helper import map_optional
+
+from datetime import datetime
 
 
 class RoomMetadata(TypedDict):
@@ -24,6 +28,7 @@ class RoomJson(TypedDict):
     status: Status
     metadata: NotRequired[RoomMetadata] | None
     channel_id: NotRequired[str] | None
+    created_at: NotRequired[str] | None  # ISO 8601 date string
 
 
 class Room(Keyable, Model[RoomJson], Hashable):
@@ -36,6 +41,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
         status: Status,
         metadata: RoomMetadata | None = None,
         channel_id: str | None = None,
+        created_at: datetime | None = None,
     ) -> None:
         self.id = id
         self.provider_id = provider_id
@@ -43,6 +49,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
         self.status: Status = status
         self.metadata = metadata
         self.channel_id = channel_id
+        self.created_at = created_at
 
     @staticmethod
     def from_json(json: RoomJson) -> "Room":
@@ -53,6 +60,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
             status=json["status"],
             metadata=json.get("metadata"),
             channel_id=json.get("channel_id"),
+            created_at=map_optional(json.get("created_at"), datetime.fromisoformat),
         )
 
     def to_json(self) -> RoomJson:
@@ -63,6 +71,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
             status=self.status,
             metadata=self.metadata,
             channel_id=self.channel_id,
+            created_at=map_optional(self.created_at, datetime.isoformat),
         )
 
     def key(self) -> str:

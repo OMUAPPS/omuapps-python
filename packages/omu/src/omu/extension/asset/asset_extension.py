@@ -1,14 +1,13 @@
 from typing import Dict, List
 
-from omu.client.client import Client
-from omu.connection.connection import ConnectionListener
+from omu.client import Client
 from omu.extension.endpoint import SerializeEndpointType
-from omu.extension.extension import Extension, define_extension_type
-from omu.helper import ByteReader, ByteWriter
-from omu.interface import Serializable
-from omu.interface.serializable import Serializer
+from omu.extension.extension import Extension, ExtensionType
+from omu.network import ConnectionListener
+from omu.network.bytebuffer import ByteReader, ByteWriter
+from omu.serializer import Serializable, Serializer
 
-AssetExtensionType = define_extension_type(
+AssetExtensionType = ExtensionType(
     "asset",
     lambda client: AssetExtension(client),
     lambda: [],
@@ -26,13 +25,13 @@ class FilesSerializer(Serializable[Files, bytes]):
         return writer.finish()
 
     def deserialize(self, data: bytes) -> Files:
-        reader = ByteReader(data)
-        length = reader.read_int()
-        files = {}
-        for _ in range(length):
-            key = reader.read_string()
-            value = reader.read_byte_array()
-            files[key] = value
+        with ByteReader(data) as reader:
+            length = reader.read_int()
+            files = {}
+            for _ in range(length):
+                key = reader.read_string()
+                value = reader.read_byte_array()
+                files[key] = value
         return files
 
 

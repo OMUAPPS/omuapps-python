@@ -4,8 +4,8 @@ import abc
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from omu.connection import Address
     from omu.event import EventData, EventType
+    from omu.network import Address
 
 
 type ConnectionStatus = Literal["connecting", "connected", "disconnected"]

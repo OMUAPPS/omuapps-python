@@ -1,12 +1,12 @@
 from typing import Any, Awaitable, Callable, TypedDict
 
-from omu.client.client import Client
-from omu.connection.connection import ConnectionListener
-from omu.event.event import JsonEventType
+from omu.client import Client
+from omu.event import JsonEventType
+from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType
-from omu.extension.extension import Extension, define_extension_type
+from omu.network import ConnectionListener
 
-RegistryExtensionType = define_extension_type(
+RegistryExtensionType = ExtensionType(
     "registry",
     lambda client: RegistryExtension(client),
     lambda: [],
