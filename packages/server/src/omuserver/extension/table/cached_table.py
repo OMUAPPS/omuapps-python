@@ -231,6 +231,9 @@ class CachedTable(ServerTable, SessionListener):
         if self._save_task is None:
             self._save_task = asyncio.create_task(self.save_task())
 
+    def set_cache_size(self, size: int) -> None:
+        self._cache_size = size
+
     async def update_cache(self, items: Dict[str, bytes]) -> None:
         if self._cache_size is None or self._cache_size <= 0:
             return

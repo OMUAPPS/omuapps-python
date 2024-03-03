@@ -2,9 +2,16 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, AsyncGenerator, Callable, Dict, Mapping
+from typing import (
+    TYPE_CHECKING,
+    AsyncGenerator,
+    Callable,
+    Dict,
+    Mapping,
+    NotRequired,
+    TypedDict,
+)
 
-from omu.extension.table.table_config import TableConfig
 from omu.identifier import Identifier
 from omu.interface.keyable import Keyable
 from omu.serializer import Serializer
@@ -16,10 +23,18 @@ if TYPE_CHECKING:
     from omu.serializer import JsonSerializable, Serializable
 
 
+class TableConfig(TypedDict):
+    cache_size: NotRequired[int]
+
+
 class Table[T](abc.ABC):
     @property
     @abc.abstractmethod
     def cache(self) -> Mapping[str, T]:
+        ...
+
+    @abc.abstractmethod
+    def set_cache_size(self, size: int) -> None:
         ...
 
     @abc.abstractmethod
@@ -133,7 +148,7 @@ type ModelEntry[T: Keyable, D] = JsonSerializable[T, D]
 class TableType[T]:
     identifier: Identifier
     serializer: Serializable[T, bytes]
-    key_function: Callable[[T], str]
+    key_func: Callable[[T], str]
 
     @classmethod
     def model[_T: Keyable, _D](
@@ -145,5 +160,5 @@ class TableType[T]:
         return TableType(
             identifier=Identifier.create(identifier.key(), name),
             serializer=Serializer.model(model).pipe(Serializer.json()),
-            key_function=lambda item: item.key(),
+            key_func=lambda item: item.key(),
         )

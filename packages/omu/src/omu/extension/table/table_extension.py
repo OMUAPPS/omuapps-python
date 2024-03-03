@@ -13,7 +13,6 @@ from omu.client import Client
 from omu.event import JsonEventType, SerializeEventType
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType, SerializeEndpointType
-from omu.extension.table.table_config import TableConfig
 from omu.helper import AsyncCallback
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -23,6 +22,7 @@ from omu.serializer import JsonSerializable, Serializable, Serializer
 
 from .table import (
     Table,
+    TableConfig,
     TableListener,
     TableType,
 )
@@ -68,11 +68,12 @@ class TableExtension(Extension):
     def get[T](self, type: TableType[T]) -> Table[T]:
         if self.has(type.identifier):
             return self._tables[type.identifier]
-        return self.create(type.identifier, type.serializer, type.key_function)
+        return self.create(type.identifier, type.serializer, type.key_func)
 
     def model[T: Keyable, D](
-        self, identifier: Identifier, type: type[ModelType[T, D]]
+        self, identifier: Identifier, name: str, type: type[ModelType[T, D]]
     ) -> Table[T]:
+        identifier = Identifier.create(identifier.key(), name)
         if self.has(identifier):
             return self._tables[identifier]
         return self.create(
@@ -82,7 +83,7 @@ class TableExtension(Extension):
         )
 
     def has(self, identifier: Identifier) -> bool:
-        return identifier.key() in self._tables
+        return identifier in self._tables
 
 
 TableExtensionType = ExtensionType(
@@ -230,12 +231,14 @@ class TableImpl[T](Table[T], ConnectionListener):
         key_function: Callable[[T], str],
     ):
         self._client = client
+        self._identifier = identifier
         self._serializer = serializer
         self._key_function = key_function
         self._cache: Dict[str, T] = {}
         self._listeners: List[TableListener[T]] = []
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
+        self._cache_size = 1000
         self._listening = False
         self._config: TableConfig | None = None
         self.key = identifier.key()
@@ -428,6 +431,9 @@ class TableImpl[T](Table[T], ConnectionListener):
             key = self._key_function(item)
             serialized_items[key] = self._serializer.serialize(item)
         return serialized_items
+
+    def set_cache_size(self, size: int) -> None:
+        self._cache_size = size
 
     def add_listener(self, listener: TableListener[T]) -> None:
         self._listeners.append(listener)

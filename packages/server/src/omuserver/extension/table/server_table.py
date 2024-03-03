@@ -21,6 +21,10 @@ class ServerTable(abc.ABC):
     def set_config(self, config: TableConfig) -> None:
         ...
 
+    @abc.abstractmethod
+    def set_cache_size(self, size: int) -> None:
+        ...
+
     @property
     @abc.abstractmethod
     def adapter(self) -> TableAdapter | None:

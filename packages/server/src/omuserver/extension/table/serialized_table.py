@@ -36,6 +36,9 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
     def set_config(self, config: TableConfig) -> None:
         self._table.set_config(config)
 
+    def set_cache_size(self, size: int) -> None:
+        self._table.set_cache_size(size)
+
     async def get(self, key: str) -> T | None:
         if key in self._table.cache:
             return self._type.serializer.deserialize(self._table.cache[key])
