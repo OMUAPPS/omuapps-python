@@ -7,7 +7,6 @@ authors = [
 ]
 dependencies = [
     "loguru>=0.7.2",
-    "aiohttp>=3.9.3",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
