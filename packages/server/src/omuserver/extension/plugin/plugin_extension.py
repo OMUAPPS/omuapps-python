@@ -1,43 +1,32 @@
 from __future__ import annotations
 import asyncio
+import json
 
 from pathlib import Path
 import threading
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Protocol, TypeGuard, TypedDict
 
 from loguru import logger
 
 from omuserver.extension import Extension
 from omuserver.server import ServerListener
 
-from .plugin import Plugin, ServerPlugin
-
 if TYPE_CHECKING:
     from omuserver.server import Server
 
 
-class PluginLoader:
-    def __init__(self, server: Server) -> None:
-        self._server = server
+class Plugin(Protocol):
+    async def main(self) -> None: ...
 
-    def is_valid_plugin(self, path: Path) -> bool:
-        if not path.is_dir():
-            return False
-        if not (path / "run.py").exists():
-            return False
-        return True
 
-    async def load(self, path: Path) -> Plugin:
-        if not self.is_valid_plugin(path):
-            raise ValueError(f"Invalid plugin: {path}")
-        return await ServerPlugin.create(path, self._server)
+class PluginMetadata(TypedDict):
+    module: str
 
 
 class PluginExtension(Extension, ServerListener):
     def __init__(self, server: Server) -> None:
         self._server = server
         self.plugins: Dict[str, Plugin] = {}
-        self.loader = PluginLoader(server)
         server.add_listener(self)
 
     @classmethod
@@ -49,18 +38,27 @@ class PluginExtension(Extension, ServerListener):
 
     async def _load_plugins(self) -> None:
         for plugin in self._server.directories.plugins.iterdir():
-            if plugin.name.startswith("."):
+            if not plugin.is_file():
                 continue
-            if not self.loader.is_valid_plugin(plugin):
+            if plugin.name.startswith("_"):
                 continue
             logger.info(f"Loading plugin: {plugin.name}")
             await self._load_plugin(plugin)
 
+    def validate_plugin(self, plugin: Plugin) -> TypeGuard[Plugin]:
+        main = getattr(plugin, "main", None)
+        if main is None:
+            raise ValueError(f"Plugin {plugin} does not have a main coroutine")
+        if not asyncio.iscoroutinefunction(plugin.main):
+            raise ValueError(f"Plugin {plugin} does not have a main coroutine")
+        return True
+
     async def _load_plugin(self, path: Path) -> None:
-        plugin = await self.loader.load(path)
-        self.plugins[path.name] = plugin
+        metadata = PluginMetadata(**json.loads((path).read_text()))
+        plugin = __import__(metadata["module"])
+        if not self.validate_plugin(plugin):
+            return
         loop = asyncio.new_event_loop()
-        loop.create_task(plugin.start())
+        loop.create_task(plugin.main())
         thread = threading.Thread(target=loop.run_forever, daemon=True, name=path.name)
         thread.start()
-        # await plugin.start()

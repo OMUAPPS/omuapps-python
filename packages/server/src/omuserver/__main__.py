@@ -40,7 +40,7 @@ def main(debug: bool, token: str | None):
 
     if debug:
         logger.warning("Debug mode enabled")
-        directories.plugins = (Path.cwd() / ".." / "packages" / "plugins").resolve()
+        directories.plugins = (Path.cwd() / ".." / "plugins").resolve()
         tracemalloc.start()
 
     server = OmuServer(address, directories=directories, loop=loop)
