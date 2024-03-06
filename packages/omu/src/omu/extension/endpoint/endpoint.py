@@ -16,18 +16,15 @@ if TYPE_CHECKING:
 class EndpointType[Req, Res](abc.ABC):
     @property
     @abc.abstractmethod
-    def info(self) -> EndpointInfo:
-        ...
+    def info(self) -> EndpointInfo: ...
 
     @property
     @abc.abstractmethod
-    def request_serializer(self) -> Serializable[Req, bytes]:
-        ...
+    def request_serializer(self) -> Serializable[Req, bytes]: ...
 
     @property
     @abc.abstractmethod
-    def response_serializer(self) -> Serializable[Res, bytes]:
-        ...
+    def response_serializer(self) -> Serializable[Res, bytes]: ...
 
 
 class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):

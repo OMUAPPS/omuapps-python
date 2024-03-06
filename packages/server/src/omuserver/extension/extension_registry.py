@@ -11,12 +11,10 @@ if TYPE_CHECKING:
 
 class ExtensionRegistry(abc.ABC):
     @abc.abstractmethod
-    def register[T: Extension](self, extension: type[T]) -> T:
-        ...
+    def register[T: Extension](self, extension: type[T]) -> T: ...
 
     @abc.abstractmethod
-    def get[T: Extension](self, extension: type[T]) -> T:
-        ...
+    def get[T: Extension](self, extension: type[T]) -> T: ...
 
 
 class ExtensionRegistryServer(ExtensionRegistry):

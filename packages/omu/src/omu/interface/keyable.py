@@ -3,8 +3,7 @@ import abc
 
 class Keyable(abc.ABC):
     @abc.abstractmethod
-    def key(self) -> str:
-        ...
+    def key(self) -> str: ...
 
     def __hash__(self) -> int:
         return hash(self.key())

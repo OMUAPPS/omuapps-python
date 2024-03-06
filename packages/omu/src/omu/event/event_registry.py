@@ -17,22 +17,19 @@ type EventListener[T] = Callable[[T], Awaitable[None]]
 
 class EventRegistry(abc.ABC):
     @abc.abstractmethod
-    def register(self, *types: EventType) -> None:
-        ...
+    def register(self, *types: EventType) -> None: ...
 
     @abc.abstractmethod
     def add_listener[T](
         self,
         event_type: EventType[T],
         listener: EventListener[T] | None = None,
-    ) -> Callable[[EventListener[T]], None]:
-        ...
+    ) -> Callable[[EventListener[T]], None]: ...
 
     @abc.abstractmethod
     def remove_listener(
         self, event_type: EventType, listener: Callable[[bytes], None]
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 class EventEntry[T]:

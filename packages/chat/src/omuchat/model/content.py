@@ -22,17 +22,14 @@ class ComponentJson(TypedDict):
 class Component[T: LiteralString, D](abc.ABC):
     @classmethod
     @abc.abstractmethod
-    def type(cls) -> T:
-        ...
+    def type(cls) -> T: ...
 
     @staticmethod
     @abc.abstractmethod
-    def from_json(json: D) -> Component:
-        ...
+    def from_json(json: D) -> Component: ...
 
     @abc.abstractmethod
-    def to_json(self) -> D:
-        ...
+    def to_json(self) -> D: ...
 
     def walk(self, cb: Callable[[Component], None]) -> None:
         stack: List[Component] = [self]
@@ -57,22 +54,18 @@ class Component[T: LiteralString, D](abc.ABC):
 
 class Parent(abc.ABC):
     @abc.abstractmethod
-    def get_children(self) -> List[Component]:
-        ...
+    def get_children(self) -> List[Component]: ...
 
     @abc.abstractmethod
-    def set_children(self, children: List[Component]) -> None:
-        ...
+    def set_children(self, children: List[Component]) -> None: ...
 
 
 class ComponentType[D, C: Component](Protocol):
     @classmethod
-    def type(cls) -> str:
-        ...
+    def type(cls) -> str: ...
 
     @staticmethod
-    def from_json(json: D) -> C:
-        ...
+    def from_json(json: D) -> C: ...
 
 
 component_types: dict[str, ComponentType] = {}

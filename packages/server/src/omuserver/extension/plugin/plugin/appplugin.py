@@ -15,8 +15,7 @@ from .plugin import Plugin
 
 class ServerModule(abc.ABC):
     @abc.abstractmethod
-    async def main(self) -> None:
-        ...
+    async def main(self) -> None: ...
 
 
 class ServerPlugin(Plugin):

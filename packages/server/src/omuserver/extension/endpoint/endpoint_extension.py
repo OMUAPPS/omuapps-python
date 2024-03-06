@@ -25,12 +25,10 @@ from omuserver.session import Session
 class Endpoint(abc.ABC):
     @property
     @abc.abstractmethod
-    def info(self) -> EndpointInfo:
-        ...
+    def info(self) -> EndpointInfo: ...
 
     @abc.abstractmethod
-    async def call(self, data: EndpointDataReq, session: Session) -> None:
-        ...
+    async def call(self, data: EndpointDataReq, session: Session) -> None: ...
 
 
 class SessionEndpoint(Endpoint):

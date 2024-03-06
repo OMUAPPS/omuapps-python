@@ -3,11 +3,9 @@ name = "omuchat-python"
 version = "0.1.5"
 description = "Add your description here"
 authors = [
-    { name = "am230", email = "111672334+am230@users.noreply.github.com" }
+    { name = "am230", email = "111672334+am230@users.noreply.github.com" },
 ]
-dependencies = [
-    "loguru>=0.7.2",
-]
+dependencies = ["loguru>=0.7.2"]
 readme = "README.md"
 requires-python = ">= 3.12"
 
@@ -17,16 +15,20 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = [
-    "ruff>=0.1.6",
-    "pytest>=8.0.0",
-]
+dev-dependencies = ["ruff>=0.1.6", "pytest>=8.0.0"]
 
 [tool.pylint]
-disable = ["missing-module-docstring", "missing-function-docstring", "missing-class-docstring"]
+disable = [
+    "missing-module-docstring",
+    "missing-function-docstring",
+    "missing-class-docstring",
+]
 
 [tool.rye.workspace]
 members = ["packages/*"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = []

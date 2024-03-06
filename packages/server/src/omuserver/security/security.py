@@ -15,22 +15,18 @@ type Token = str
 
 class Security(abc.ABC):
     @abc.abstractmethod
-    async def get_token(self, app: App, token: Token | None = None) -> Token | None:
-        ...
+    async def get_token(self, app: App, token: Token | None = None) -> Token | None: ...
 
     @abc.abstractmethod
     async def authenticate_app(
         self, app: App, token: Token | None = None
-    ) -> Tuple[Permission, Token]:
-        ...
+    ) -> Tuple[Permission, Token]: ...
 
     @abc.abstractmethod
-    async def add_permissions(self, token: Token, permissions: Permission) -> None:
-        ...
+    async def add_permissions(self, token: Token, permissions: Permission) -> None: ...
 
     @abc.abstractmethod
-    async def get_permissions(self, token: Token) -> Permission:
-        ...
+    async def get_permissions(self, token: Token) -> Permission: ...
 
 
 class ServerSecurity(Security):

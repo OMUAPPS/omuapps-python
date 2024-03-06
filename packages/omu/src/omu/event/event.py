@@ -21,13 +21,11 @@ class EventData:
 class EventType[T](abc.ABC):
     @property
     @abc.abstractmethod
-    def type(self) -> str:
-        ...
+    def type(self) -> str: ...
 
     @property
     @abc.abstractmethod
-    def serializer(self) -> Serializable[T, bytes]:
-        ...
+    def serializer(self) -> Serializable[T, bytes]: ...
 
     def __str__(self) -> str:
         return self.type
