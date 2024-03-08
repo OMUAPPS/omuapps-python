@@ -1,6 +1,6 @@
 [project]
 name = "omuserver"
-version = "0.1.5"
+version = "0.1.6"
 description = "Add your description here"
 authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" },
@@ -11,6 +11,7 @@ dependencies = [
     "aiosqlite>=0.19.0",
     "loguru>=0.7.2",
     "omu>=0.1.4",
+    "pip>=24.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"

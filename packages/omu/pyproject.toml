@@ -1,6 +1,6 @@
 [project]
 name = "omu"
-version = "0.1.5"
+version = "0.1.6"
 description = "Add your description here"
 authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" },
@@ -15,7 +15,6 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
 
 [tool.hatch.metadata]
 allow-direct-references = true
