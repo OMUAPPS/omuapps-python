@@ -9,7 +9,6 @@
 
 -e file:packages/omu
 -e file:packages/chat
--e file:.
 -e file:packages/plugin-provider
 -e file:packages/plugin-chat
 -e file:packages/plugin-emoji
@@ -36,3 +35,5 @@ sqlitedict==2.1.0
 typing-extensions==4.10.0
 win32-setctime==1.1.0
 yarl==1.9.4
+# The following packages are considered to be unsafe in a requirements file:
+pip==24.0

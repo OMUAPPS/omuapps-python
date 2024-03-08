@@ -9,7 +9,6 @@
 
 -e file:packages/omu
 -e file:packages/chat
--e file:.
 -e file:packages/plugin-provider
 -e file:packages/plugin-chat
 -e file:packages/plugin-emoji
@@ -25,6 +24,7 @@ beautifulsoup4==4.12.3
 bs4==0.0.2
 click==8.1.7
 colorama==0.4.6
+coverage==7.4.3
 frozenlist==1.4.1
 idna==3.6
 iniconfig==2.0.0
@@ -35,9 +35,13 @@ multidict==6.0.5
 packaging==23.2
 pluggy==1.4.0
 pytest==8.0.2
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
 ruff==0.3.0
 soupsieve==2.5
 sqlitedict==2.1.0
 typing-extensions==4.10.0
 win32-setctime==1.1.0
 yarl==1.9.4
+# The following packages are considered to be unsafe in a requirements file:
+pip==24.0

@@ -1,6 +1,6 @@
 [project]
-name = "omuchat-python"
-version = "0.1.5"
+name = "omuchat_python"
+version = "0.1.7"
 description = "Add your description here"
 authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" },
@@ -16,7 +16,14 @@ build-backend = "hatchling.build"
 [tool.rye]
 virtual = true
 managed = true
-dev-dependencies = ["ruff>=0.1.6", "pytest>=8.0.0"]
+dev-dependencies = [
+    "ruff>=0.1.6",
+    "pytest-asyncio>=0.23.5",
+    "pytest-cov>=4.1.0",
+]
+
+[tool.rye.workspace]
+members = ["packages/*"]
 
 [tool.pylint]
 disable = [
@@ -24,9 +31,6 @@ disable = [
     "missing-function-docstring",
     "missing-class-docstring",
 ]
-
-[tool.rye.workspace]
-members = ["packages/*"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
