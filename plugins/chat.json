@@ -1,4 +1,5 @@
 {
   "$schema": "./_schema.json",
-  "module": "omupluginchat"
+  "dependencies": ["omuplugin_chat"],
+  "module": "omuplugin_chat"
 }

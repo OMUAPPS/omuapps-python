@@ -4,7 +4,15 @@ import json
 
 from pathlib import Path
 import threading
-from typing import TYPE_CHECKING, Dict, Protocol, TypeGuard, TypedDict
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    NotRequired,
+    Protocol,
+    TypeGuard,
+    TypedDict,
+)
 
 from loguru import logger
 
@@ -20,7 +28,9 @@ class Plugin(Protocol):
 
 
 class PluginMetadata(TypedDict):
+    dependencies: List[str]
     module: str
+    isolated: NotRequired[bool]
 
 
 class PluginExtension(Extension, ServerListener):
@@ -58,7 +68,12 @@ class PluginExtension(Extension, ServerListener):
         plugin = __import__(metadata["module"])
         if not self.validate_plugin(plugin):
             return
-        loop = asyncio.new_event_loop()
-        loop.create_task(plugin.main())
-        thread = threading.Thread(target=loop.run_forever, daemon=True, name=path.name)
-        thread.start()
+        if metadata.get("isolated"):
+            loop = asyncio.new_event_loop()
+            loop.create_task(plugin.main())
+            thread = threading.Thread(
+                target=loop.run_forever, daemon=True, name=f"Plugin {path.name}"
+            )
+            thread.start()
+        else:
+            await plugin.main()

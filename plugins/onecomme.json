@@ -1,4 +1,5 @@
 {
   "$schema": "./_schema.json",
-  "module": "omupluginonecomme"
+  "dependencies": ["omuplugin_onecomme"],
+  "module": "omuplugin_onecomme"
 }

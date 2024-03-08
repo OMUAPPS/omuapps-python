@@ -8,6 +8,8 @@
 #   with-sources: false
 
 -e file:packages/omu
+    # via omuchat
+    # via omuserver
 -e file:packages/chat
 -e file:packages/plugin-provider
 -e file:packages/plugin-chat
@@ -17,31 +19,68 @@
 -e file:packages/plugin-translator
 -e file:packages/server
 aiohttp==3.9.3
+    # via iwashi
+    # via omuchatprovider
 aiosignal==1.3.1
+    # via aiohttp
 aiosqlite==0.20.0
+    # via omuserver
 attrs==23.2.0
+    # via aiohttp
 beautifulsoup4==4.12.3
+    # via bs4
+    # via omuchatprovider
 bs4==0.0.2
+    # via iwashi
 click==8.1.7
+    # via iwashi
+    # via omuserver
 colorama==0.4.6
+    # via click
+    # via loguru
+    # via pytest
 coverage==7.4.3
+    # via coverage
+    # via pytest-cov
 frozenlist==1.4.1
+    # via aiohttp
+    # via aiosignal
 idna==3.6
+    # via yarl
 iniconfig==2.0.0
+    # via pytest
 iwashi==2.1.7
+    # via omuchatprovider
 loguru==0.7.2
+    # via iwashi
+    # via omu
+    # via omuchat
+    # via omuchatprovider
+    # via omuserver
 lxml==5.1.0
+    # via omuchatprovider
 multidict==6.0.5
+    # via aiohttp
+    # via yarl
 packaging==23.2
+    # via pytest
 pluggy==1.4.0
+    # via pytest
 pytest==8.0.2
+    # via pytest-asyncio
+    # via pytest-cov
 pytest-asyncio==0.23.5
 pytest-cov==4.1.0
 ruff==0.3.0
 soupsieve==2.5
+    # via beautifulsoup4
 sqlitedict==2.1.0
+    # via omuserver
 typing-extensions==4.10.0
+    # via aiosqlite
 win32-setctime==1.1.0
+    # via loguru
 yarl==1.9.4
-# The following packages are considered to be unsafe in a requirements file:
+    # via aiohttp
 pip==24.0
+    # via omuserver

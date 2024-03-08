@@ -1,4 +1,6 @@
 {
   "$schema": "./_schema.json",
-  "module": "omuchatprovider"
+  "dependencies": ["omuchatprovider"],
+  "module": "omuchatprovider",
+  "isolated": true
 }

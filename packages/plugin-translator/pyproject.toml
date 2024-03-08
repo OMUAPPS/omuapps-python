@@ -1,5 +1,5 @@
 [project]
-name = "omuplugintranslator"
+name = "omuplugin_translator"
 version = "0.1.7"
 description = "Add your description here"
 authors = [
