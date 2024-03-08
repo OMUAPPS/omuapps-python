@@ -15,9 +15,6 @@
             "path": "packages/chat"
         },
         {
-            "path": "packages/plugins"
-        },
-        {
             "path": "packages/provider"
         },
         {
