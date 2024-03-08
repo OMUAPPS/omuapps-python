@@ -3,9 +3,11 @@
   "type": "object",
   "properties": {
     "dependencies": {
-      "type": "array",
-      "items": {
-        "type": "string"
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "type": "string"
+        }
       }
     },
     "module": {

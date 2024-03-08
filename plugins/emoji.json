@@ -1,5 +1,7 @@
 {
   "$schema": "./_schema.json",
-  "dependencies": ["omuplugin_emoji"],
+  "dependencies": {
+    "omuplugin_emoji": ""
+  },
   "module": "omuplugin_emoji"
 }
