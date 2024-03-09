@@ -1,8 +1,8 @@
+from omu.app import App
 from omu.client import OmuClient
-from omu.event import EVENTS
-from omu.extension.server import App
 from omu.helper import instance
 from omu.network import Address, ConnectionListener
+from omu.network.packet import PACKET_TYPES
 
 address = Address(
     host="localhost",
@@ -32,7 +32,7 @@ class MyListener(ConnectionListener):
         print(event)
 
 
-@client.events.add_listener(EVENTS.Ready)
+@client.events.add_listener(PACKET_TYPES.Ready)
 async def on_ready(_) -> None:
     print("Ready")
 

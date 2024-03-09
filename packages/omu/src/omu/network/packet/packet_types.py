@@ -4,7 +4,7 @@ from typing import Dict
 
 from omu.app import App
 from omu.model import Model
-from omu.network.event import JsonEventType
+from omu.network.packet import JsonPacketType
 from omu.serializer import Serializer
 
 
@@ -41,23 +41,23 @@ class DisconnectPacket(Model):
         )
 
 
-class EVENTS:
-    Connect = JsonEventType(
+class PACKET_TYPES:
+    Connect = JsonPacketType(
         "",
         "connect",
         Serializer.model(ConnectPacket),
     )
-    Disconnect = JsonEventType(
+    Disconnect = JsonPacketType(
         "",
         "disconnect",
         Serializer.model(DisconnectPacket),
     )
-    Token = JsonEventType[str](
+    Token = JsonPacketType[str](
         "",
         "token",
         Serializer.noop(),
     )
-    Ready = JsonEventType[None](
+    Ready = JsonPacketType[None](
         "",
         "ready",
         Serializer.noop(),

@@ -9,73 +9,72 @@ from omu.network import ConnectionListener
 
 if TYPE_CHECKING:
     from omu.client import Client
-    from omu.event import EventData, EventType
+    from omu.network.packet import PacketData, PacketType
 
 
 type EventListener[T] = Callable[[T], Awaitable[None]]
 
 
-class EventRegistry(abc.ABC):
+class PacketDispatcher(abc.ABC):
     @abc.abstractmethod
-    def register(self, *types: EventType) -> None: ...
+    def register(self, *types: PacketType) -> None: ...
 
     @abc.abstractmethod
     def add_listener[T](
         self,
-        event_type: EventType[T],
+        event_type: PacketType[T],
         listener: EventListener[T] | None = None,
     ) -> Callable[[EventListener[T]], None]: ...
 
     @abc.abstractmethod
     def remove_listener(
-        self, event_type: EventType, listener: Callable[[bytes], None]
+        self, event_type: PacketType, listener: Callable[[bytes], None]
     ) -> None: ...
 
 
-class EventEntry[T]:
+class PacketListeners[T]:
     def __init__(
         self,
-        event_type: EventType[T],
+        event_type: PacketType[T],
         listeners: List[EventListener[T]],
     ):
         self.event_type = event_type
         self.listeners = listeners
 
 
-class EventRegistryImpl(EventRegistry, ConnectionListener):
+class PacketDispatcherImpl(PacketDispatcher, ConnectionListener):
     def __init__(self, client: Client):
         client.connection.add_listener(self)
-        self._events: Dict[str, EventEntry] = {}
-        self._own_events: Dict[str, EventEntry] = {}
+        self._packet_listeners: Dict[str, PacketListeners] = {}
 
-    def register(self, *types: EventType) -> None:
-        for type in types:
-            if self._events.get(type.type):
-                raise ValueError(f"Event type {type.type} already registered")
-            self._events[type.type] = EventEntry(type, [])
+    def register(self, *packet_types: PacketType) -> None:
+        for packet in packet_types:
+            if self._packet_listeners.get(packet.type):
+                raise ValueError(f"Event type {packet.type} already registered")
+            self._packet_listeners[packet.type] = PacketListeners(packet, [])
 
     def add_listener[T](
         self,
-        event_type: EventType[T],
+        event_type: PacketType[T],
         listener: EventListener[T] | None = None,
     ) -> Callable[[EventListener[T]], None]:
-        if not self._events.get(event_type.type):
+        if not self._packet_listeners.get(event_type.type):
             raise ValueError(f"Event type {event_type.type} not registered")
 
         def decorator(listener: EventListener[T]) -> None:
-            self._events[event_type.type].listeners.append(listener)
+            self._packet_listeners[event_type.type].listeners.append(listener)
 
         if listener:
             decorator(listener)
         return decorator
 
-    def remove_listener(self, event_type: EventType, listener: EventListener) -> None:
-        if not self._events.get(event_type.type):
+    def remove_listener(self, event_type: PacketType, listener: EventListener) -> None:
+        if not self._packet_listeners.get(event_type.type):
             raise ValueError(f"Event type {event_type.type} not registered")
-        self._events[event_type.type].listeners.remove(listener)
+        self._packet_listeners[event_type.type].listeners.remove(listener)
 
-    async def on_event(self, event_data: EventData) -> None:
-        event = self._events.get(event_data.type)
+    async def on_event(self, event_data: PacketData) -> None:
+        event = self._packet_listeners.get(event_data.type)
         if not event:
             logger.warning(f"Received unknown event type {event_data.type}")
             return

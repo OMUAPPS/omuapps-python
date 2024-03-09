@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from aiohttp import web
 from loguru import logger
-from omu.network.event import EVENTS, EventData, EventType
+from omu.network.packet import PACKET_TYPES, PacketData, PacketType
 from omu.app import App
 from omu.network.bytebuffer import ByteReader, ByteWriter
 
@@ -37,7 +37,7 @@ class AiohttpSession(Session):
         return self.permissions
 
     @classmethod
-    async def _receive(cls, socket: web.WebSocketResponse) -> EventData | None:
+    async def _receive(cls, socket: web.WebSocketResponse) -> PacketData | None:
         msg = await socket.receive()
         if msg.type in {
             web.WSMsgType.CLOSE,
@@ -57,7 +57,7 @@ class AiohttpSession(Session):
             with ByteReader(msg.data) as reader:
                 event_type = reader.read_string()
                 event_data = reader.read_byte_array()
-            return EventData(event_type, event_data)
+            return PacketData(event_type, event_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 
@@ -68,14 +68,16 @@ class AiohttpSession(Session):
         data = await cls._receive(socket)
         if data is None:
             raise RuntimeError("Socket closed before connect")
-        if data.type != EVENTS.Connect.type:
-            raise RuntimeError(f"Expected {EVENTS.Connect.type} but got {data.type}")
-        event = EVENTS.Connect.serializer.deserialize(data.data)
+        if data.type != PACKET_TYPES.Connect.type:
+            raise RuntimeError(
+                f"Expected {PACKET_TYPES.Connect.type} but got {data.type}"
+            )
+        event = PACKET_TYPES.Connect.serializer.deserialize(data.data)
         permissions, token = await server.security.authenticate_app(
             event.app, event.token
         )
         session = cls(socket, app=event.app, permissions=permissions)
-        await session.send(EVENTS.Token, token)
+        await session.send(PACKET_TYPES.Token, token)
         return session
 
     async def listen(self) -> None:
@@ -88,7 +90,7 @@ class AiohttpSession(Session):
         finally:
             await self.disconnect()
 
-    async def dispatch_event(self, event: EventData) -> None:
+    async def dispatch_event(self, event: PacketData) -> None:
         for listener in self._listeners:
             await listener.on_event(self, event)
 
@@ -101,7 +103,7 @@ class AiohttpSession(Session):
         for listener in self._listeners:
             await listener.on_disconnected(self)
 
-    async def send[T](self, type: EventType[T], data: T) -> None:
+    async def send[T](self, type: PacketType[T], data: T) -> None:
         if self.closed:
             raise ValueError("Socket is closed")
         writer = ByteWriter()

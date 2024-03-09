@@ -8,8 +8,8 @@ from aiohttp import web
 
 from omu.network import Address, Connection, ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.event.event import EventData, EventType
-from omu.network.event.events import EVENTS, ConnectPacket
+from omu.network.packet.packet import PacketData, PacketType
+from omu.network.packet.packet_types import PACKET_TYPES, ConnectPacket
 
 if TYPE_CHECKING:
     from omu.client import Client
@@ -50,7 +50,7 @@ class WebsocketsConnection(Connection):
         await self.disconnect()
         await self._connect()
         await self.send(
-            EVENTS.Connect,
+            PACKET_TYPES.Connect,
             ConnectPacket(
                 app=self._client.app,
                 token=self._token,
@@ -74,7 +74,7 @@ class WebsocketsConnection(Connection):
         self._socket = await self._session.ws_connect(self._ws_endpoint)
         self._connected = True
 
-    async def _receive(self, socket: aiohttp.ClientWebSocketResponse) -> EventData:
+    async def _receive(self, socket: aiohttp.ClientWebSocketResponse) -> PacketData:
         msg = await socket.receive()
         if msg.type in {
             web.WSMsgType.CLOSE,
@@ -91,7 +91,7 @@ class WebsocketsConnection(Connection):
             with ByteReader(msg.data) as reader:
                 event_type = reader.read_string()
                 event_data = reader.read_byte_array()
-            return EventData(event_type, event_data)
+            return PacketData(event_type, event_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 
@@ -103,7 +103,7 @@ class WebsocketsConnection(Connection):
         finally:
             await self.disconnect()
 
-    async def _dispatch(self, event: EventData) -> None:
+    async def _dispatch(self, event: PacketData) -> None:
         for listener in self._listeners:
             await listener.on_event(event)
 
@@ -122,7 +122,7 @@ class WebsocketsConnection(Connection):
             await listener.on_disconnected()
             await listener.on_status_changed("disconnected")
 
-    async def send[T](self, event: EventType[T], data: T) -> None:
+    async def send[T](self, event: PacketType[T], data: T) -> None:
         if not self._socket or self._socket.closed or not self._connected:
             raise RuntimeError("Not connected")
         writer = ByteWriter()

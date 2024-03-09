@@ -17,7 +17,7 @@ from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.network import ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.event import JsonEventType, SerializeEventType
+from omu.network.packet import JsonPacketType, SerializedPacketType
 from omu.serializer import JsonSerializable, Serializable, Serializer
 
 from .table import (
@@ -158,14 +158,14 @@ class SetConfigReq(TypedDict):
     config: TableConfig
 
 
-TableConfigSetEvent = JsonEventType[SetConfigReq].of_extension(
+TableConfigSetEvent = JsonPacketType[SetConfigReq].of_extension(
     TableExtensionType, "config_set"
 )
-TableListenEvent = JsonEventType[str].of_extension(TableExtensionType, name="listen")
-TableProxyListenEvent = JsonEventType[str].of_extension(
+TableListenEvent = JsonPacketType[str].of_extension(TableExtensionType, name="listen")
+TableProxyListenEvent = JsonPacketType[str].of_extension(
     TableExtensionType, "proxy_listen"
 )
-TableProxyEvent = SerializeEventType[TableProxyData].of_extension(
+TableProxyEvent = SerializedPacketType[TableProxyData].of_extension(
     TableExtensionType,
     "proxy",
     serializer=TableProxySerielizer(),
@@ -178,16 +178,16 @@ TableProxyEndpoint = SerializeEndpointType[TableProxyData, int].of_extension(
 )
 
 
-TableItemAddEvent = SerializeEventType[TableItemsData].of_extension(
+TableItemAddEvent = SerializedPacketType[TableItemsData].of_extension(
     TableExtensionType, "item_add", TableItemsSerielizer()
 )
-TableItemUpdateEvent = SerializeEventType[TableItemsData].of_extension(
+TableItemUpdateEvent = SerializedPacketType[TableItemsData].of_extension(
     TableExtensionType, "item_update", TableItemsSerielizer()
 )
-TableItemRemoveEvent = SerializeEventType[TableItemsData].of_extension(
+TableItemRemoveEvent = SerializedPacketType[TableItemsData].of_extension(
     TableExtensionType, "item_remove", TableItemsSerielizer()
 )
-TableItemClearEvent = JsonEventType[TableEventData].of_extension(
+TableItemClearEvent = JsonPacketType[TableEventData].of_extension(
     TableExtensionType, "item_clear"
 )
 

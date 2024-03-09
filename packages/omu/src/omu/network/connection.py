@@ -4,8 +4,8 @@ import abc
 from typing import TYPE_CHECKING, Callable, Coroutine, Literal
 
 if TYPE_CHECKING:
-    from omu.event import EventData, EventType
     from omu.network import Address
+    from omu.network.packet import PacketData, PacketType
 
 
 type ConnectionStatus = Literal["connecting", "connected", "disconnected"]
@@ -16,7 +16,7 @@ class ConnectionListener:
 
     async def on_disconnected(self) -> None: ...
 
-    async def on_event(self, event: EventData) -> None: ...
+    async def on_event(self, event: PacketData) -> None: ...
 
     async def on_status_changed(self, status: ConnectionStatus) -> None: ...
 
@@ -39,7 +39,7 @@ class Connection(abc.ABC):
     async def disconnect(self) -> None: ...
 
     @abc.abstractmethod
-    async def send[T](self, event: EventType[T], data: T) -> None: ...
+    async def send[T](self, event: PacketType[T], data: T) -> None: ...
 
     @abc.abstractmethod
     def add_listener[T: ConnectionListener](self, listener: T) -> T: ...

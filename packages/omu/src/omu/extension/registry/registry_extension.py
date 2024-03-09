@@ -6,7 +6,7 @@ from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType
 from omu.identifier import Identifier
-from omu.network.event import JsonEventType
+from omu.network.packet import JsonPacketType
 
 from .registry import Registry
 
@@ -22,10 +22,10 @@ class RegistryEventData(TypedDict):
     value: Any
 
 
-RegistryUpdateEvent = JsonEventType[RegistryEventData].of_extension(
+RegistryUpdateEvent = JsonPacketType[RegistryEventData].of_extension(
     RegistryExtensionType, "update"
 )
-RegistryListenEvent = JsonEventType[str].of_extension(RegistryExtensionType, "listen")
+RegistryListenEvent = JsonPacketType[str].of_extension(RegistryExtensionType, "listen")
 RegistryGetEndpoint = JsonEndpointType[str, Any].of_extension(
     RegistryExtensionType, "get"
 )

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from omu import App
-    from omu.event import EventData, EventType
+    from omu.network.packet import PacketData, PacketType
 
     from omuserver.security import Permission
 
@@ -30,7 +30,7 @@ class Session(abc.ABC):
     async def listen(self) -> None: ...
 
     @abc.abstractmethod
-    async def send[T](self, type: EventType[T], data: T) -> None: ...
+    async def send[T](self, type: PacketType[T], data: T) -> None: ...
 
     @abc.abstractmethod
     def add_listener(self, listener: SessionListener) -> None: ...
@@ -40,6 +40,6 @@ class Session(abc.ABC):
 
 
 class SessionListener:
-    async def on_event(self, session: Session, event: EventData) -> None: ...
+    async def on_event(self, session: Session, event: PacketData) -> None: ...
 
     async def on_disconnected(self, session: Session) -> None: ...

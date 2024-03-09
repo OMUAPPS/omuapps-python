@@ -7,18 +7,18 @@ from typing import TYPE_CHECKING, Any, Dict, List
 from omu.serializer import Serializer
 
 if TYPE_CHECKING:
-    from omu.extension.extension import ExtensionType
-    from omu.extension.server import App
+    from omu.app import App
+    from omu.extension import ExtensionType
     from omu.serializer import Serializable
 
 
 @dataclass
-class EventData:
+class PacketData:
     type: str
     data: bytes
 
 
-class EventType[T](abc.ABC):
+class PacketType[T](abc.ABC):
     @property
     @abc.abstractmethod
     def type(self) -> str: ...
@@ -37,7 +37,7 @@ class EventType[T](abc.ABC):
 type Jsonable = str | int | float | bool | None | Dict[str, Jsonable] | List[Jsonable]
 
 
-class JsonEventType[T](EventType[T]):
+class JsonPacketType[T](PacketType[T]):
     def __init__(
         self, owner: str, name: str, serializer: Serializable[T, Any] | None = None
     ):
@@ -57,7 +57,7 @@ class JsonEventType[T](EventType[T]):
         return self._serializer
 
     @classmethod
-    def of(cls, app: App, name: str) -> JsonEventType[T]:
+    def of(cls, app: App, name: str) -> JsonPacketType[T]:
         return cls(
             owner=app.key(),
             name=name,
@@ -70,7 +70,7 @@ class JsonEventType[T](EventType[T]):
         extension: ExtensionType,
         name: str,
         serializer: Serializable[T, Any] | None = None,
-    ) -> JsonEventType[T]:
+    ) -> JsonPacketType[T]:
         return cls(
             owner=extension.name,
             name=name,
@@ -78,7 +78,7 @@ class JsonEventType[T](EventType[T]):
         )
 
 
-class SerializeEventType[T](EventType[T]):
+class SerializedPacketType[T](PacketType[T]):
     def __init__(self, owner: str, name: str, serializer: Serializable[T, bytes]):
         self._type = f"{owner}:{name}"
         self._serializer = serializer
@@ -94,7 +94,7 @@ class SerializeEventType[T](EventType[T]):
     @classmethod
     def of(
         cls, app: App, name: str, serializer: Serializable[T, bytes]
-    ) -> SerializeEventType[T]:
+    ) -> SerializedPacketType[T]:
         return cls(
             owner=app.key(),
             name=name,
@@ -104,7 +104,7 @@ class SerializeEventType[T](EventType[T]):
     @classmethod
     def of_extension(
         cls, extension: ExtensionType, name: str, serializer: Serializable[T, bytes]
-    ) -> SerializeEventType[T]:
+    ) -> SerializedPacketType[T]:
         return cls(
             owner=extension.name,
             name=name,

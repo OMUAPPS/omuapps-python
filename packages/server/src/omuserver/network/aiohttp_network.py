@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Dict, List
 from aiohttp import web
 from loguru import logger
 from omu import App
-from omu.network.event import EVENTS
+from omu.network.packet import PACKET_TYPES
 
 from omuserver.server import ServerListener
 from omuserver.session import SessionListener
@@ -53,7 +53,7 @@ class AiohttpNetwork(Network, ServerListener, SessionListener):
         session.add_listener(self)
         for listener in self._listeners:
             await listener.on_connected(session)
-        await session.send(EVENTS.Ready, None)
+        await session.send(PACKET_TYPES.Ready, None)
         await session.listen()
 
     def is_connected(self, app: App) -> bool:

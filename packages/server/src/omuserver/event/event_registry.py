@@ -8,7 +8,7 @@ from omuserver.network.network import NetworkListener
 from omuserver.session.session import Session, SessionListener
 
 if TYPE_CHECKING:
-    from omu.event import EventData, EventType
+    from omu.network.packet import PacketData, PacketType
 
     from omuserver.server import Server
 
@@ -19,7 +19,7 @@ type EventCallback[T] = Callable[[Session, T], Coroutine[Any, Any, None]]
 class EventEntry[T]:
     def __init__(
         self,
-        event_type: EventType[T],
+        event_type: PacketType[T],
         listeners: List[EventCallback[T]],
     ):
         self.event_type = event_type
@@ -35,7 +35,7 @@ class EventRegistry(NetworkListener, SessionListener):
     async def on_connected(self, session: Session) -> None:
         session.add_listener(self)
 
-    async def on_event(self, session: Session, event_data: EventData) -> None:
+    async def on_event(self, session: Session, event_data: PacketData) -> None:
         event = self._events.get(event_data.type)
         if not event:
             logger.warning(f"Received unknown event type {event_data.type}")
@@ -44,7 +44,7 @@ class EventRegistry(NetworkListener, SessionListener):
         for listener in event.listeners:
             await listener(session, data)
 
-    def register(self, *types: EventType) -> None:
+    def register(self, *types: PacketType) -> None:
         for type in types:
             if self._events.get(type.type):
                 raise ValueError(f"Event type {type.type} already registered")
@@ -52,7 +52,7 @@ class EventRegistry(NetworkListener, SessionListener):
 
     def add_listener[T](
         self,
-        event_type: EventType[T],
+        event_type: PacketType[T],
         listener: EventCallback[T] | None = None,
     ) -> Callable[[EventCallback[T]], None]:
         if not self._events.get(event_type.type):
@@ -66,7 +66,7 @@ class EventRegistry(NetworkListener, SessionListener):
         return decorator
 
     def remove_listener(
-        self, event_type: EventType, listener: EventCallback[Any]
+        self, event_type: PacketType, listener: EventCallback[Any]
     ) -> None:
         if not self._events.get(event_type.type):
             raise ValueError(f"Event type {event_type.type} not registered")

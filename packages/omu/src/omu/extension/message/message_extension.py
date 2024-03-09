@@ -3,7 +3,7 @@ from typing import Any, Awaitable, Callable, TypedDict
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.network import ConnectionListener
-from omu.network.event import JsonEventType
+from omu.network.packet import JsonPacketType
 
 MessageExtensionType = ExtensionType(
     "message",
@@ -17,9 +17,11 @@ class MessageEventData(TypedDict):
     body: Any
 
 
-MessageRegisterEvent = JsonEventType[str].of_extension(MessageExtensionType, "register")
-MessageListenEvent = JsonEventType[str].of_extension(MessageExtensionType, "listen")
-MessageBroadcastEvent = JsonEventType[MessageEventData].of_extension(
+MessageRegisterEvent = JsonPacketType[str].of_extension(
+    MessageExtensionType, "register"
+)
+MessageListenEvent = JsonPacketType[str].of_extension(MessageExtensionType, "listen")
+MessageBroadcastEvent = JsonPacketType[MessageEventData].of_extension(
     MessageExtensionType, "broadcast"
 )
 

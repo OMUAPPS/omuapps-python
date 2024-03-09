@@ -5,14 +5,15 @@ import asyncio
 from typing import TYPE_CHECKING, Awaitable, Callable
 
 if TYPE_CHECKING:
-    from omu.event import EventRegistry, EventType
+    from omu.app import App
     from omu.extension import ExtensionRegistry
     from omu.extension.endpoint import EndpointExtension
     from omu.extension.message import MessageExtension
     from omu.extension.registry import RegistryExtension
-    from omu.extension.server import App, ServerExtension
+    from omu.extension.server import ServerExtension
     from omu.extension.table import TableExtension
     from omu.network import Connection
+    from omu.network.packet import PacketDispatcher, PacketType
 
 
 class ClientListener:
@@ -41,7 +42,7 @@ class Client(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def events(self) -> EventRegistry: ...
+    def events(self) -> PacketDispatcher: ...
 
     @property
     @abc.abstractmethod
@@ -81,7 +82,7 @@ class Client(abc.ABC):
     async def stop(self) -> None: ...
 
     @abc.abstractmethod
-    async def send[T](self, type: EventType[T], data: T) -> None: ...
+    async def send[T](self, type: PacketType[T], data: T) -> None: ...
 
     @abc.abstractmethod
     def add_listener[T: ClientListener](self, listener: T) -> T: ...

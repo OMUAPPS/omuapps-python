@@ -22,14 +22,14 @@ from omu.extension.registry.registry_extension import (
 from omu.extension.server import ServerExtension, ServerExtensionType
 from omu.extension.table import TableExtension, TableExtensionType
 from omu.network import Address, ConnectionListener, WebsocketsConnection
-from omu.network.event import EVENTS, EventRegistryImpl
+from omu.network.packet import PACKET_TYPES, PacketDispatcherImpl
 
 if TYPE_CHECKING:
+    from omu.app import App
     from omu.client import ClientListener
     from omu.extension import ExtensionRegistry
-    from omu.extension.server import App
     from omu.network import Connection
-    from omu.network.event import EventRegistry, EventType
+    from omu.network.packet import PacketDispatcher, PacketType
 
 
 class OmuClient(Client, ConnectionListener):
@@ -38,7 +38,7 @@ class OmuClient(Client, ConnectionListener):
         app: App,
         address: Address,
         connection: Connection | None = None,
-        event_registry: EventRegistry | None = None,
+        event_registry: PacketDispatcher | None = None,
         extension_registry: ExtensionRegistry | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
     ):
@@ -47,11 +47,11 @@ class OmuClient(Client, ConnectionListener):
         self._listeners: List[ClientListener] = []
         self._app = app
         self._connection = connection or WebsocketsConnection(self, address)
-        self._events = event_registry or EventRegistryImpl(self)
+        self._events = event_registry or PacketDispatcherImpl(self)
         self._connection.add_listener(self)
         self._extensions = extension_registry or ExtensionRegistryImpl(self)
 
-        self.events.register(EVENTS.Ready, EVENTS.Connect)
+        self.events.register(PACKET_TYPES.Ready, PACKET_TYPES.Connect)
         self._tables = self.extensions.register(TableExtensionType)
         self._server = self.extensions.register(ServerExtensionType)
         self._endpoints = self.extensions.register(EndpointExtensionType)
@@ -74,7 +74,7 @@ class OmuClient(Client, ConnectionListener):
         return self._connection
 
     @property
-    def events(self) -> EventRegistry:
+    def events(self) -> PacketDispatcher:
         return self._events
 
     @property
@@ -113,7 +113,7 @@ class OmuClient(Client, ConnectionListener):
             return
         logger.warning(f"Disconnected from {self._connection.address}")
 
-    async def send[T](self, event: EventType[T], data: T) -> None:
+    async def send[T](self, event: PacketType[T], data: T) -> None:
         await self._connection.send(event, data)
 
     def run(self, *, token: str | None = None, reconnect: bool = True) -> None:
