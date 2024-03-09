@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, List, TypedDict
+from typing import Any, Callable, List, TypedDict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType
+from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.network.packet import JsonPacketType
 
@@ -29,8 +30,6 @@ RegistryListenEvent = JsonPacketType[str].of_extension(RegistryExtensionType, "l
 RegistryGetEndpoint = JsonEndpointType[str, Any].of_extension(
     RegistryExtensionType, "get"
 )
-
-type Coro[**P, R] = Callable[P, Awaitable[R]]
 
 
 class RegistryExtension(Extension):

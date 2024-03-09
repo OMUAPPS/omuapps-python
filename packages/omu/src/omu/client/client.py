@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import asyncio
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from omu.app import App
@@ -22,9 +22,6 @@ class ClientListener:
     async def on_started(self) -> None: ...
 
     async def on_stopped(self) -> None: ...
-
-
-type Coro[**P, T] = Callable[P, Awaitable[T]]
 
 
 class Client(abc.ABC):

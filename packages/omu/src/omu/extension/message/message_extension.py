@@ -1,7 +1,8 @@
-from typing import Any, Awaitable, Callable, TypedDict
+from typing import Any, Callable, TypedDict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
+from omu.helper import Coro
 from omu.network import ConnectionListener
 from omu.network.packet import JsonPacketType
 
@@ -24,8 +25,6 @@ MessageListenEvent = JsonPacketType[str].of_extension(MessageExtensionType, "lis
 MessageBroadcastEvent = JsonPacketType[MessageEventData].of_extension(
     MessageExtensionType, "broadcast"
 )
-
-type Coro[**P, R] = Callable[P, Awaitable[R]]
 
 
 class MessageKey[T]:

@@ -1,6 +1,5 @@
 from typing import (
     AsyncGenerator,
-    Awaitable,
     Callable,
     Dict,
     Iterable,
@@ -12,7 +11,7 @@ from typing import (
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType, SerializeEndpointType
-from omu.helper import AsyncCallback
+from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.network import ConnectionListener
@@ -26,9 +25,6 @@ from .table import (
     TableListener,
     TableType,
 )
-
-type Coro[**P, T] = Callable[P, Awaitable[T]]
-
 
 type ModelType[T: Keyable, D] = JsonSerializable[T, D]
 

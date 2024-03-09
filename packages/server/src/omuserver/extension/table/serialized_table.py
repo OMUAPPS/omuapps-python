@@ -6,8 +6,7 @@ from omu.helper import AsyncCallback
 from omu.serializer import Serializable
 
 from .server_table import ServerTable, ServerTableListener
-
-type Coro[**P, T] = Callable[P, T]
+from omu.helper import Coro
 
 
 class SerializeAdapter[T: Keyable](Mapping[str, T]):

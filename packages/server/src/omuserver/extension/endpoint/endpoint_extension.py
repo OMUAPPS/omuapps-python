@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Callable, Coroutine, Dict
+from typing import Dict
 
 from loguru import logger
 from omu.extension.endpoint.endpoint_extension import (
@@ -20,6 +20,7 @@ from omuserver.extension import Extension
 from omuserver.extension.table import TableExtension
 from omuserver.server import Server, ServerListener
 from omuserver.session import Session
+from omu.helper import Coro
 
 
 class Endpoint(abc.ABC):
@@ -44,9 +45,6 @@ class SessionEndpoint(Endpoint):
         if self._session.closed:
             raise RuntimeError(f"Session {self._session.app.key()} already closed")
         await self._session.send(EndpointCallEvent, data)
-
-
-type Coro[**P, R] = Callable[P, Coroutine[Any, Any, R]]
 
 
 class ServerEndpoint[Req, Res](Endpoint):

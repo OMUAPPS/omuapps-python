@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from omuserver.session import Session
-
-type Coro[**P, R] = Callable[P, Awaitable[R]]
+    from omu.helper import Coro
 
 
 class Network(abc.ABC):

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from asyncio import Future
-from typing import Any, Awaitable, Callable, Dict, Tuple, TypedDict
+from typing import Any, Callable, Dict, Tuple, TypedDict
 
 from omu.client import Client
 from omu.extension.endpoint import EndpointInfo, EndpointType, JsonEndpointType
 from omu.extension.extension import Extension, ExtensionType
 from omu.extension.table import TableType
+from omu.helper import Coro
 from omu.network import ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import JsonPacketType, SerializedPacketType
@@ -17,8 +18,6 @@ EndpointExtensionType = ExtensionType(
     lambda client: EndpointExtension(client),
     lambda: [],
 )
-
-type Coro[**P, R] = Callable[P, Awaitable[R]]
 
 
 class EndpointExtension(Extension, ConnectionListener):
