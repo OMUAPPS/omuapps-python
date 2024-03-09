@@ -20,7 +20,6 @@ from typing import (
 from loguru import logger
 
 from omuserver.extension import Extension
-from omuserver.server import ServerListener
 
 if TYPE_CHECKING:
     from omuserver.server import Server
@@ -36,11 +35,11 @@ class PluginMetadata(TypedDict):
     isolated: NotRequired[bool]
 
 
-class PluginExtension(Extension, ServerListener):
+class PluginExtension(Extension):
     def __init__(self, server: Server) -> None:
         self._server = server
         self.plugins: Dict[str, PluginMetadata] = {}
-        server.add_listener(self)
+        server.listeners.start += self.on_server_start
 
     @classmethod
     def create(cls, server: Server) -> PluginExtension:

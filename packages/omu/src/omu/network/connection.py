@@ -18,7 +18,7 @@ class ConnectionListeners:
     def __init__(self) -> None:
         self.connected = EventEmitter()
         self.disconnected = EventEmitter()
-        self.event = EventEmitter[PacketData]()
+        self.packet = EventEmitter[PacketData]()
         self.status_changed = EventEmitter[ConnectionStatus]()
 
 

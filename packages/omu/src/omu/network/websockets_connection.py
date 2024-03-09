@@ -98,7 +98,7 @@ class WebsocketsConnection(Connection):
         try:
             while self._socket:
                 event = await self._receive(self._socket)
-                task = self._listeners.event.emit(event)
+                task = self._listeners.packet.emit(event)
                 self._client.loop.create_task(task)
         finally:
             await self.disconnect()

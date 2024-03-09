@@ -4,6 +4,8 @@ import abc
 import asyncio
 from typing import TYPE_CHECKING
 
+from omu.event_emitter import EventEmitter
+
 if TYPE_CHECKING:
     from omu.app import App
     from omu.extension import ExtensionRegistry
@@ -16,12 +18,11 @@ if TYPE_CHECKING:
     from omu.network.packet import PacketDispatcher, PacketType
 
 
-class ClientListener:
-    async def on_initialized(self) -> None: ...
-
-    async def on_started(self) -> None: ...
-
-    async def on_stopped(self) -> None: ...
+class ClientListeners:
+    def __init__(self) -> None:
+        self.initialized = EventEmitter()
+        self.started = EventEmitter()
+        self.stopped = EventEmitter()
 
 
 class Client(abc.ABC):
@@ -81,8 +82,6 @@ class Client(abc.ABC):
     @abc.abstractmethod
     async def send[T](self, type: PacketType[T], data: T) -> None: ...
 
+    @property
     @abc.abstractmethod
-    def add_listener[T: ClientListener](self, listener: T) -> T: ...
-
-    @abc.abstractmethod
-    def remove_listener[T: ClientListener](self, listener: T) -> T: ...
+    def listeners(self) -> ClientListeners: ...

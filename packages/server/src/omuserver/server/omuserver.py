@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import List, Optional
+from typing import Optional
 
 import aiohttp
 from aiohttp import web
@@ -10,7 +10,7 @@ from omu.network.packet import PACKET_TYPES
 
 from omuserver import __version__
 from omuserver.directories import Directories, get_directories
-from omuserver.event.event_registry import EventRegistry
+from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.extension import ExtensionRegistry, ExtensionRegistryServer
 from omuserver.extension.asset.asset_extension import AssetExtension
 from omuserver.extension.endpoint import EndpointExtension
@@ -22,10 +22,10 @@ from omuserver.extension.table import TableExtension
 from omuserver.helper import safe_path_join
 from omuserver.network import Network
 from omuserver.network.aiohttp_network import AiohttpNetwork
-from omuserver.network.network import NetworkListener
+from omuserver.network.network import NetworkListeners
 from omuserver.security.security import ServerSecurity
 
-from .server import Server, ServerListener
+from .server import Server, ServerListeners
 
 client = aiohttp.ClientSession(
     headers={
@@ -42,7 +42,7 @@ client = aiohttp.ClientSession(
 )
 
 
-class OmuServer(Server, NetworkListener):
+class OmuServer(Server, NetworkListeners):
     def __init__(
         self,
         address: Address,
@@ -53,16 +53,16 @@ class OmuServer(Server, NetworkListener):
     ) -> None:
         self._loop = loop or asyncio.get_event_loop()
         self._address = address
-        self._listeners: List[ServerListener] = []
+        self._listeners = ServerListeners()
         self._directories = directories or get_directories()
         self._directories.mkdir()
         self._network = network or AiohttpNetwork(self)
-        self._network.add_listener(self)
+        self._network.listeners.start += self._handle_network_start
         self._network.add_websocket_route("/ws")
         self._network.add_http_route("/proxy", self._handle_proxy)
         self._network.add_http_route("/assets", self._handle_assets)
-        self._events = EventRegistry(self)
-        self._events.register(PACKET_TYPES.Connect, PACKET_TYPES.Ready)
+        self._packet_dispatcher = ServerPacketDispatcher(self._network)
+        self._packet_dispatcher.register(PACKET_TYPES.Connect, PACKET_TYPES.Ready)
         self._extensions = extensions or ExtensionRegistryServer(self)
         self._security = ServerSecurity(self)
         self._running = False
@@ -134,19 +134,11 @@ class OmuServer(Server, NetworkListener):
 
     async def shutdown(self) -> None:
         self._running = False
-        for listener in self._listeners:
-            await listener.on_server_stop()
+        await self._listeners.stop()
 
-    async def on_start(self) -> None:
+    async def _handle_network_start(self) -> None:
         logger.info(f"Listening on {self.address}")
-        for listener in self._listeners:
-            await listener.on_server_start()
-
-    def add_listener(self, listener: ServerListener) -> None:
-        self._listeners.append(listener)
-
-    def remove_listener(self, listener: ServerListener) -> None:
-        self._listeners.remove(listener)
+        await self._listeners.start()
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
@@ -169,8 +161,8 @@ class OmuServer(Server, NetworkListener):
         return self._network
 
     @property
-    def events(self) -> EventRegistry:
-        return self._events
+    def packet_dispatcher(self) -> ServerPacketDispatcher:
+        return self._packet_dispatcher
 
     @property
     def extensions(self) -> ExtensionRegistry:
@@ -203,3 +195,7 @@ class OmuServer(Server, NetworkListener):
     @property
     def running(self) -> bool:
         return self._running
+
+    @property
+    def listeners(self) -> ServerListeners:
+        return self._listeners

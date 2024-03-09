@@ -29,12 +29,12 @@ async def on_disconnected() -> None:
     print("Disconnected")
 
 
-@client.connection.listeners.event.subscribe
+@client.connection.listeners.packet.subscribe
 async def on_event(event: PacketData) -> None:
     print(event)
 
 
-@client.events.add_listener(PACKET_TYPES.Ready)
+@client.events.add_packet_handler(PACKET_TYPES.Ready)
 async def on_ready(_) -> None:
     print("Ready")
 

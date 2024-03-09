@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING
+from omu.event_emitter import EventEmitter
+
+from omuserver.session import Session
 
 if TYPE_CHECKING:
-    from omuserver.session import Session
     from omu.helper import Coro
 
 
@@ -20,16 +22,13 @@ class Network(abc.ABC):
         self, path: str, handle: Coro[[Session], None] | None = None
     ) -> None: ...
 
+    @property
     @abc.abstractmethod
-    def add_listener(self, listener: NetworkListener) -> None: ...
-
-    @abc.abstractmethod
-    def remove_listener(self, listener: NetworkListener) -> None: ...
+    def listeners(self) -> NetworkListeners: ...
 
 
-class NetworkListener:
-    async def on_start(self) -> None: ...
-
-    async def on_connected(self, session: Session) -> None: ...
-
-    async def on_disconnected(self, session: Session) -> None: ...
+class NetworkListeners:
+    def __init__(self) -> None:
+        self.start = EventEmitter()
+        self.connected = EventEmitter[Session]()
+        self.disconnected = EventEmitter[Session]()

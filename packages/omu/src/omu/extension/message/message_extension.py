@@ -68,7 +68,7 @@ class MessageExtension(Extension):
                 if event["key"] == key:
                     await callback(event["body"])
 
-            self.client.events.add_listener(MessageBroadcastEvent, wrapper)
+            self.client.events.add_packet_handler(MessageBroadcastEvent, wrapper)
 
         return decorator
 

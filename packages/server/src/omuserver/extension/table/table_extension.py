@@ -29,7 +29,7 @@ from omu.interface import Keyable
 
 from omuserver.extension import Extension
 from omuserver.extension.table.serialized_table import SerializedTable
-from omuserver.server import Server, ServerListener
+from omuserver.server import Server
 from omuserver.session import Session
 
 from .adapters.sqlitetable import SqliteTableAdapter
@@ -38,12 +38,12 @@ from .cached_table import CachedTable
 from .server_table import ServerTable
 
 
-class TableExtension(Extension, ServerListener):
+class TableExtension(Extension):
     def __init__(self, server: Server) -> None:
         self._server = server
         self._tables: Dict[Identifier, ServerTable] = {}
         self._adapters: List[TableAdapter] = []
-        server.events.register(
+        server.packet_dispatcher.register(
             TableConfigSetEvent,
             TableListenEvent,
             TableProxyListenEvent,
@@ -53,20 +53,34 @@ class TableExtension(Extension, ServerListener):
             TableItemRemoveEvent,
             TableItemClearEvent,
         )
-        server.events.add_listener(TableConfigSetEvent, self._on_table_set_config)
-        server.events.add_listener(TableListenEvent, self._on_table_listen)
-        server.events.add_listener(TableProxyListenEvent, self._on_table_proxy_listen)
-        server.events.add_listener(TableItemAddEvent, self._on_table_item_add)
-        server.events.add_listener(TableItemUpdateEvent, self._on_table_item_update)
-        server.events.add_listener(TableItemRemoveEvent, self._on_table_item_remove)
-        server.events.add_listener(TableItemClearEvent, self._on_table_item_clear)
+        server.packet_dispatcher.add_packet_handler(
+            TableConfigSetEvent, self._on_table_set_config
+        )
+        server.packet_dispatcher.add_packet_handler(
+            TableListenEvent, self._on_table_listen
+        )
+        server.packet_dispatcher.add_packet_handler(
+            TableProxyListenEvent, self._on_table_proxy_listen
+        )
+        server.packet_dispatcher.add_packet_handler(
+            TableItemAddEvent, self._on_table_item_add
+        )
+        server.packet_dispatcher.add_packet_handler(
+            TableItemUpdateEvent, self._on_table_item_update
+        )
+        server.packet_dispatcher.add_packet_handler(
+            TableItemRemoveEvent, self._on_table_item_remove
+        )
+        server.packet_dispatcher.add_packet_handler(
+            TableItemClearEvent, self._on_table_item_clear
+        )
         server.endpoints.bind_endpoint(TableItemGetEndpoint, self._on_table_item_get)
         server.endpoints.bind_endpoint(
             TableItemFetchEndpoint, self._on_table_item_fetch
         )
         server.endpoints.bind_endpoint(TableItemSizeEndpoint, self._on_table_item_size)
         server.endpoints.bind_endpoint(TableProxyEndpoint, self._on_table_proxy)
-        server.add_listener(self)
+        server.listeners.stop += self.on_server_stop
 
     @classmethod
     def create(cls, server: Server) -> TableExtension:

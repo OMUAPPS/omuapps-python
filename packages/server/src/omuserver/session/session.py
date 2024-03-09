@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING
+from omu.event_emitter import EventEmitter
+from omu.network.packet import PacketData, PacketType
 
 if TYPE_CHECKING:
     from omu import App
-    from omu.network.packet import PacketData, PacketType
 
     from omuserver.security import Permission
 
@@ -32,14 +33,12 @@ class Session(abc.ABC):
     @abc.abstractmethod
     async def send[T](self, type: PacketType[T], data: T) -> None: ...
 
+    @property
     @abc.abstractmethod
-    def add_listener(self, listener: SessionListener) -> None: ...
-
-    @abc.abstractmethod
-    def remove_listener(self, listener: SessionListener) -> None: ...
+    def listeners(self) -> SessionListeners: ...
 
 
-class SessionListener:
-    async def on_event(self, session: Session, event: PacketData) -> None: ...
-
-    async def on_disconnected(self, session: Session) -> None: ...
+class SessionListeners:
+    def __init__(self) -> None:
+        self.packet = EventEmitter[Session, PacketData]()
+        self.disconnected = EventEmitter[Session]()

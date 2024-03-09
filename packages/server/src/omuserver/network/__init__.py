@@ -1,8 +1,8 @@
 from .aiohttp_network import AiohttpNetwork
-from .network import Network, NetworkListener
+from .network import Network, NetworkListeners
 
 __all__ = [
     "Network",
-    "NetworkListener",
+    "NetworkListeners",
     "AiohttpNetwork",
 ]

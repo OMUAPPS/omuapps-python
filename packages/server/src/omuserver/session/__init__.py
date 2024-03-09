@@ -1,6 +1,5 @@
-from .session import Session, SessionListener
+from .session import Session
 
 __all__ = [
     "Session",
-    "SessionListener",
 ]

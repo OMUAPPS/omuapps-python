@@ -3,12 +3,13 @@ from __future__ import annotations
 import abc
 import asyncio
 from typing import TYPE_CHECKING
+from omu.event_emitter import EventEmitter
 
 if TYPE_CHECKING:
     from omu.network import Address
 
     from omuserver.directories import Directories
-    from omuserver.event.event_registry import EventRegistry
+    from omuserver.network.packet_dispatcher import ServerPacketDispatcher
     from omuserver.extension.asset.asset_extension import AssetExtension
     from omuserver.extension.endpoint import EndpointExtension
     from omuserver.extension.extension_registry import ExtensionRegistry
@@ -20,10 +21,10 @@ if TYPE_CHECKING:
     from omuserver.security import Security
 
 
-class ServerListener:
-    async def on_server_start(self) -> None: ...
-
-    async def on_server_stop(self) -> None: ...
+class ServerListeners:
+    def __init__(self) -> None:
+        self.start = EventEmitter()
+        self.stop = EventEmitter()
 
 
 class Server(abc.ABC):
@@ -49,7 +50,7 @@ class Server(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def events(self) -> EventRegistry: ...
+    def packet_dispatcher(self) -> ServerPacketDispatcher: ...
 
     @property
     @abc.abstractmethod
@@ -92,8 +93,6 @@ class Server(abc.ABC):
     @abc.abstractmethod
     async def shutdown(self) -> None: ...
 
+    @property
     @abc.abstractmethod
-    def add_listener[T: ServerListener](self, listener: T) -> T: ...
-
-    @abc.abstractmethod
-    def remove_listener[T: ServerListener](self, listener: T) -> T: ...
+    def listeners(self) -> ServerListeners: ...

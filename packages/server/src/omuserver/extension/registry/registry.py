@@ -9,10 +9,9 @@ from omu.extension.registry.registry_extension import (
 
 from omuserver.server import Server
 from omuserver.session import Session
-from omuserver.session.session import SessionListener
 
 
-class Registry(SessionListener):
+class Registry:
     def __init__(self, server: Server, identifier: Identifier) -> None:
         self._key = identifier.key()
         self._registry = {}
@@ -45,17 +44,17 @@ class Registry(SessionListener):
                 RegistryUpdateEvent, RegistryEventData(key=self._key, value=self.data)
             )
 
-    async def attach(self, session: Session) -> None:
+    async def attach_session(self, session: Session) -> None:
         if session.app.key() in self._listeners:
             del self._listeners[session.app.key()]
         self._listeners[session.app.key()] = session
-        session.add_listener(self)
+        session.listeners.disconnected += self.detach_session
         await session.send(
             RegistryUpdateEvent, RegistryEventData(key=self._key, value=self.data)
         )
 
-    async def on_disconnected(self, session: Session) -> None:
+    async def detach_session(self, session: Session) -> None:
         if session.app.key() not in self._listeners:
             raise Exception("Session not attached")
         del self._listeners[session.app.key()]
-        session.remove_listener(self)
+        session.listeners.disconnected -= self.detach_session

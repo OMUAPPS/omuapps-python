@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import socket
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict
 
 from aiohttp import web
 from loguru import logger
@@ -9,26 +9,22 @@ from omu import App
 from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES
 
-from omuserver.server import ServerListener
-from omuserver.session import SessionListener
 from omuserver.session.aiohttp_session import AiohttpSession
 
 from .network import Network
+from .network import NetworkListeners
 
 if TYPE_CHECKING:
     from omuserver.server import Server
     from omuserver.session import Session
 
-    from .network import NetworkListener
 
-
-class AiohttpNetwork(Network, ServerListener, SessionListener):
+class AiohttpNetwork(Network):
     def __init__(self, server: Server) -> None:
         self._server = server
-        self._listeners: List[NetworkListener] = []
+        self._listeners = NetworkListeners()
         self._sessions: Dict[str, Session] = {}
         self._app = web.Application()
-        server.add_listener(self)
 
     def add_http_route(
         self, path: str, handle: Coro[[web.Request], web.StreamResponse]
@@ -51,25 +47,22 @@ class AiohttpNetwork(Network, ServerListener, SessionListener):
             await self._sessions[session.app.key()].disconnect()
             return
         self._sessions[session.app.key()] = session
-        session.add_listener(self)
-        for listener in self._listeners:
-            await listener.on_connected(session)
+        session.listeners.disconnected += self.handle_disconnection
+        await self._listeners.connected.emit(session)
         await session.send(PACKET_TYPES.Ready, None)
         await session.listen()
 
     def is_connected(self, app: App) -> bool:
         return app.key() in self._sessions
 
-    async def on_disconnected(self, session: Session) -> None:
+    async def handle_disconnection(self, session: Session) -> None:
         if session.app.key() not in self._sessions:
             return
         self._sessions.pop(session.app.key())
-        for listener in self._listeners:
-            await listener.on_disconnected(session)
+        await self._listeners.disconnected.emit(session)
 
     async def _handle_start(self, app: web.Application) -> None:
-        for listener in self._listeners:
-            await listener.on_start()
+        await self._listeners.start.emit()
 
     def is_port_available(self) -> bool:
         try:
@@ -91,8 +84,6 @@ class AiohttpNetwork(Network, ServerListener, SessionListener):
         )
         await site.start()
 
-    def add_listener(self, listener: NetworkListener) -> None:
-        self._listeners.append(listener)
-
-    def remove_listener(self, listener: NetworkListener) -> None:
-        self._listeners.remove(listener)
+    @property
+    def listeners(self) -> NetworkListeners:
+        return self._listeners

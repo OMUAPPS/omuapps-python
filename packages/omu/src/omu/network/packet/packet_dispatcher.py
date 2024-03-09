@@ -1,81 +1,54 @@
 from __future__ import annotations
 
-import abc
-from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Dict
 
 from loguru import logger
 
+from omu.event_emitter import EventEmitter
+from omu.helper import Coro
+
 if TYPE_CHECKING:
-    from omu.client import Client
+    from omu.network.connection import Connection
     from omu.network.packet import PacketData, PacketType
 
 
-type EventListener[T] = Callable[[T], Awaitable[None]]
-
-
-class PacketDispatcher(abc.ABC):
-    @abc.abstractmethod
-    def register(self, *types: PacketType) -> None: ...
-
-    @abc.abstractmethod
-    def add_listener[T](
-        self,
-        event_type: PacketType[T],
-        listener: EventListener[T] | None = None,
-    ) -> Callable[[EventListener[T]], None]: ...
-
-    @abc.abstractmethod
-    def remove_listener(
-        self, event_type: PacketType, listener: Callable[[bytes], None]
-    ) -> None: ...
-
-
-class PacketListeners[T]:
-    def __init__(
-        self,
-        event_type: PacketType[T],
-        listeners: List[EventListener[T]],
-    ):
-        self.event_type = event_type
-        self.listeners = listeners
-
-
-class PacketDispatcherImpl(PacketDispatcher):
-    def __init__(self, client: Client):
-        client.connection.listeners.event += self.on_event
+class PacketDispatcher:
+    def __init__(self, connection: Connection):
         self._packet_listeners: Dict[str, PacketListeners] = {}
+        connection.listeners.packet += self.process_packet
 
     def register(self, *packet_types: PacketType) -> None:
-        for packet in packet_types:
-            if self._packet_listeners.get(packet.type):
-                raise ValueError(f"Event type {packet.type} already registered")
-            self._packet_listeners[packet.type] = PacketListeners(packet, [])
+        for packet_type in packet_types:
+            if self._packet_listeners.get(packet_type.type):
+                raise ValueError(f"Event type {packet_type.type} already registered")
+            self._packet_listeners[packet_type.type] = PacketListeners(packet_type)
 
-    def add_listener[T](
+    def add_packet_handler[T](
         self,
-        event_type: PacketType[T],
-        listener: EventListener[T] | None = None,
-    ) -> Callable[[EventListener[T]], None]:
-        if not self._packet_listeners.get(event_type.type):
-            raise ValueError(f"Event type {event_type.type} not registered")
+        packet_type: PacketType[T],
+        packet_handler: Coro[[T], None] | None = None,
+    ):
+        if not self._packet_listeners.get(packet_type.type):
+            raise ValueError(f"Event type {packet_type.type} not registered")
 
-        def decorator(listener: EventListener[T]) -> None:
-            self._packet_listeners[event_type.type].listeners.append(listener)
+        def decorator(packet_handler: Coro[[T], None]) -> None:
+            self._packet_listeners[packet_type.type].listeners += packet_handler
 
-        if listener:
-            decorator(listener)
+        if packet_handler:
+            decorator(packet_handler)
         return decorator
 
-    def remove_listener(self, event_type: PacketType, listener: EventListener) -> None:
-        if not self._packet_listeners.get(event_type.type):
-            raise ValueError(f"Event type {event_type.type} not registered")
-        self._packet_listeners[event_type.type].listeners.remove(listener)
-
-    async def on_event(self, event_data: PacketData) -> None:
-        event = self._packet_listeners.get(event_data.type)
+    async def process_packet(self, packet_data: PacketData) -> None:
+        event = self._packet_listeners.get(packet_data.type)
         if not event:
-            logger.warning(f"Received unknown event type {event_data.type}")
+            logger.warning(f"Received unknown event type {packet_data.type}")
             return
-        data = event.event_type.serializer.deserialize(event_data.data)
-        for listener in event.listeners:
-            await listener(data)
+        data = event.event_type.serializer.deserialize(packet_data.data)
+        await event.listeners.emit(data)
+
+
+@dataclass
+class PacketListeners[T]:
+    event_type: PacketType[T]
+    listeners: EventEmitter[T] = field(default_factory=EventEmitter)

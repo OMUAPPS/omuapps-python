@@ -28,9 +28,9 @@ class EndpointExtension(Extension):
         client.events.register(
             EndpointCallEvent, EndpointReceiveEvent, EndpointErrorEvent
         )
-        client.events.add_listener(EndpointReceiveEvent, self._on_receive)
-        client.events.add_listener(EndpointErrorEvent, self._on_error)
-        client.events.add_listener(EndpointCallEvent, self._on_call)
+        client.events.add_packet_handler(EndpointReceiveEvent, self._on_receive)
+        client.events.add_packet_handler(EndpointErrorEvent, self._on_error)
+        client.events.add_packet_handler(EndpointCallEvent, self._on_call)
         client.connection.listeners.connected += self.on_connected
 
     async def _on_receive(self, data: EndpointDataReq) -> None:

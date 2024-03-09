@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from loguru import logger
 
 from omu.client import Client
+from omu.client.client import ClientListeners
 from omu.extension.endpoint import (
     EndpointExtension,
     EndpointExtensionType,
@@ -22,14 +23,12 @@ from omu.extension.registry.registry_extension import (
 from omu.extension.server import ServerExtension, ServerExtensionType
 from omu.extension.table import TableExtension, TableExtensionType
 from omu.network import Address, WebsocketsConnection
-from omu.network.packet import PACKET_TYPES, PacketDispatcherImpl
+from omu.network.packet import PACKET_TYPES, PacketDispatcher, PacketType
 
 if TYPE_CHECKING:
     from omu.app import App
-    from omu.client import ClientListener
     from omu.extension import ExtensionRegistry
     from omu.network import Connection
-    from omu.network.packet import PacketDispatcher, PacketType
 
 
 class OmuClient(Client):
@@ -38,18 +37,17 @@ class OmuClient(Client):
         app: App,
         address: Address,
         connection: Connection | None = None,
-        event_registry: PacketDispatcher | None = None,
         extension_registry: ExtensionRegistry | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
     ):
         self._loop = loop or asyncio.get_event_loop()
         self._running = False
-        self._listeners: List[ClientListener] = []
+        self._listeners = ClientListeners()
         self._app = app
         self._connection = connection or WebsocketsConnection(self, address)
-        self._events = event_registry or PacketDispatcherImpl(self)
         self._connection.listeners.connected += self.on_connected
         self._connection.listeners.disconnected += self.on_disconnected
+        self._events = PacketDispatcher(self._connection)
         self._extensions = extension_registry or ExtensionRegistryImpl(self)
 
         self.events.register(PACKET_TYPES.Ready, PACKET_TYPES.Connect)
@@ -59,8 +57,7 @@ class OmuClient(Client):
         self._registry = self.extensions.register(RegistryExtensionType)
         self._message = self.extensions.register(MessageExtensionType)
 
-        for listener in self._listeners:
-            asyncio.run(listener.on_initialized())
+        asyncio.create_task(self._listeners.initialized.emit())
 
     @property
     def app(self) -> App:
@@ -139,19 +136,15 @@ class OmuClient(Client):
         self.loop.create_task(
             self._connection.connect(token=token, reconnect=reconnect)
         )
-        for listener in self._listeners:
-            await listener.on_started()
+        await self._listeners.started()
 
     async def stop(self) -> None:
         if not self._running:
             raise RuntimeError("Not running")
         self._running = False
         await self._connection.disconnect()
-        for listener in self._listeners:
-            await listener.on_stopped()
+        await self._listeners.stopped()
 
-    def add_listener(self, listener: ClientListener) -> None:
-        self._listeners.append(listener)
-
-    def remove_listener(self, listener: ClientListener) -> None:
-        self._listeners.remove(listener)
+    @property
+    def listeners(self) -> ClientListeners:
+        return self._listeners

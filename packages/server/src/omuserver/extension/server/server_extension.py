@@ -14,17 +14,18 @@ from omuserver import __version__
 from omuserver.extension import Extension
 from omuserver.extension.table import TableExtension
 from omuserver.helper import get_launch_command
-from omuserver.network import NetworkListener
 
 if TYPE_CHECKING:
     from omuserver.server import Server
     from omuserver.session.session import Session
 
 
-class ServerExtension(Extension, NetworkListener):
+class ServerExtension(Extension):
     def __init__(self, server: Server) -> None:
         self._server = server
-        server.network.add_listener(self)
+        server.network.listeners.connected += self.on_connected
+        server.network.listeners.disconnected += self.on_disconnected
+        server.listeners.start += self.on_start
         server.endpoints.bind_endpoint(ShutdownEndpointType, self.shutdown)
         server.endpoints.bind_endpoint(PrintTasksEndpointType, self.print_tasks)
 

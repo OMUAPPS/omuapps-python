@@ -21,9 +21,13 @@ if TYPE_CHECKING:
 class RegistryExtension(Extension):
     def __init__(self, server: Server) -> None:
         self._server = server
-        server.events.register(RegistryListenEvent, RegistryUpdateEvent)
-        server.events.add_listener(RegistryListenEvent, self._on_listen)
-        server.events.add_listener(RegistryUpdateEvent, self._on_update)
+        server.packet_dispatcher.register(RegistryListenEvent, RegistryUpdateEvent)
+        server.packet_dispatcher.add_packet_handler(
+            RegistryListenEvent, self._on_listen
+        )
+        server.packet_dispatcher.add_packet_handler(
+            RegistryUpdateEvent, self._on_update
+        )
         server.endpoints.bind_endpoint(RegistryGetEndpoint, self._on_get)
         self.registries: Dict[Identifier, Registry] = {}
 
@@ -33,7 +37,7 @@ class RegistryExtension(Extension):
 
     async def _on_listen(self, session: Session, key: str) -> None:
         registry = await self.get(key)
-        await registry.attach(session)
+        await registry.attach_session(session)
 
     async def _on_update(self, session: Session, event: RegistryEventData) -> None:
         registry = await self.get(event["key"])

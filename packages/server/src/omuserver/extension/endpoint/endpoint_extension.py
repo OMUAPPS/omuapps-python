@@ -18,7 +18,7 @@ from omu.extension.endpoint.endpoint_extension import (
 
 from omuserver.extension import Extension
 from omuserver.extension.table import TableExtension
-from omuserver.server import Server, ServerListener
+from omuserver.server import Server
 from omuserver.session import Session
 from omu.helper import Coro
 
@@ -96,22 +96,30 @@ class EndpointCall:
         )
 
 
-class EndpointExtension(Extension, ServerListener):
+class EndpointExtension(Extension):
     def __init__(self, server: Server) -> None:
         self._server = server
-        self._server.add_listener(self)
+        self._server.listeners.start += self.on_server_start
         self._endpoints: Dict[str, Endpoint] = {}
         self._calls: Dict[str, EndpointCall] = {}
-        server.events.register(
+        server.packet_dispatcher.register(
             EndpointRegisterEvent,
             EndpointCallEvent,
             EndpointReceiveEvent,
             EndpointErrorEvent,
         )
-        server.events.add_listener(EndpointRegisterEvent, self._on_endpoint_register)
-        server.events.add_listener(EndpointCallEvent, self._on_endpoint_call)
-        server.events.add_listener(EndpointReceiveEvent, self._on_endpoint_receive)
-        server.events.add_listener(EndpointErrorEvent, self._on_endpoint_error)
+        server.packet_dispatcher.add_packet_handler(
+            EndpointRegisterEvent, self._on_endpoint_register
+        )
+        server.packet_dispatcher.add_packet_handler(
+            EndpointCallEvent, self._on_endpoint_call
+        )
+        server.packet_dispatcher.add_packet_handler(
+            EndpointReceiveEvent, self._on_endpoint_receive
+        )
+        server.packet_dispatcher.add_packet_handler(
+            EndpointErrorEvent, self._on_endpoint_error
+        )
 
     async def _on_endpoint_register(self, session: Session, info: EndpointInfo) -> None:
         await self.endpoints.add(info)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List
+from typing import Dict
 
 from aiohttp import web
 from loguru import logger
@@ -11,7 +11,8 @@ from omu.network.bytebuffer import ByteReader, ByteWriter
 
 from omuserver.security import Permission
 from omuserver.server import Server
-from omuserver.session import Session, SessionListener
+from omuserver.session import Session
+from omuserver.session.session import SessionListeners
 
 
 class AiohttpSession(Session):
@@ -21,7 +22,7 @@ class AiohttpSession(Session):
         self.socket = socket
         self._app = app
         self._permissions = permissions
-        self._listeners: List[SessionListener] = []
+        self._listeners = SessionListeners()
         self._event_times: Dict[str, float] = {}
 
     @property
@@ -86,13 +87,9 @@ class AiohttpSession(Session):
                 event = await self._receive(self.socket)
                 if event is None:
                     break
-                asyncio.create_task(self.dispatch_event(event))
+                asyncio.create_task(self._listeners.packet.emit(self, event))
         finally:
             await self.disconnect()
-
-    async def dispatch_event(self, event: PacketData) -> None:
-        for listener in self._listeners:
-            await listener.on_event(self, event)
 
     async def disconnect(self) -> None:
         try:
@@ -100,8 +97,7 @@ class AiohttpSession(Session):
         except Exception as e:
             logger.warning(f"Error closing socket: {e}")
             logger.error(e)
-        for listener in self._listeners:
-            await listener.on_disconnected(self)
+        await self._listeners.disconnected.emit(self)
 
     async def send[T](self, type: PacketType[T], data: T) -> None:
         if self.closed:
@@ -111,17 +107,12 @@ class AiohttpSession(Session):
         writer.write_byte_array(type.serializer.serialize(data))
         await self.socket.send_bytes(writer.finish())
 
-    def add_listener(self, listener: SessionListener) -> None:
-        self._listeners.append(listener)
-
-    def remove_listener(self, listener: SessionListener) -> None:
-        self._listeners.remove(listener)
-
-    def __str__(self) -> str:
-        return f"AiohttpSession({self._app})"
+    @property
+    def listeners(self) -> SessionListeners:
+        return self._listeners
 
     def __repr__(self) -> str:
-        return str(self)
+        return f"AiohttpSession({self._app})"
 
     def hash(self) -> int:
         return hash(self._app)

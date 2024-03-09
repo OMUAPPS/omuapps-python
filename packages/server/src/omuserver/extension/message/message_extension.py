@@ -9,23 +9,22 @@ from omu.extension.message.message_extension import (
     MessageRegisterEvent,
 )
 from omuserver.extension import Extension
-from omuserver.session.session import SessionListener
 
 if TYPE_CHECKING:
     from omuserver import Server
     from omuserver.session.session import Session
 
 
-class Message(SessionListener):
+class Message:
     def __init__(self, key: str) -> None:
         self.key = key
         self.listeners: set[Session] = set()
 
     def add_listener(self, session: Session) -> None:
         self.listeners.add(session)
-        session.add_listener(self)
+        session.listeners.disconnected += self.handle_disconnected_session
 
-    async def on_disconnected(self, session: Session) -> None:
+    async def handle_disconnected_session(self, session: Session) -> None:
         self.listeners.discard(session)
 
 
@@ -33,12 +32,16 @@ class MessageExtension(Extension):
     def __init__(self, server: Server):
         self._server = server
         self._keys: Dict[str, Message] = {}
-        server.events.register(
+        server.packet_dispatcher.register(
             MessageRegisterEvent, MessageListenEvent, MessageBroadcastEvent
         )
-        server.events.add_listener(MessageRegisterEvent, self._on_register)
-        server.events.add_listener(MessageListenEvent, self._on_listen)
-        server.events.add_listener(MessageBroadcastEvent, self._on_broadcast)
+        server.packet_dispatcher.add_packet_handler(
+            MessageRegisterEvent, self._on_register
+        )
+        server.packet_dispatcher.add_packet_handler(MessageListenEvent, self._on_listen)
+        server.packet_dispatcher.add_packet_handler(
+            MessageBroadcastEvent, self._on_broadcast
+        )
 
     @classmethod
     def create(cls, server):

@@ -7,7 +7,6 @@ from omu.extension.table.table_extension import TableProxyData, TableProxyEvent
 from omu.extension.table import TableConfig
 from omu.identifier import Identifier
 
-from omuserver.session import SessionListener
 
 from .adapters.tableadapter import TableAdapter
 from .server_table import ServerTable, ServerTableListener
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
     from omuserver.session import Session
 
 
-class CachedTable(ServerTable, SessionListener):
+class CachedTable(ServerTable):
     def __init__(
         self,
         server: Server,
@@ -67,7 +66,7 @@ class CachedTable(ServerTable, SessionListener):
         handler = SessionTableListener(self._identifier.key(), session)
         self._sessions[session] = handler
         self.add_listener(handler)
-        session.add_listener(self)
+        session.listeners.disconnected += self.handle_disconnection
 
     def detach_session(self, session: Session) -> None:
         if session in self._proxy_sessions:
@@ -76,7 +75,7 @@ class CachedTable(ServerTable, SessionListener):
             handler = self._sessions.pop(session)
             self.remove_listener(handler)
 
-    async def on_disconnected(self, session: Session) -> None:
+    async def handle_disconnection(self, session: Session) -> None:
         self.detach_session(session)
 
     def attach_proxy_session(self, session: Session) -> None:

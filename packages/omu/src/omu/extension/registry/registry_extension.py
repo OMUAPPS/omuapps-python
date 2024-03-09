@@ -54,7 +54,7 @@ class RegistryImpl[T](Registry[T]):
         self.key = identifier.key()
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
-        client.events.add_listener(RegistryUpdateEvent, self._on_update)
+        client.events.add_packet_handler(RegistryUpdateEvent, self._on_update)
 
     async def get(self) -> T:
         return (

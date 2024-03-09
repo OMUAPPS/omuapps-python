@@ -238,11 +238,11 @@ class TableImpl[T](Table[T]):
         self._config: TableConfig | None = None
         self.key = identifier.key()
 
-        client.events.add_listener(TableProxyEvent, self._on_proxy)
-        client.events.add_listener(TableItemAddEvent, self._on_item_add)
-        client.events.add_listener(TableItemUpdateEvent, self._on_item_update)
-        client.events.add_listener(TableItemRemoveEvent, self._on_item_remove)
-        client.events.add_listener(TableItemClearEvent, self._on_item_clear)
+        client.events.add_packet_handler(TableProxyEvent, self._on_proxy)
+        client.events.add_packet_handler(TableItemAddEvent, self._on_item_add)
+        client.events.add_packet_handler(TableItemUpdateEvent, self._on_item_update)
+        client.events.add_packet_handler(TableItemRemoveEvent, self._on_item_remove)
+        client.events.add_packet_handler(TableItemClearEvent, self._on_item_clear)
         client.connection.listeners.connected += self.on_connected
 
     @property
