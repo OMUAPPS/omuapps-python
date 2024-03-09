@@ -23,7 +23,10 @@ class registry:
     emojis: Dict[str, Emoji] = {}
 
 
-@client.omu.registry.listen("emojis")
+EMOJIS_REGISTRY = client.omu.registry.create("emojis", registry.emojis)
+
+
+@EMOJIS_REGISTRY.listen
 async def on_emojis_update(emojis: Dict[str, Emoji]) -> None:
     registry.emojis = emojis or {}
 

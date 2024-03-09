@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, List
+
+from omu.identifier import Identifier
 
 if TYPE_CHECKING:
     from omu.client import Client
@@ -12,11 +13,21 @@ class Extension(abc.ABC):
     pass
 
 
-@dataclass
-class ExtensionType[T: Extension]:
+class ExtensionType[T: Extension](Identifier):
     name: str
     create: Callable[[Client], T]
     dependencies: Callable[[], List[ExtensionType]]
+
+    def __init__(
+        self,
+        name: str,
+        create: Callable[[Client], T],
+        dependencies: Callable[[], List[ExtensionType]],
+    ) -> None:
+        self.name = name
+        self.create = create
+        self.dependencies = dependencies
+        super().__init__("ext", name)
 
     def key(self) -> str:
         return self.name

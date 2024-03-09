@@ -1,10 +1,14 @@
-from typing import Any, Awaitable, Callable, TypedDict
+from __future__ import annotations
+
+from typing import Any, Awaitable, Callable, List, TypedDict
 
 from omu.client import Client
 from omu.event import JsonEventType
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType
-from omu.network import ConnectionListener
+from omu.identifier import Identifier
+
+from .registry import Registry
 
 RegistryExtensionType = ExtensionType(
     "registry",
@@ -29,44 +33,54 @@ RegistryGetEndpoint = JsonEndpointType[str, Any].of_extension(
 type Coro[**P, R] = Callable[P, Awaitable[R]]
 
 
-class RegistryExtension(Extension, ConnectionListener):
+class RegistryExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        self._listen_keys: set[str] = set()
-        client.events.register(RegistryUpdateEvent, RegistryListenEvent)
-        client.connection.add_listener(self)
+        client.events.register(RegistryUpdateEvent)
 
-    async def get[T](self, name: str, app: str | None = None) -> T:
-        data: T = await self.client.endpoints.call(
-            RegistryGetEndpoint, f"{app or self.client.app.key()}:{name}"
-        )
-        return data
+    def get[T](self, identifier: Identifier, default_value: T) -> Registry[T]:
+        return RegistryImpl(self.client, identifier, default_value)
 
-    async def set[T](self, name: str, value: T, app: str | None = None) -> None:
+    def create[T](self, name: str, default_value: T) -> Registry[T]:
+        return self.get(self.client.app.identifier / name, default_value)
+
+
+class RegistryImpl[T](Registry[T]):
+    def __init__(
+        self, client: Client, identifier: Identifier, default_value: T
+    ) -> None:
+        self.client = client
+        self.identifier = identifier
+        self.default_value = default_value
+        self.key = identifier.key()
+        self.listeners: List[Coro[[T], None]] = []
+        self.listening = False
+        client.events.add_listener(RegistryUpdateEvent, self._on_update)
+
+    async def get(self) -> T:
+        return (
+            await self.client.endpoints.call(RegistryGetEndpoint, self.key)
+        ) or self.default_value
+
+    async def update(self, fn: Coro[[T], T]) -> None:
+        value = await self.get()
+        new_value = await fn(value)
         await self.client.send(
-            RegistryUpdateEvent,
-            RegistryEventData(
-                key=f"{app or self.client.app.key()}:{name}", value=value
-            ),
+            RegistryUpdateEvent, RegistryEventData(key=self.key, value=new_value)
         )
 
-    def listen[T](
-        self, name: str, app: str | None = None
-    ) -> Callable[[Coro[[T], None]], None]:
-        key = f"{app or self.client.app.key()}:{name}"
+    def listen(self, handler: Coro[[T], None]) -> Callable[[], None]:
+        if not self.listening:
+            self.client.connection.add_task(
+                lambda: self.client.send(RegistryListenEvent, self.key)
+            )
+            self.listening = True
 
-        def decorator(callback: Coro[[T], None]) -> None:
-            self._listen_keys.add(key)
+        self.listeners.append(handler)
+        return lambda: self.listeners.remove(handler)
 
-            async def wrapper(event: RegistryEventData) -> None:
-                if event["key"] != key:
-                    return
-                await callback(event["value"])
-
-            self.client.events.add_listener(RegistryUpdateEvent, wrapper)
-
-        return decorator
-
-    async def on_connected(self) -> None:
-        for key in self._listen_keys:
-            await self.client.send(RegistryListenEvent, key)
+    async def _on_update(self, event: RegistryEventData) -> None:
+        if event["key"] != self.key:
+            return
+        for listener in self.listeners:
+            await listener(event["value"])

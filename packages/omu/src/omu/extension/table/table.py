@@ -17,8 +17,6 @@ from omu.interface.keyable import Keyable
 from omu.serializer import Serializer
 
 if TYPE_CHECKING:
-    from omu.extension.extension import ExtensionType
-    from omu.extension.server import App
     from omu.helper import AsyncCallback, Coro
     from omu.serializer import JsonSerializable, Serializable
 
@@ -138,12 +136,12 @@ class TableType[T]:
     @classmethod
     def model[_T: Keyable, _D](
         cls,
-        identifier: Identifier | App | ExtensionType,
+        identifier: Identifier,
         name: str,
         model: type[ModelEntry[_T, _D]],
     ) -> TableType[_T]:
         return TableType(
-            identifier=Identifier.create(identifier.key(), name),
+            identifier=identifier / name,
             serializer=Serializer.model(model).pipe(Serializer.json()),
             key_func=lambda item: item.key(),
         )

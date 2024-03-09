@@ -25,7 +25,7 @@ class RegistryExtension(Extension):
         server.events.add_listener(RegistryListenEvent, self._on_listen)
         server.events.add_listener(RegistryUpdateEvent, self._on_update)
         server.endpoints.bind_endpoint(RegistryGetEndpoint, self._on_get)
-        self.registries: Dict[str, Registry] = {}
+        self.registries: Dict[Identifier, Registry] = {}
 
     @classmethod
     def create(cls, server: Server) -> RegistryExtension:
@@ -45,10 +45,10 @@ class RegistryExtension(Extension):
 
     async def get(self, key: str) -> Registry:
         identifier = Identifier.from_key(key)
-        registry = self.registries.get(key)
+        registry = self.registries.get(identifier)
         if registry is None:
-            registry = Registry(self._server, identifier.namespace, identifier.name)
-            self.registries[key] = registry
+            registry = Registry(self._server, identifier)
+            self.registries[identifier] = registry
             await registry.load()
         return registry
 

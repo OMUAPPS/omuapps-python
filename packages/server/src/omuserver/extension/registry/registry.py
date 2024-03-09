@@ -1,11 +1,11 @@
 import json
 from typing import Any
+from omu import Identifier
 
 from omu.extension.registry.registry_extension import (
     RegistryEventData,
     RegistryUpdateEvent,
 )
-from omuserver.helper import generate_md5_hash, sanitize_filename
 
 from omuserver.server import Server
 from omuserver.session import Session
@@ -13,12 +13,13 @@ from omuserver.session.session import SessionListener
 
 
 class Registry(SessionListener):
-    def __init__(self, server: Server, namespace: str, name: str) -> None:
-        self._key = f"{namespace}:{name}"
+    def __init__(self, server: Server, identifier: Identifier) -> None:
+        self._key = identifier.key()
         self._registry = {}
         self._listeners: dict[str, Session] = {}
-        namespace = f"{sanitize_filename(namespace)}-{generate_md5_hash(namespace)}"
-        self._path = server.directories.get("registry") / namespace / f"{name}.json"
+        self._path = server.directories.get(
+            "registry"
+        ) / identifier.to_path().with_suffix(".json")
         self._changed = False
         self.data = None
 

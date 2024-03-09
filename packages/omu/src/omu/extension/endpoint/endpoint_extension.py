@@ -8,7 +8,6 @@ from omu.event import JsonEventType, SerializeEventType
 from omu.extension.endpoint import EndpointInfo, EndpointType, JsonEndpointType
 from omu.extension.extension import Extension, ExtensionType
 from omu.extension.table import TableType
-from omu.identifier import Identifier
 from omu.network import ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.serializer import Serializable, Serializer
@@ -80,13 +79,11 @@ class EndpointExtension(Extension, ConnectionListener):
         self.endpoints[type.info.key()] = (type, func)
 
     def listen(
-        self, func: Coro | None = None, name: str | None = None, app: str | None = None
+        self, func: Coro | None = None, name: str | None = None
     ) -> Callable[[Coro], Coro]:
         def decorator(func: Coro) -> Coro:
             info = EndpointInfo(
-                identifier=Identifier.create(
-                    app or self.client.app.key(), name or func.__name__
-                ),
+                identifier=self.client.app.identifier / (name or func.__name__),
                 description=getattr(func, "__doc__", ""),
             )
             type = JsonEndpointType(info)

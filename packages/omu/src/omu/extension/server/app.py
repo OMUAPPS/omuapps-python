@@ -32,6 +32,7 @@ class App(Keyable, Model[AppJson]):
         repository_url: str | None = None,
         image_url: str | None = None,
     ) -> None:
+        self.identifier = Identifier(group, name)
         self.name = name
         self.group = group
         self.version = version
@@ -55,6 +56,8 @@ class App(Keyable, Model[AppJson]):
         repository_url: str | None = None,
         image_url: str | None = None,
     ) -> App:
+        if len(identifier.path) != 1:
+            raise Exception(f"Invalid identifier {identifier}")
         return cls(
             name=identifier.name,
             group=identifier.namespace,
@@ -70,6 +73,8 @@ class App(Keyable, Model[AppJson]):
     @classmethod
     def from_json(cls, json: AppJson) -> App:
         identifier = Identifier.from_key(json["identifier"])
+        if len(identifier.path) != 1:
+            raise Exception(f"Invalid identifier {identifier}")
         return cls(
             name=identifier.name,
             group=identifier.namespace,

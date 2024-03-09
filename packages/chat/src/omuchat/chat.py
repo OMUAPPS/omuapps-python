@@ -14,10 +14,7 @@ from omuchat.model.message import Message, MessageJson
 from omuchat.model.provider import Provider
 from omuchat.model.room import Room
 
-IDENTIFIER = Identifier(
-    name="chat",
-    namespace="cc.omuchat",
-)
+IDENTIFIER = Identifier.from_key("cc.omuchat:chat")
 
 MessagesTableKey = TableType.model(
     IDENTIFIER,

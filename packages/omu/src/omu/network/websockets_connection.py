@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Callable, Coroutine, List
 
 import aiohttp
 from aiohttp import web
@@ -22,6 +22,7 @@ class WebsocketsConnection(Connection):
         self._connected = False
         self._listeners: List[ConnectionListener] = []
         self._socket: aiohttp.ClientWebSocketResponse | None = None
+        self._tasks: List[Callable[[], Coroutine[None, None, None]]] = []
         self._session = aiohttp.ClientSession()
         self._token: str | None = None
         self._closed_event = asyncio.Event()
@@ -61,6 +62,8 @@ class WebsocketsConnection(Connection):
         for listener in self._listeners:
             await listener.on_connected()
             await listener.on_status_changed("connected")
+        for task in self._tasks:
+            self._client.loop.create_task(task())
 
         await self._closed_event.wait()
 
@@ -134,3 +137,9 @@ class WebsocketsConnection(Connection):
     def remove_listener[T: ConnectionListener](self, listener: T) -> T:
         self._listeners.remove(listener)
         return listener
+
+    def add_task(self, task: Callable[[], Coroutine[None, None, None]]) -> None:
+        self._tasks.append(task)
+
+    def remove_task(self, task: Callable[[], Coroutine[None, None, None]]) -> None:
+        self._tasks.remove(task)

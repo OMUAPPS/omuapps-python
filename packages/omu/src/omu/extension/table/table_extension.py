@@ -73,7 +73,7 @@ class TableExtension(Extension):
     def model[T: Keyable, D](
         self, identifier: Identifier, name: str, type: type[ModelType[T, D]]
     ) -> Table[T]:
-        identifier = Identifier.create(identifier.key(), name)
+        identifier = identifier / name
         if self.has(identifier):
             return self._tables[identifier]
         return self.create(

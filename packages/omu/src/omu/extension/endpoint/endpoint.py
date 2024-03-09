@@ -10,7 +10,6 @@ from .endpoint_info import EndpointInfo
 
 if TYPE_CHECKING:
     from omu.extension import ExtensionType
-    from omu.extension.server import App
 
 
 class EndpointType[Req, Res](abc.ABC):
@@ -41,13 +40,13 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
     @classmethod
     def of(
         cls,
-        identifier: Identifier | App,
+        identifier: Identifier,
         name: str,
         request_serializer: Serializable[Req, bytes],
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(identifier.key(), name)),
+            info=EndpointInfo(identifier=identifier / name),
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
@@ -61,7 +60,7 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(extension.name, name)),
+            info=EndpointInfo(identifier=extension / name),
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
@@ -93,11 +92,11 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
     @classmethod
     def of(
         cls,
-        identifier: Identifier | App,
+        identifier: Identifier,
         name: str,
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(identifier.key(), name)),
+            info=EndpointInfo(identifier=identifier / name),
         )
 
     @classmethod
@@ -107,5 +106,5 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
         name: str,
     ):
         return cls(
-            info=EndpointInfo(identifier=Identifier.create(extension.name, name)),
+            info=EndpointInfo(identifier=extension / name),
         )

@@ -29,7 +29,6 @@ from omu.interface import Keyable
 
 from omuserver.extension import Extension
 from omuserver.extension.table.serialized_table import SerializedTable
-from omuserver.helper import generate_md5_hash, sanitize_filename
 from omuserver.server import Server, ServerListener
 from omuserver.session import Session
 
@@ -157,11 +156,8 @@ class TableExtension(Extension, ServerListener):
         self._tables[identifier] = table
         return table
 
-    def get_table_path(self, id: Identifier) -> Path:
-        namespace = (
-            f"{sanitize_filename(id.namespace)}-{generate_md5_hash(id.namespace)}"
-        )
-        path = self._server.directories.get("tables") / namespace / id.name
+    def get_table_path(self, identifier: Identifier) -> Path:
+        path = self._server.directories.get("tables") / identifier.to_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 

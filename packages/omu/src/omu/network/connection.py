@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Callable, Coroutine, Literal
 
 if TYPE_CHECKING:
     from omu.event import EventData, EventType
@@ -46,3 +46,9 @@ class Connection(abc.ABC):
 
     @abc.abstractmethod
     def remove_listener[T: ConnectionListener](self, listener: T) -> T: ...
+
+    @abc.abstractmethod
+    def add_task(self, task: Callable[[], Coroutine[None, None, None]]) -> None: ...
+
+    @abc.abstractmethod
+    def remove_task(self, task: Callable[[], Coroutine[None, None, None]]) -> None: ...
