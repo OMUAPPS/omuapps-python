@@ -9,7 +9,7 @@ from aiohttp import web
 from omu.network import Address, Connection, ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.event.event import EventData, EventType
-from omu.network.event.events import EVENTS, ConnectEvent
+from omu.network.event.events import EVENTS, ConnectPacket
 
 if TYPE_CHECKING:
     from omu.client import Client
@@ -51,7 +51,7 @@ class WebsocketsConnection(Connection):
         await self._connect()
         await self.send(
             EVENTS.Connect,
-            ConnectEvent(
+            ConnectPacket(
                 app=self._client.app,
                 token=self._token,
             ),

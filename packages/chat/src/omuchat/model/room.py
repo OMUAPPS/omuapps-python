@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Literal, NotRequired, TypedDict, Hashable
 
 from omu.interface import Keyable
@@ -52,7 +53,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
         self.created_at = created_at
 
     @staticmethod
-    def from_json(json: RoomJson) -> "Room":
+    def from_json(json: RoomJson) -> Room:
         return Room(
             id=json["id"],
             provider_id=json["provider_id"],

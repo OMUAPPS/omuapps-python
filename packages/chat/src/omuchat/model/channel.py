@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import TypedDict
 
 from omu.interface import Keyable
@@ -35,7 +36,7 @@ class Channel(Keyable, Model[ChannelJson]):
         self.icon_url = icon_url
 
     @classmethod
-    def from_json(cls, json: ChannelJson) -> "Channel":
+    def from_json(cls, json: ChannelJson) -> Channel:
         return cls(
             provider_id=json["provider_id"],
             id=json["id"],

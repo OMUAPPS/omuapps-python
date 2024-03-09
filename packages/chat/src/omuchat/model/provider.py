@@ -40,7 +40,7 @@ class Provider(Keyable, Model[ProviderJson]):
         self.regex = regex
 
     @classmethod
-    def from_json(cls, json: ProviderJson) -> "Provider":
+    def from_json(cls, json: ProviderJson) -> Provider:
         return cls(
             id=json["id"],
             url=json["url"],

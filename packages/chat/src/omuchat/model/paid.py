@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import TypedDict
 
 from omu.model import Model
@@ -14,7 +15,7 @@ class Paid(Model[PaidJson]):
         self.currency = currency
 
     @classmethod
-    def from_json(cls, json: PaidJson) -> "Paid":
+    def from_json(cls, json: PaidJson) -> Paid:
         return cls(amount=json["amount"], currency=json["currency"])
 
     def to_json(self) -> PaidJson:

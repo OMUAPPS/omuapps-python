@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict
 
 from omu.app import App
@@ -6,7 +8,7 @@ from omu.network.event import JsonEventType
 from omu.serializer import Serializer
 
 
-class ConnectEvent(Model):
+class ConnectPacket(Model):
     def __init__(self, app: App, token: str | None = None):
         self.app = app
         self.token = token
@@ -18,14 +20,14 @@ class ConnectEvent(Model):
         }
 
     @classmethod
-    def from_json(cls, json: Dict) -> "ConnectEvent":
+    def from_json(cls, json: Dict) -> ConnectPacket:
         return cls(
             app=App.from_json(json["app"]),
             token=json["token"],
         )
 
 
-class DisconnectEvent(Model):
+class DisconnectPacket(Model):
     def __init__(self, reason: str):
         self.reason = reason
 
@@ -33,7 +35,7 @@ class DisconnectEvent(Model):
         return {"reason": self.reason}
 
     @classmethod
-    def from_json(cls, json: Dict) -> "DisconnectEvent":
+    def from_json(cls, json: Dict) -> DisconnectPacket:
         return cls(
             reason=json["reason"],
         )
@@ -43,12 +45,12 @@ class EVENTS:
     Connect = JsonEventType(
         "",
         "connect",
-        Serializer.model(ConnectEvent),
+        Serializer.model(ConnectPacket),
     )
     Disconnect = JsonEventType(
         "",
         "disconnect",
-        Serializer.model(DisconnectEvent),
+        Serializer.model(DisconnectPacket),
     )
     Token = JsonEventType[str](
         "",

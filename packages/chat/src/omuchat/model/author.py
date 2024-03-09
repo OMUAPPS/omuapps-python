@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import List, NotRequired, TypedDict
 
 from omu.helper import map_optional
@@ -45,7 +47,7 @@ class Author(Keyable, Model[AuthorJson]):
         }
 
     @classmethod
-    def from_json(cls, json: AuthorJson) -> "Author":
+    def from_json(cls, json: AuthorJson) -> Author:
         return cls(
             provider_id=json["provider_id"],
             id=json["id"],

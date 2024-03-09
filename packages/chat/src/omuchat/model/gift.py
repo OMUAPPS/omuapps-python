@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import NotRequired, TypedDict
 
 from omu.model import Model
@@ -28,7 +29,7 @@ class Gift(Model[GiftJson]):
         self.image_url = image_url
 
     @classmethod
-    def from_json(cls, json: GiftJson) -> "Gift":
+    def from_json(cls, json: GiftJson) -> Gift:
         return cls(
             id=json["id"],
             name=json["name"],

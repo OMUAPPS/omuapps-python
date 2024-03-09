@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import NotRequired, TypedDict
 
 from omu.interface import Keyable
@@ -42,7 +43,7 @@ class Role(Keyable, Model[RoleJson]):
         }
 
     @classmethod
-    def from_json(cls, json: RoleJson) -> "Role":
+    def from_json(cls, json: RoleJson) -> Role:
         return cls(
             id=json["id"],
             name=json["name"],
