@@ -14,7 +14,6 @@ from omu.extension.endpoint import JsonEndpointType, SerializeEndpointType
 from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
 from omu.interface import Keyable
-from omu.network import ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import JsonPacketType, SerializedPacketType
 from omu.serializer import JsonSerializable, Serializable, Serializer
@@ -218,7 +217,7 @@ TableItemSizeEndpoint = JsonEndpointType[TableEventData, int].of_extension(
 )
 
 
-class TableImpl[T](Table[T], ConnectionListener):
+class TableImpl[T](Table[T]):
     def __init__(
         self,
         client: Client,
@@ -244,7 +243,7 @@ class TableImpl[T](Table[T], ConnectionListener):
         client.events.add_listener(TableItemUpdateEvent, self._on_item_update)
         client.events.add_listener(TableItemRemoveEvent, self._on_item_remove)
         client.events.add_listener(TableItemClearEvent, self._on_item_clear)
-        client.connection.add_listener(self)
+        client.connection.listeners.connected += self.on_connected
 
     @property
     def cache(self) -> Dict[str, T]:

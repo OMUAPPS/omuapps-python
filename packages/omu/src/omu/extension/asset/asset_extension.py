@@ -3,7 +3,6 @@ from typing import Dict, List
 from omu.client import Client
 from omu.extension.endpoint import SerializeEndpointType
 from omu.extension.extension import Extension, ExtensionType
-from omu.network import ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.serializer import Serializable, Serializer
 
@@ -43,10 +42,9 @@ AssetUploadEndpoint = SerializeEndpointType[Files, List[str]].of_extension(
 )
 
 
-class AssetExtension(Extension, ConnectionListener):
+class AssetExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        client.connection.add_listener(self)
 
     async def upload(self, assets: Files) -> List[str]:
         return await self.client.endpoints.call(AssetUploadEndpoint, assets)

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Coroutine, List
 import aiohttp
 from aiohttp import web
 
-from omu.network import Address, Connection, ConnectionListener
+from omu.network import Address, Connection, ConnectionListeners
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet.packet import PacketData, PacketType
 from omu.network.packet.packet_types import PACKET_TYPES, ConnectPacket
@@ -20,7 +20,7 @@ class WebsocketsConnection(Connection):
         self._client = client
         self._address = address
         self._connected = False
-        self._listeners: List[ConnectionListener] = []
+        self._listeners = ConnectionListeners()
         self._socket: aiohttp.ClientWebSocketResponse | None = None
         self._tasks: List[Callable[[], Coroutine[None, None, None]]] = []
         self._session = aiohttp.ClientSession()
@@ -59,9 +59,8 @@ class WebsocketsConnection(Connection):
         self._closed_event.clear()
         self._client.loop.create_task(self._listen())
 
-        for listener in self._listeners:
-            await listener.on_connected()
-            await listener.on_status_changed("connected")
+        await self._listeners.connected.emit()
+        await self._listeners.status_changed.emit("connected")
         for task in self._tasks:
             self._client.loop.create_task(task())
 
@@ -99,13 +98,10 @@ class WebsocketsConnection(Connection):
         try:
             while self._socket:
                 event = await self._receive(self._socket)
-                self._client.loop.create_task(self._dispatch(event))
+                task = self._listeners.event.emit(event)
+                self._client.loop.create_task(task)
         finally:
             await self.disconnect()
-
-    async def _dispatch(self, event: PacketData) -> None:
-        for listener in self._listeners:
-            await listener.on_event(event)
 
     async def disconnect(self) -> None:
         if not self._socket or self._socket.closed:
@@ -118,9 +114,8 @@ class WebsocketsConnection(Connection):
         self._socket = None
         self._connected = False
         self._closed_event.set()
-        for listener in self._listeners:
-            await listener.on_disconnected()
-            await listener.on_status_changed("disconnected")
+        await self._listeners.disconnected.emit()
+        await self._listeners.status_changed.emit("disconnected")
 
     async def send[T](self, event: PacketType[T], data: T) -> None:
         if not self._socket or self._socket.closed or not self._connected:
@@ -130,13 +125,9 @@ class WebsocketsConnection(Connection):
         writer.write_byte_array(event.serializer.serialize(data))
         await self._socket.send_bytes(writer.finish())
 
-    def add_listener[T: ConnectionListener](self, listener: T) -> T:
-        self._listeners.append(listener)
-        return listener
-
-    def remove_listener[T: ConnectionListener](self, listener: T) -> T:
-        self._listeners.remove(listener)
-        return listener
+    @property
+    def listeners(self) -> ConnectionListeners:
+        return self._listeners
 
     def add_task(self, task: Callable[[], Coroutine[None, None, None]]) -> None:
         self._tasks.append(task)

@@ -3,7 +3,6 @@ from typing import Any, Callable, TypedDict
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
-from omu.network import ConnectionListener
 from omu.network.packet import JsonPacketType
 
 MessageExtensionType = ExtensionType(
@@ -34,7 +33,7 @@ class MessageKey[T]:
         self.key = f"{self.app}:{self.name}"
 
 
-class MessageExtension(Extension, ConnectionListener):
+class MessageExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
         self._listen_keys: set[str] = set()
@@ -42,7 +41,7 @@ class MessageExtension(Extension, ConnectionListener):
         client.events.register(
             MessageRegisterEvent, MessageListenEvent, MessageBroadcastEvent
         )
-        client.connection.add_listener(self)
+        client.connection.listeners.connected += self.on_connected
 
     def register[T](self, name: str, _t: type[T]) -> MessageKey[T]:
         key = f"{self.client.app.key()}:{name}"

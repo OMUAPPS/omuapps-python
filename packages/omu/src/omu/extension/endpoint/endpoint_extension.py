@@ -8,7 +8,6 @@ from omu.extension.endpoint import EndpointInfo, EndpointType, JsonEndpointType
 from omu.extension.extension import Extension, ExtensionType
 from omu.extension.table import TableType
 from omu.helper import Coro
-from omu.network import ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import JsonPacketType, SerializedPacketType
 from omu.serializer import Serializable, Serializer
@@ -20,7 +19,7 @@ EndpointExtensionType = ExtensionType(
 )
 
 
-class EndpointExtension(Extension, ConnectionListener):
+class EndpointExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
         self.promises: Dict[int, Future] = {}
@@ -32,7 +31,7 @@ class EndpointExtension(Extension, ConnectionListener):
         client.events.add_listener(EndpointReceiveEvent, self._on_receive)
         client.events.add_listener(EndpointErrorEvent, self._on_error)
         client.events.add_listener(EndpointCallEvent, self._on_call)
-        client.connection.add_listener(self)
+        client.connection.listeners.connected += self.on_connected
 
     async def _on_receive(self, data: EndpointDataReq) -> None:
         if data["id"] not in self.promises:

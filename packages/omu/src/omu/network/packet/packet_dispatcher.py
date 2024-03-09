@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING, Awaitable, Callable, Dict, List
 
 from loguru import logger
 
-from omu.network import ConnectionListener
-
 if TYPE_CHECKING:
     from omu.client import Client
     from omu.network.packet import PacketData, PacketType
@@ -42,9 +40,9 @@ class PacketListeners[T]:
         self.listeners = listeners
 
 
-class PacketDispatcherImpl(PacketDispatcher, ConnectionListener):
+class PacketDispatcherImpl(PacketDispatcher):
     def __init__(self, client: Client):
-        client.connection.add_listener(self)
+        client.connection.listeners.event += self.on_event
         self._packet_listeners: Dict[str, PacketListeners] = {}
 
     def register(self, *packet_types: PacketType) -> None:

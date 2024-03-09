@@ -1,8 +1,8 @@
 from omu.app import App
 from omu.client import OmuClient
-from omu.helper import instance
-from omu.network import Address, ConnectionListener
+from omu.network import Address
 from omu.network.packet import PACKET_TYPES
+from omu.network.packet.packet import PacketData
 
 address = Address(
     host="localhost",
@@ -19,17 +19,19 @@ client = OmuClient(
 )
 
 
-@client.connection.add_listener
-@instance
-class MyListener(ConnectionListener):
-    async def on_connected(self) -> None:
-        print("Connected")
+@client.connection.listeners.connected.subscribe
+async def on_connected() -> None:
+    print("Connected")
 
-    async def on_disconnected(self) -> None:
-        print("Disconnected")
 
-    async def on_event(self, event: dict) -> None:
-        print(event)
+@client.connection.listeners.disconnected.subscribe
+async def on_disconnected() -> None:
+    print("Disconnected")
+
+
+@client.connection.listeners.event.subscribe
+async def on_event(event: PacketData) -> None:
+    print(event)
 
 
 @client.events.add_listener(PACKET_TYPES.Ready)

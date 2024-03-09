@@ -21,7 +21,7 @@ from omu.extension.registry.registry_extension import (
 )
 from omu.extension.server import ServerExtension, ServerExtensionType
 from omu.extension.table import TableExtension, TableExtensionType
-from omu.network import Address, ConnectionListener, WebsocketsConnection
+from omu.network import Address, WebsocketsConnection
 from omu.network.packet import PACKET_TYPES, PacketDispatcherImpl
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from omu.network.packet import PacketDispatcher, PacketType
 
 
-class OmuClient(Client, ConnectionListener):
+class OmuClient(Client):
     def __init__(
         self,
         app: App,
@@ -48,7 +48,8 @@ class OmuClient(Client, ConnectionListener):
         self._app = app
         self._connection = connection or WebsocketsConnection(self, address)
         self._events = event_registry or PacketDispatcherImpl(self)
-        self._connection.add_listener(self)
+        self._connection.listeners.connected += self.on_connected
+        self._connection.listeners.disconnected += self.on_disconnected
         self._extensions = extension_registry or ExtensionRegistryImpl(self)
 
         self.events.register(PACKET_TYPES.Ready, PACKET_TYPES.Connect)

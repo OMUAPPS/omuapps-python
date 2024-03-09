@@ -1,7 +1,7 @@
 from typing import Callable, Dict
 
 import omu.client
-from omu import Address, App, ConnectionListener, OmuClient
+from omu import Address, App, OmuClient
 from omu.extension.table import TableListener
 from .chat import (
     AuthorsTableKey,
@@ -101,7 +101,7 @@ class _RoomListener(TableListener[Room]):
             await self.event_registry.dispatch(events.RoomDelete, room)
 
 
-class Client(ConnectionListener):
+class Client:
     def __init__(
         self,
         app: App,
@@ -125,7 +125,7 @@ class Client(ConnectionListener):
         self.channels.add_listener(_ChannelListener(self.event_registry))
         self.providers.add_listener(_ProviderListener(self.event_registry))
         self.rooms.add_listener(_RoomListener(self.event_registry))
-        self.omu.connection.add_listener(self)
+        self.omu.connection.listeners.connected += self.on_connected
 
     @property
     def loop(self):

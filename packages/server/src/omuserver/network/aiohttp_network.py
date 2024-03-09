@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING, Dict, List
 from aiohttp import web
 from loguru import logger
 from omu import App
+from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES
 
 from omuserver.server import ServerListener
 from omuserver.session import SessionListener
 from omuserver.session.aiohttp_session import AiohttpSession
 
-from .network import Coro, Network
+from .network import Network
 
 if TYPE_CHECKING:
     from omuserver.server import Server
