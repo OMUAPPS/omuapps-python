@@ -1,8 +1,8 @@
 from typing import Dict
 
-from omu.event import JsonEventType
-from omu.extension.server import App
-from omu.extension.table import Model
+from omu.app import App
+from omu.model import Model
+from omu.network.event import JsonEventType
 from omu.serializer import Serializer
 
 

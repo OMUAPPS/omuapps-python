@@ -5,8 +5,8 @@ from typing import Dict, List
 
 from aiohttp import web
 from loguru import logger
-from omu.event import EVENTS, EventData, EventType
-from omu.extension.server import App
+from omu.network.event import EVENTS, EventData, EventType
+from omu.app import App
 from omu.network.bytebuffer import ByteReader, ByteWriter
 
 from omuserver.security import Permission

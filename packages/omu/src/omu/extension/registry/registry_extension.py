@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Any, Awaitable, Callable, List, TypedDict
 
 from omu.client import Client
-from omu.event import JsonEventType
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType
 from omu.identifier import Identifier
+from omu.network.event import JsonEventType
 
 from .registry import Registry
 

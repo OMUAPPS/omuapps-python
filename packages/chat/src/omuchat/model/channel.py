@@ -1,7 +1,7 @@
 from typing import TypedDict
 
 from omu.interface import Keyable
-from omu.extension.table import Model
+from omu.model import Model
 
 
 class ChannelJson(TypedDict):

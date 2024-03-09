@@ -10,7 +10,6 @@ from typing import (
 )
 
 from omu.client import Client
-from omu.event import JsonEventType, SerializeEventType
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import JsonEndpointType, SerializeEndpointType
 from omu.helper import AsyncCallback
@@ -18,6 +17,7 @@ from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.network import ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
+from omu.network.event import JsonEventType, SerializeEventType
 from omu.serializer import JsonSerializable, Serializable, Serializer
 
 from .table import (

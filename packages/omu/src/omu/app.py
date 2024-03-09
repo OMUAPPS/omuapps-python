@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import List, NotRequired, TypedDict
 
-from omu.extension.table import Model
 from omu.identifier import Identifier
 from omu.interface import Keyable
+from omu.model import Model
 
 
 class AppJson(TypedDict):

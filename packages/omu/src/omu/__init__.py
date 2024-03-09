@@ -1,5 +1,5 @@
+from .app import App
 from .client import Client, OmuClient
-from .extension.server import App
 from .identifier import Identifier
 from .network import Address, Connection, ConnectionListener, ConnectionStatus
 

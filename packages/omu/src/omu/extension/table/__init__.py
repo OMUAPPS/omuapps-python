@@ -1,4 +1,3 @@
-from .model import Model
 from .table import Table, TableConfig, TableListener, TableType
 from .table_extension import TableExtension, TableExtensionType
 
@@ -9,5 +8,4 @@ __all__ = [
     "TableExtension",
     "TableExtensionType",
     "TableConfig",
-    "Model",
 ]

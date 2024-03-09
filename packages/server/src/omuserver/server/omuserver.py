@@ -6,7 +6,7 @@ import aiohttp
 from aiohttp import web
 from loguru import logger
 from omu.network import Address
-from omu.event import EVENTS
+from omu.network.event import EVENTS
 
 from omuserver import __version__
 from omuserver.directories import Directories, get_directories

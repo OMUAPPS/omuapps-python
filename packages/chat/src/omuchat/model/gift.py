@@ -1,6 +1,6 @@
 from typing import NotRequired, TypedDict
 
-from omu.extension.table import Model
+from omu.model import Model
 
 
 class GiftJson(TypedDict):

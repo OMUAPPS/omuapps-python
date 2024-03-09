@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Dict, List
 from aiohttp import web
 from loguru import logger
 from omu import App
-from omu.event import EVENTS
+from omu.network.event import EVENTS
 
 from omuserver.server import ServerListener
 from omuserver.session import SessionListener

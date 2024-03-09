@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Callable, Coroutine, List
 import aiohttp
 from aiohttp import web
 
-from omu.event.event import EventData, EventType
-from omu.event.events import EVENTS, ConnectEvent
 from omu.network import Address, Connection, ConnectionListener
 from omu.network.bytebuffer import ByteReader, ByteWriter
+from omu.network.event.events import EVENTS, ConnectEvent
 
 if TYPE_CHECKING:
     from omu.client import Client
+    from omu.network.event.event import EventData, EventType
 
 
 class WebsocketsConnection(Connection):
