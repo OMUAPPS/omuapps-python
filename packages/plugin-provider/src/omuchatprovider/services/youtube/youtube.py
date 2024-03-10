@@ -60,6 +60,16 @@ HEADERS = {
         "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
     )
 }
+BASE_PAYLOAD = dict(
+    {
+        "context": {
+            "client": {
+                "clientName": "WEB",
+                "clientVersion": "2.20230622.06.00",
+            }
+        }
+    }
+)
 YOUTUBE_URL = "https://www.youtube.com"
 
 
@@ -157,9 +167,11 @@ class YoutubeService(ProviderService):
 
 
 class YoutubeChat:
-    def __init__(self, api_key: str, continuation: str):
+    def __init__(self, video_id: str, api_key: str, continuation: str):
+        self.video_id = video_id
         self.api_key = api_key
-        self.continuation = continuation
+        self.chat_continuation = continuation
+        self.metadata_continuation: str | None = None
 
     @classmethod
     async def from_url(cls, video_id: str):
@@ -174,7 +186,7 @@ class YoutubeChat:
         continuation = cls.extract_continuation(soup)
         if continuation is None:
             raise ProviderFailed("Could not find continuation")
-        return cls(api_key, continuation)
+        return cls(video_id, api_key, continuation)
 
     @classmethod
     def extract_continuation(cls, soup: bs4.BeautifulSoup) -> str | None:
@@ -216,12 +228,7 @@ class YoutubeChat:
             return False
         live_chat_request_params = {"key": api_key}
         live_chat_request_json = {
-            "context": {
-                "client": {
-                    "clientName": "WEB",
-                    "clientVersion": "2.20230622.06.00",
-                }
-            },
+            **BASE_PAYLOAD,
             "continuation": continuation,
         }
         live_chat_request = await session.post(
@@ -239,13 +246,8 @@ class YoutubeChat:
         url = f"{YOUTUBE_URL}/youtubei/v1/live_chat/get_live_chat"
         params = {"key": self.api_key}
         json_payload = {
-            "context": {
-                "client": {
-                    "clientName": "WEB",
-                    "clientVersion": "2.20230622.06.00",
-                }
-            },
-            "continuation": self.continuation,
+            **BASE_PAYLOAD,
+            "continuation": self.chat_continuation,
         }
 
         response = await session.post(
@@ -284,8 +286,54 @@ class YoutubeChat:
         continuation = continuations[0]
         if "invalidationContinuationData" not in continuation:
             return data
-        self.continuation = continuation["invalidationContinuationData"]["continuation"]
+        self.chat_continuation = continuation["invalidationContinuationData"][
+            "continuation"
+        ]
         return data
+
+    async def fetch_metadata(self) -> RoomMetadata:
+        url = f"{YOUTUBE_URL}/youtubei/v1/updated_metadata"
+        params = {"key": self.api_key}
+        json_payload = dict(**BASE_PAYLOAD)
+        if self.metadata_continuation:
+            json_payload["continuation"] = self.metadata_continuation
+        else:
+            json_payload["videoId"] = self.video_id
+        response = await session.post(
+            url,
+            params=params,
+            json=json_payload,
+            headers=HEADERS,
+        )
+        data: api.UpdatedMetadata = await response.json()
+        self.metadata_continuation = (
+            data.get("continuation", {})
+            .get("timedContinuationData", {})
+            .get("continuation", {})
+        )
+        viewer_count: int | None = None
+        title: content.Component | None = None
+        description: content.Component | None = None
+        for action in data.get("actions", []):
+            if "updateViewershipAction" in action:
+                update_viewership = action["updateViewershipAction"]
+                view_count_data = update_viewership["viewCount"]
+                video_view_count_data = view_count_data["videoViewCountRenderer"]
+                viewer_count = int(video_view_count_data["originalViewCount"])
+            if "updateTitleAction" in action:
+                title = _parse_runs(action["updateTitleAction"]["title"])
+            if "updateDescriptionAction" in action:
+                description = _parse_runs(
+                    action["updateDescriptionAction"]["description"]
+                )
+        metadata = RoomMetadata()
+        if viewer_count:
+            metadata["viewers"] = viewer_count
+        if title:
+            metadata["title"] = str(title)
+        if description:
+            metadata["description"] = str(description)
+        return metadata
 
 
 class YoutubeChatService(ChatService):
@@ -362,6 +410,7 @@ class YoutubeChatService(ChatService):
         return instance
 
     async def start(self):
+        count = 0
         try:
             self._room.connected = True
             await self.client.rooms.update(self._room)
@@ -371,6 +420,14 @@ class YoutubeChatService(ChatService):
                     break
                 await self.process_chat_data(chat_data)
                 await asyncio.sleep(1 / 3)
+                if count % 10 == 0:
+                    metadata = RoomMetadata()
+                    if self.room.metadata:
+                        metadata |= self.room.metadata
+                    metadata |= await self.chat.fetch_metadata()
+                    self.room.metadata = metadata
+                    await self.client.rooms.update(self.room)
+                count += 1
         finally:
             await self.stop()
 
@@ -393,7 +450,7 @@ class YoutubeChatService(ChatService):
         if "liveChatTextMessageRenderer" in item:
             data = item["liveChatTextMessageRenderer"]
             author = self._parse_author(data)
-            message = self._parse_message(data["message"])
+            message = _parse_runs(data["message"])
             created_at = self._parse_created_at(data)
             await self.client.authors.add(author)
             return [
@@ -408,7 +465,7 @@ class YoutubeChatService(ChatService):
         elif "liveChatPaidMessageRenderer" in item:
             data = item["liveChatPaidMessageRenderer"]
             author = self._parse_author(data)
-            message = map_optional(data.get("message"), self._parse_message)
+            message = map_optional(data.get("message"), _parse_runs)
             paid = self._parse_paid(data)
             created_at = self._parse_created_at(data)
             await self.client.authors.add(author)
@@ -427,7 +484,7 @@ class YoutubeChatService(ChatService):
             author = self._parse_author(data)
             created_at = self._parse_created_at(data)
             logger.info
-            component = content.System.of(self._parse_message(data["headerSubtext"]))
+            component = content.System.of(_parse_runs(data["headerSubtext"]))
             await self.client.authors.add(author)
             return [
                 Message(
@@ -446,7 +503,7 @@ class YoutubeChatService(ChatService):
             data = item["liveChatSponsorshipsGiftRedemptionAnnouncementRenderer"]
             author = self._parse_author(data)
             created_at = self._parse_created_at(data)
-            component = content.System.of(self._parse_message(data["message"]))
+            component = content.System.of(_parse_runs(data["message"]))
             await self.client.authors.add(author)
             return [
                 Message(
@@ -551,40 +608,6 @@ class YoutubeChatService(ChatService):
             roles=roles,
         )
 
-    def _parse_message(self, message: api.Message) -> content.Component:
-        runs: api.Runs = message.get("runs", [])
-        root = self._parse_runs(runs)
-        return root
-
-    def _parse_runs(self, runs):
-        root = content.Root()
-        for run in runs:
-            if "text" in run:
-                if "navigationEndpoint" in run:
-                    endpoint = run.get("navigationEndpoint")
-                    if endpoint is None:
-                        root.add(content.Text.of(run["text"]))
-                    elif "urlEndpoint" in endpoint:
-                        url = endpoint["urlEndpoint"]["url"]
-                        root.add(content.Link.of(url, content.Text.of(run["text"])))
-                else:
-                    root.add(content.Text.of(run["text"]))
-            elif "emoji" in run:
-                emoji = run["emoji"]
-                image_url = emoji["image"]["thumbnails"][0]["url"]
-                emoji_id = emoji["emojiId"]
-                name = emoji["shortcuts"][0] if emoji.get("shortcuts") else None
-                root.add(
-                    content.Image.of(
-                        url=image_url,
-                        id=emoji_id,
-                        name=name,
-                    )
-                )
-            else:
-                raise ProviderFailed(f"Unknown run: {run}")
-        return root
-
     def _parse_paid(self, message: api.LiveChatPaidMessageRenderer) -> Paid:
         currency_match = re.search(
             r"[^0-9]+", message["purchaseAmountText"]["simpleText"]
@@ -620,3 +643,33 @@ class YoutubeChatService(ChatService):
         self.tasks.terminate()
         self._room.connected = False
         await self.client.rooms.update(self._room)
+
+
+def _parse_runs(runs: api.Runs) -> content.Component:
+    root = content.Root()
+    for run in runs.get("runs", []):
+        if "text" in run:
+            if "navigationEndpoint" in run:
+                endpoint = run.get("navigationEndpoint")
+                if endpoint is None:
+                    root.add(content.Text.of(run["text"]))
+                elif "urlEndpoint" in endpoint:
+                    url = endpoint["urlEndpoint"]["url"]
+                    root.add(content.Link.of(url, content.Text.of(run["text"])))
+            else:
+                root.add(content.Text.of(run["text"]))
+        elif "emoji" in run:
+            emoji = run["emoji"]
+            image_url = emoji["image"]["thumbnails"][0]["url"]
+            emoji_id = emoji["emojiId"]
+            name = emoji["shortcuts"][0] if emoji.get("shortcuts") else None
+            root.add(
+                content.Image.of(
+                    url=image_url,
+                    id=emoji_id,
+                    name=name,
+                )
+            )
+        else:
+            raise ProviderFailed(f"Unknown run: {run}")
+    return root

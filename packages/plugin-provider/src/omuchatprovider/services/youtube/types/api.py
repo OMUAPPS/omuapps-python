@@ -127,11 +127,11 @@ class EmojiRun(TypedDict):
     emoji: Emoji
 
 
-type Runs = List[Union[TextRun, LinkRun, EmojiRun]]
+type Run = Union[TextRun, LinkRun, EmojiRun]
 
 
-class Message(TypedDict):
-    runs: Runs
+class Runs(TypedDict):
+    runs: List[Run]
 
 
 class SimpleText(TypedDict):
@@ -212,7 +212,7 @@ class LiveChatMessageRenderer(TypedDict):
     authorName: SimpleText
     authorPhoto: Thumbnails
     authorBadges: NotRequired[List[AuthorBadge]]
-    message: Message
+    message: Runs
 
 
 class LiveChatTextMessageRenderer(LiveChatMessageRenderer):
@@ -221,7 +221,7 @@ class LiveChatTextMessageRenderer(LiveChatMessageRenderer):
     authorExternalChannelId: str
     authorName: SimpleText
     authorPhoto: Thumbnails
-    message: Message
+    message: Runs
     authorBadges: NotRequired[List[AuthorBadge]]
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
@@ -233,7 +233,7 @@ class LiveChatPaidMessageRenderer(LiveChatMessageRenderer):
     authorName: SimpleText
     authorPhoto: Thumbnails
     purchaseAmountText: SimpleText
-    message: Message
+    message: Runs
     headerBackgroundColor: int
     headerTextColor: int
     bodyBackgroundColor: int
@@ -251,7 +251,7 @@ class LiveChatPaidMessageRenderer(LiveChatMessageRenderer):
 
 
 class LiveChatMembershipItemRenderer(LiveChatMessageRenderer):
-    headerSubtext: Message
+    headerSubtext: Runs
 
 
 class LiveChatSponsorshipsHeaderRenderer(TypedDict):
@@ -352,7 +352,7 @@ class LiveChatSponsorshipsHeaderRenderer(TypedDict):
 
     authorName: SimpleText
     authorPhoto: Thumbnails
-    primaryText: Message
+    primaryText: Runs
     authorBadges: NotRequired[List[AuthorBadge]]
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
@@ -376,7 +376,7 @@ class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRender
     id: str
     timestampUsec: str
     authorExternalChannelId: str
-    header: Message
+    header: Runs
     authorPhoto: Thumbnails
     authorName: SimpleText
     authorBadges: NotRequired[List[AuthorBadge]]
@@ -406,7 +406,7 @@ class AddChatItemAction(TypedDict):
 
 
 class MarkChatItemAsDeletedActionData(TypedDict):
-    deletedStateMessage: Message
+    deletedStateMessage: Runs
     targetItemId: str
 
 
@@ -414,12 +414,12 @@ class MarkChatItemAsDeletedAction(TypedDict):
     markChatItemAsDeletedAction: MarkChatItemAsDeletedActionData
 
 
-type Action = Union[AddChatItemAction, MarkChatItemAsDeletedAction]
+type ChatAction = Union[AddChatItemAction, MarkChatItemAsDeletedAction]
 
 
 class LiveChatContinuation(TypedDict):
     continuations: List[Continuation]
-    actions: List[Action]
+    actions: List[ChatAction]
 
 
 class ContinuationContents(TypedDict):
@@ -465,3 +465,72 @@ class Response(TypedDict):
     responseContext: ResponseContext
     continuationContents: ContinuationContents
     frameworkUpdates: NotRequired[FrameworkUpdates]  # reactions
+
+
+# metadata
+
+
+class TimedContinuationData(TypedDict):
+    continuation: str
+    timeoutMs: int
+
+
+class MetadataContinuation(TypedDict):
+    timedContinuationData: TimedContinuationData
+
+
+class VideoViewCountRenderer(TypedDict):
+    viewCount: SimpleText
+    extraShortViewCount: SimpleText
+    unlabeledViewCountValue: SimpleText
+    viewCountLabel: SimpleText
+    originalViewCount: str
+
+
+class ViewCount(TypedDict):
+    videoViewCountRenderer: VideoViewCountRenderer
+
+
+class UpdateViewershipActionData(TypedDict):
+    viewCount: ViewCount
+
+
+class UpdateViewershipAction(TypedDict):
+    updateViewershipAction: UpdateViewershipActionData
+
+
+class UpdateDateTextActionData(TypedDict):
+    dateText: SimpleText
+
+
+class UpdateDateTextAction(TypedDict):
+    updateDateTextAction: UpdateDateTextActionData
+
+
+class UpdateTitleActionData(TypedDict):
+    title: Runs
+
+
+class UpdateTitleAction(TypedDict):
+    updateTitleAction: UpdateTitleActionData
+
+
+class UpdateDescriptionActionData(TypedDict):
+    description: Runs
+
+
+class UpdateDescriptionAction(TypedDict):
+    updateDescriptionAction: UpdateDescriptionActionData
+
+
+type MetadataAction = Union[
+    UpdateViewershipAction,
+    UpdateDateTextAction,
+    UpdateTitleAction,
+    UpdateDescriptionAction,
+]
+
+
+class UpdatedMetadata(TypedDict):
+    continuation: MetadataContinuation
+    actions: List[MetadataAction]
