@@ -17,8 +17,6 @@ from omu.extension.endpoint.endpoint_extension import (
 )
 from omu.helper import Coro
 
-from omuserver.extension import Extension
-from omuserver.extension.table import TableExtension
 from omuserver.server import Server
 from omuserver.session import Session
 
@@ -96,7 +94,7 @@ class EndpointCall:
         )
 
 
-class EndpointExtension(Extension):
+class EndpointExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self._server.listeners.start += self.on_server_start
@@ -180,10 +178,6 @@ class EndpointExtension(Extension):
         else:
             await call.error(error["error"])
 
-    @classmethod
-    def create(cls, server: Server) -> EndpointExtension:
-        return cls(server)
-
     async def _get_endpoint(
         self, req: EndpointDataReq, session: Session
     ) -> Endpoint | None:
@@ -202,7 +196,6 @@ class EndpointExtension(Extension):
         return endpoint
 
     async def on_server_start(self) -> None:
-        tables = self._server.extensions.get(TableExtension)
-        self.endpoints = await tables.register_table(EndpointsTableType)
+        self.endpoints = await self._server.tables.register_table(EndpointsTableType)
         for endpoint in self._endpoints.values():
             await self.endpoints.add(endpoint.info)

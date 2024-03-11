@@ -22,7 +22,6 @@ from omu import Address
 from omu.network.websocket_connection import WebsocketsConnection
 from omu.plugin import Plugin
 
-from omuserver.extension import Extension
 from omuserver.extension.plugin.plugin_connection import PluginConnection
 from omuserver.extension.plugin.plugin_session_connection import PluginSessionConnection
 from omuserver.session.session import Session
@@ -41,15 +40,11 @@ class PluginMetadata(TypedDict):
     isolated: NotRequired[bool]
 
 
-class PluginExtension(Extension):
+class PluginExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.plugins: Dict[str, PluginMetadata] = {}
         server.listeners.start += self.on_server_start
-
-    @classmethod
-    def create(cls, server: Server) -> PluginExtension:
-        return cls(server)
 
     async def on_server_start(self) -> None:
         await self._load_plugins()

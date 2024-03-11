@@ -8,7 +8,6 @@ from omu.extension.message.message_extension import (
     MessageListenEvent,
     MessageRegisterEvent,
 )
-from omuserver.extension import Extension
 
 if TYPE_CHECKING:
     from omuserver import Server
@@ -28,7 +27,7 @@ class Message:
         self.listeners.discard(session)
 
 
-class MessageExtension(Extension):
+class MessageExtension:
     def __init__(self, server: Server):
         self._server = server
         self._keys: Dict[str, Message] = {}
@@ -42,10 +41,6 @@ class MessageExtension(Extension):
         server.packet_dispatcher.add_packet_handler(
             MessageBroadcastEvent, self._on_broadcast
         )
-
-    @classmethod
-    def create(cls, server):
-        return cls(server)
 
     async def _on_register(self, session: Session, key: str) -> None:
         if key in self._keys:

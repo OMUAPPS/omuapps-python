@@ -27,7 +27,6 @@ from omu.extension.table.table_extension import (
 from omu.identifier import Identifier
 from omu.interface import Keyable
 
-from omuserver.extension import Extension
 from omuserver.extension.table.serialized_table import SerializedTable
 from omuserver.server import Server
 from omuserver.session import Session
@@ -38,7 +37,7 @@ from .cached_table import CachedTable
 from .server_table import ServerTable
 
 
-class TableExtension(Extension):
+class TableExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self._tables: Dict[Identifier, ServerTable] = {}

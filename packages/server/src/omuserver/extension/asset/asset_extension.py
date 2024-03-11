@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, List
 
 from omu.extension.asset.asset_extension import AssetUploadEndpoint, Files
 
-from omuserver.extension import Extension
 from omuserver.helper import safe_path_join
 
 if TYPE_CHECKING:
@@ -12,7 +11,7 @@ if TYPE_CHECKING:
     from omuserver.session import Session
 
 
-class AssetExtension(Extension):
+class AssetExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         server.endpoints.bind_endpoint(AssetUploadEndpoint, self.handle_upload)

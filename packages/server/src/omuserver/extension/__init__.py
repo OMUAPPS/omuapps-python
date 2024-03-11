@@ -1,8 +1,15 @@
-from .extension import Extension
-from .extension_registry import ExtensionRegistry, ExtensionRegistryServer
+from .asset import AssetExtension
+from .endpoint import EndpointExtension
+from .message import MessageExtension
+from .plugin import PluginExtension
+from .registry import RegistryExtension
+from .table import TableExtension
 
 __all__ = [
-    "Extension",
-    "ExtensionRegistry",
-    "ExtensionRegistryServer",
+    "AssetExtension",
+    "EndpointExtension",
+    "MessageExtension",
+    "PluginExtension",
+    "RegistryExtension",
+    "TableExtension",
 ]

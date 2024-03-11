@@ -10,8 +10,7 @@ from omu.extension.registry.registry_extension import (
 )
 from omu.identifier import Identifier
 
-from omuserver.extension import Extension
-from omuserver.session.session import Session
+from omuserver.session import Session
 
 from .registry import Registry
 
@@ -19,7 +18,7 @@ if TYPE_CHECKING:
     from omuserver.server import Server
 
 
-class RegistryExtension(Extension):
+class RegistryExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         server.packet_dispatcher.register(RegistryListenEvent, RegistryUpdateEvent)

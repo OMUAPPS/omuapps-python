@@ -9,7 +9,6 @@ from omu.network import Address
 
 from omuserver import __version__
 from omuserver.directories import Directories, get_directories
-from omuserver.extension import ExtensionRegistry, ExtensionRegistryServer
 from omuserver.extension.asset.asset_extension import AssetExtension
 from omuserver.extension.endpoint import EndpointExtension
 from omuserver.extension.message.message_extension import MessageExtension
@@ -19,7 +18,6 @@ from omuserver.extension.server import ServerExtension
 from omuserver.extension.table import TableExtension
 from omuserver.helper import safe_path_join
 from omuserver.network import Network
-from omuserver.network.aiohttp_network import AiohttpNetwork
 from omuserver.network.network import NetworkListeners
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.security.security import ServerSecurity
@@ -45,8 +43,6 @@ class OmuServer(Server, NetworkListeners):
     def __init__(
         self,
         address: Address,
-        network: Optional[Network] = None,
-        extensions: Optional[ExtensionRegistry] = None,
         directories: Optional[Directories] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
@@ -56,20 +52,19 @@ class OmuServer(Server, NetworkListeners):
         self._directories = directories or get_directories()
         self._directories.mkdir()
         self._packet_dispatcher = ServerPacketDispatcher()
-        self._network = network or AiohttpNetwork(self, self._packet_dispatcher)
+        self._network = Network(self, self._packet_dispatcher)
         self._network.listeners.start += self._handle_network_start
         self._network.add_http_route("/proxy", self._handle_proxy)
         self._network.add_http_route("/assets", self._handle_assets)
-        self._extensions = extensions or ExtensionRegistryServer(self)
         self._security = ServerSecurity(self)
         self._running = False
-        self._endpoint = self.extensions.register(EndpointExtension)
-        self._tables = self.extensions.register(TableExtension)
-        self._server = self.extensions.register(ServerExtension)
-        self._registry = self.extensions.register(RegistryExtension)
-        self._message = self.extensions.register(MessageExtension)
-        self._plugin = self.extensions.register(PluginExtension)
-        self._assets = self.extensions.register(AssetExtension)
+        self._endpoint = EndpointExtension(self)
+        self._tables = TableExtension(self)
+        self._server = ServerExtension(self)
+        self._registry = RegistryExtension(self)
+        self._message = MessageExtension(self)
+        self._plugin = PluginExtension(self)
+        self._assets = AssetExtension(self)
 
     async def _handle_proxy(self, request: web.Request) -> web.StreamResponse:
         url = request.query.get("url")
@@ -160,10 +155,6 @@ class OmuServer(Server, NetworkListeners):
     @property
     def packet_dispatcher(self) -> ServerPacketDispatcher:
         return self._packet_dispatcher
-
-    @property
-    def extensions(self) -> ExtensionRegistry:
-        return self._extensions
 
     @property
     def endpoints(self) -> EndpointExtension:

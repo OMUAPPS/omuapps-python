@@ -12,7 +12,6 @@ if TYPE_CHECKING:
     from omuserver.directories import Directories
     from omuserver.extension.asset.asset_extension import AssetExtension
     from omuserver.extension.endpoint import EndpointExtension
-    from omuserver.extension.extension_registry import ExtensionRegistry
     from omuserver.extension.message.message_extension import MessageExtension
     from omuserver.extension.plugin.plugin_extension import PluginExtension
     from omuserver.extension.registry import RegistryExtension
@@ -52,10 +51,6 @@ class Server(abc.ABC):
     @property
     @abc.abstractmethod
     def packet_dispatcher(self) -> ServerPacketDispatcher: ...
-
-    @property
-    @abc.abstractmethod
-    def extensions(self) -> ExtensionRegistry: ...
 
     @property
     @abc.abstractmethod

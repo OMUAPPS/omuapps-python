@@ -11,8 +11,6 @@ from omu.extension.server.server_extension import (
 )
 
 from omuserver import __version__
-from omuserver.extension import Extension
-from omuserver.extension.table import TableExtension
 from omuserver.helper import get_launch_command
 
 if TYPE_CHECKING:
@@ -20,7 +18,7 @@ if TYPE_CHECKING:
     from omuserver.session.session import Session
 
 
-class ServerExtension(Extension):
+class ServerExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         server.network.listeners.connected += self.on_connected
@@ -53,8 +51,7 @@ class ServerExtension(Extension):
         return cls(server)
 
     async def on_start(self) -> None:
-        table = self._server.extensions.get(TableExtension)
-        self.apps = await table.register_table(AppsTableType)
+        self.apps = await self._server.tables.register_table(AppsTableType)
         await self._server.registry.store("server:version", __version__)
         await self._server.registry.store(
             "server:directories", self._server.directories.to_json()
