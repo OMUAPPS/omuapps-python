@@ -22,13 +22,15 @@ from omu.extension.registry.registry_extension import (
 )
 from omu.extension.server import ServerExtension, ServerExtensionType
 from omu.extension.table import TableExtension, TableExtensionType
-from omu.network import Address, WebsocketsConnection
-from omu.network.packet import PACKET_TYPES, PacketDispatcher, PacketType
+from omu.network import Address, Network
+from omu.network.packet import PacketType
+from omu.network.packet.packet import Packet
+from omu.network.websocket_connection import WebsocketsConnection
 
 if TYPE_CHECKING:
     from omu.app import App
     from omu.extension import ExtensionRegistry
-    from omu.network import Connection
+    from omu.network import Network
 
 
 class OmuClient(Client):
@@ -36,7 +38,6 @@ class OmuClient(Client):
         self,
         app: App,
         address: Address,
-        connection: Connection | None = None,
         extension_registry: ExtensionRegistry | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
     ):
@@ -44,20 +45,17 @@ class OmuClient(Client):
         self._running = False
         self._listeners = ClientListeners()
         self._app = app
-        self._connection = connection or WebsocketsConnection(self, address)
-        self._connection.listeners.connected += self.on_connected
-        self._connection.listeners.disconnected += self.on_disconnected
-        self._events = PacketDispatcher(self._connection)
+        connection = WebsocketsConnection(self, address)
+        self._network = Network(self, connection)
         self._extensions = extension_registry or ExtensionRegistryImpl(self)
 
-        self.events.register(PACKET_TYPES.Ready, PACKET_TYPES.Connect)
         self._tables = self.extensions.register(TableExtensionType)
         self._server = self.extensions.register(ServerExtensionType)
         self._endpoints = self.extensions.register(EndpointExtensionType)
         self._registry = self.extensions.register(RegistryExtensionType)
         self._message = self.extensions.register(MessageExtensionType)
 
-        asyncio.create_task(self._listeners.initialized.emit())
+        self._loop.create_task(self._listeners.initialized.emit())
 
     @property
     def app(self) -> App:
@@ -68,12 +66,8 @@ class OmuClient(Client):
         return self._loop
 
     @property
-    def connection(self) -> Connection:
-        return self._connection
-
-    @property
-    def events(self) -> PacketDispatcher:
-        return self._events
+    def network(self) -> Network:
+        return self._network
 
     @property
     def extensions(self) -> ExtensionRegistry:
@@ -103,16 +97,8 @@ class OmuClient(Client):
     def running(self) -> bool:
         return self._running
 
-    async def on_connected(self) -> None:
-        logger.info(f"Connected to {self._connection.address}")
-
-    async def on_disconnected(self) -> None:
-        if not self._running:
-            return
-        logger.warning(f"Disconnected from {self._connection.address}")
-
     async def send[T](self, event: PacketType[T], data: T) -> None:
-        await self._connection.send(event, data)
+        await self._network.send(Packet(event, data))
 
     def run(self, *, token: str | None = None, reconnect: bool = True) -> None:
         try:
@@ -133,16 +119,14 @@ class OmuClient(Client):
         if self._running:
             raise RuntimeError("Already running")
         self._running = True
-        self.loop.create_task(
-            self._connection.connect(token=token, reconnect=reconnect)
-        )
+        self.loop.create_task(self._network.connect(token=token, reconnect=reconnect))
         await self._listeners.started()
 
     async def stop(self) -> None:
         if not self._running:
             raise RuntimeError("Not running")
         self._running = False
-        await self._connection.disconnect()
+        await self._network.disconnect()
         await self._listeners.stopped()
 
     @property

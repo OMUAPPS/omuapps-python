@@ -1,13 +1,12 @@
 from __future__ import annotations
 import asyncio
 import json
-
 from importlib.util import find_spec
+from multiprocessing import Process
 from pathlib import Path
 import re
 import subprocess
 import sys
-import threading
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -18,15 +17,23 @@ from typing import (
 )
 
 from loguru import logger
+from omu import Address
 
 from omuserver.extension import Extension
+
+from omu.network.websocket_connection import WebsocketsConnection
+from omu.plugin import Plugin
+
+from omuserver.extension.plugin.plugin_connection import PluginConnection
+from omuserver.extension.plugin.plugin_session_connection import PluginSessionConnection
+from omuserver.session.session import Session
 
 if TYPE_CHECKING:
     from omuserver.server import Server
 
 
-class Plugin(Protocol):
-    async def main(self) -> None: ...
+class PluginModule(Protocol):
+    def get_plugin(self) -> Plugin: ...
 
 
 class PluginMetadata(TypedDict):
@@ -100,26 +107,64 @@ class PluginExtension(Extension):
         for metadata in self.plugins.values():
             await self.run_plugin(metadata)
 
-    def validate_plugin(self, plugin: Plugin) -> TypeGuard[Plugin]:
-        main = getattr(plugin, "main", None)
-        if main is None:
-            raise ValueError(f"Plugin {plugin} does not have a main coroutine")
-        if not asyncio.iscoroutinefunction(plugin.main):
-            raise ValueError(f"Plugin {plugin} does not have a main coroutine")
-        return True
-
     async def run_plugin(self, metadata: PluginMetadata):
-        plugin = __import__(metadata["module"])
-        if not self.validate_plugin(plugin):
-            return
         if metadata.get("isolated"):
-            loop = asyncio.new_event_loop()
-            loop.create_task(plugin.main())
-            thread = threading.Thread(
-                target=loop.run_forever,
-                daemon=True,
-                name=f"Plugin {metadata['module']}",
+            process = Process(
+                target=run_plugin_process,
+                args=(
+                    metadata,
+                    Address(
+                        "127.0.0.1",
+                        self._server.address.port,
+                    ),
+                ),
             )
-            thread.start()
+            process.start()
         else:
-            await plugin.main()
+            module = __import__(metadata["module"])
+            if not validate_plugin_module(module):
+                return
+            plugin = module.get_plugin()
+            client = plugin.client
+            connection = PluginConnection()
+            client.network.set_connection(connection)
+            await client.start()
+            session_connection = PluginSessionConnection(connection)
+            session = await Session.from_connection(
+                self._server,
+                self._server.packet_dispatcher.packet_mapper,
+                session_connection,
+            )
+            self._server.loop.create_task(self._server.network.process_session(session))
+
+
+def validate_plugin_module(module: PluginModule) -> TypeGuard[PluginModule]:
+    get_plugin = getattr(module, "get_plugin", None)
+    if get_plugin is None:
+        raise ValueError(f"Plugin {get_plugin} does not have a get_plugin method")
+    return True
+
+
+def handle_exception(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+    logger.error(context["message"])
+    exception = context.get("exception")
+    if exception:
+        raise exception
+
+
+def run_plugin_process(
+    metadata: PluginMetadata,
+    address: Address,
+) -> None:
+    module = __import__(metadata["module"])
+    if not validate_plugin_module(module):
+        raise ValueError(f"Invalid plugin module {metadata['module']}")
+    plugin = module.get_plugin()
+    client = plugin.client
+    connection = WebsocketsConnection(client, address)
+    client.network.set_connection(connection)
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(handle_exception)
+    loop.run_until_complete(client.start())
+    loop.run_forever()
+    loop.close()

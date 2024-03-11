@@ -4,33 +4,33 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable, Dict
 
 from loguru import logger
-from omuserver.network.network import Network
 
 from omuserver.session import Session
 from omu.event_emitter import EventEmitter
+from omu.network.connection import PacketMapper
 
 if TYPE_CHECKING:
-    from omu.network.packet import PacketData, PacketType
+    from omu.network.packet import PacketType, Packet
     from omu.helper import Coro
 
 
 class ServerPacketDispatcher:
-    def __init__(self, network: Network):
+    def __init__(self):
+        self.packet_mapper = PacketMapper()
         self._packet_listeners: Dict[str, PacketListeners] = {}
-        network.listeners.connected += self.on_connected
 
-    async def on_connected(self, session: Session) -> None:
+    async def process_connection(self, session: Session) -> None:
         session.listeners.packet += self.process_packet
 
-    async def process_packet(self, session: Session, packet_data: PacketData) -> None:
-        packet = self._packet_listeners.get(packet_data.type)
-        if not packet:
-            logger.warning(f"Received unknown event type {packet_data.type}")
+    async def process_packet(self, session: Session, packet: Packet) -> None:
+        listeners = self._packet_listeners.get(packet.packet_type.type)
+        if not listeners:
+            logger.warning(f"Received unknown event type {packet.packet_type}")
             return
-        data = packet.event_type.serializer.deserialize(packet_data.data)
-        await packet.listeners.emit(session, data)
+        await listeners.listeners.emit(session, packet.packet_data)
 
     def register(self, *types: PacketType) -> None:
+        self.packet_mapper.register(*types)
         for type in types:
             if self._packet_listeners.get(type.type):
                 raise ValueError(f"Event type {type.type} already registered")

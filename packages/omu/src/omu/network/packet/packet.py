@@ -18,6 +18,12 @@ class PacketData:
     data: bytes
 
 
+@dataclass
+class Packet[T]:
+    packet_type: PacketType
+    packet_data: T
+
+
 class PacketType[T](abc.ABC):
     @property
     @abc.abstractmethod
@@ -27,11 +33,8 @@ class PacketType[T](abc.ABC):
     @abc.abstractmethod
     def serializer(self) -> Serializable[T, bytes]: ...
 
-    def __str__(self) -> str:
-        return self.type
-
     def __repr__(self) -> str:
-        return self.type
+        return f"{self.__class__.__name__}({self.type})"
 
 
 type Jsonable = str | int | float | bool | None | Dict[str, Jsonable] | List[Jsonable]

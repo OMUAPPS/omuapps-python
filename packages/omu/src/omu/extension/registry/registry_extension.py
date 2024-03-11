@@ -35,7 +35,7 @@ RegistryGetEndpoint = JsonEndpointType[str, Any].of_extension(
 class RegistryExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        client.events.register(RegistryUpdateEvent)
+        client.network.register_packet(RegistryUpdateEvent)
 
     def get[T](self, identifier: Identifier, default_value: T) -> Registry[T]:
         return RegistryImpl(self.client, identifier, default_value)
@@ -54,7 +54,7 @@ class RegistryImpl[T](Registry[T]):
         self.key = identifier.key()
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
-        client.events.add_packet_handler(RegistryUpdateEvent, self._on_update)
+        client.network.add_packet_handler(RegistryUpdateEvent, self._on_update)
 
     async def get(self) -> T:
         return (
@@ -70,7 +70,7 @@ class RegistryImpl[T](Registry[T]):
 
     def listen(self, handler: Coro[[T], None]) -> Callable[[], None]:
         if not self.listening:
-            self.client.connection.add_task(
+            self.client.network.add_task(
                 lambda: self.client.send(RegistryListenEvent, self.key)
             )
             self.listening = True

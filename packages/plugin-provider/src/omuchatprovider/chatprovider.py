@@ -131,7 +131,7 @@ async def on_ready():
     await register_services()
     await recheck_channels()
     asyncio.create_task(recheck_task())
-    logger.info("Ready!")
+    logger.info("Chat provider is ready")
 
 
 @client.on(events.MessageCreate)

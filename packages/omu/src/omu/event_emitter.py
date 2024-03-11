@@ -10,6 +10,8 @@ class EventEmitter[**P]:
         self._listeners: List[Coro[P, None]] = []
 
     def subscribe(self, listener: Coro[P, None]) -> None:
+        if listener in self._listeners:
+            raise ValueError("Listener already subscribed")
         self._listeners.append(listener)
 
     def unsubscribe(self, listener: Coro[P, None]) -> None:

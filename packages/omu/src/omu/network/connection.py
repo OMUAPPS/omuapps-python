@@ -1,53 +1,53 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Callable, Coroutine, Literal
+from typing import TYPE_CHECKING, Dict
 
-from omu.event_emitter import EventEmitter
-from omu.network.packet.packet import PacketData
+from omu.network.packet.packet import Packet, PacketData, PacketType
 
 if TYPE_CHECKING:
-    from omu.network import Address
-    from omu.network.packet import PacketType
+    from omu.network.network import Network
 
 
-type ConnectionStatus = Literal["connecting", "connected", "disconnected"]
-
-
-class ConnectionListeners:
+class PacketMapper:
     def __init__(self) -> None:
-        self.connected = EventEmitter()
-        self.disconnected = EventEmitter()
-        self.packet = EventEmitter[PacketData]()
-        self.status_changed = EventEmitter[ConnectionStatus]()
+        self._mappers: Dict[str, PacketType] = {}
+
+    def register(self, *packet_types: PacketType) -> None:
+        for packet_type in packet_types:
+            if self._mappers.get(packet_type.type):
+                raise ValueError(f"Packet type {packet_type.type} already registered")
+            self._mappers[packet_type.type] = packet_type
+
+    def serialize(self, packet: Packet) -> PacketData:
+        return PacketData(
+            type=packet.packet_type.type,
+            data=packet.packet_type.serializer.serialize(packet.packet_data),
+        )
+
+    def deserialize(self, data: PacketData) -> Packet:
+        packet_type = self._mappers.get(data.type)
+        if not packet_type:
+            raise ValueError(f"Unknown packet type {data.type}")
+        return Packet(
+            packet_type=packet_type,
+            packet_data=packet_type.serializer.deserialize(data.data),
+        )
 
 
 class Connection(abc.ABC):
-    @property
     @abc.abstractmethod
-    def address(self) -> Address: ...
+    async def connect(self) -> Network: ...
+
+    @abc.abstractmethod
+    async def receive(self, serializer: PacketMapper) -> Packet: ...
+
+    @abc.abstractmethod
+    async def send(self, packet: Packet, serializer: PacketMapper) -> None: ...
+
+    @abc.abstractmethod
+    async def close(self) -> None: ...
 
     @property
     @abc.abstractmethod
-    def connected(self) -> bool: ...
-
-    @abc.abstractmethod
-    async def connect(
-        self, *, token: str | None = None, reconnect: bool = True
-    ) -> None: ...
-
-    @abc.abstractmethod
-    async def disconnect(self) -> None: ...
-
-    @abc.abstractmethod
-    async def send[T](self, event: PacketType[T], data: T) -> None: ...
-
-    @property
-    @abc.abstractmethod
-    def listeners(self) -> ConnectionListeners: ...
-
-    @abc.abstractmethod
-    def add_task(self, task: Callable[[], Coroutine[None, None, None]]) -> None: ...
-
-    @abc.abstractmethod
-    def remove_task(self, task: Callable[[], Coroutine[None, None, None]]) -> None: ...
+    def closed(self) -> bool: ...

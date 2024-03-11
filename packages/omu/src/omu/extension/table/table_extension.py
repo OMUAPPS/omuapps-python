@@ -32,7 +32,7 @@ class TableExtension(Extension):
     def __init__(self, client: Client):
         self._client = client
         self._tables: Dict[Identifier, Table] = {}
-        client.events.register(
+        client.network.register_packet(
             TableConfigSetEvent,
             TableListenEvent,
             TableProxyListenEvent,
@@ -238,12 +238,12 @@ class TableImpl[T](Table[T]):
         self._config: TableConfig | None = None
         self.key = identifier.key()
 
-        client.events.add_packet_handler(TableProxyEvent, self._on_proxy)
-        client.events.add_packet_handler(TableItemAddEvent, self._on_item_add)
-        client.events.add_packet_handler(TableItemUpdateEvent, self._on_item_update)
-        client.events.add_packet_handler(TableItemRemoveEvent, self._on_item_remove)
-        client.events.add_packet_handler(TableItemClearEvent, self._on_item_clear)
-        client.connection.listeners.connected += self.on_connected
+        client.network.add_packet_handler(TableProxyEvent, self._on_proxy)
+        client.network.add_packet_handler(TableItemAddEvent, self._on_item_add)
+        client.network.add_packet_handler(TableItemUpdateEvent, self._on_item_update)
+        client.network.add_packet_handler(TableItemRemoveEvent, self._on_item_remove)
+        client.network.add_packet_handler(TableItemClearEvent, self._on_item_clear)
+        client.network.listeners.connected += self.on_connected
 
     @property
     def cache(self) -> Dict[str, T]:

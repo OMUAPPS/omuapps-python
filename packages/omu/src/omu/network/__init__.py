@@ -1,11 +1,13 @@
 from .address import Address
-from .connection import Connection, ConnectionListeners, ConnectionStatus
-from .websockets_connection import WebsocketsConnection
+from .network import Network, NetworkListeners, NetworkStatus
+from .packet import Packet, PacketType
 
 __all__ = [
     "Address",
-    "Connection",
-    "ConnectionStatus",
-    "ConnectionListeners",
-    "WebsocketsConnection",
+    "Network",
+    "NetworkStatus",
+    "NetworkListeners",
+    "Network",
+    "Packet",
+    "PacketType",
 ]

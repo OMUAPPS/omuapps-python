@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING
 from omu.event_emitter import EventEmitter
-
+from omu.network.packet.packet import PacketType
 from omuserver.session import Session
-
-if TYPE_CHECKING:
-    from omu.helper import Coro
 
 
 class Network(abc.ABC):
@@ -18,9 +14,10 @@ class Network(abc.ABC):
     def add_http_route(self, path: str, handle) -> None: ...
 
     @abc.abstractmethod
-    def add_websocket_route(
-        self, path: str, handle: Coro[[Session], None] | None = None
-    ) -> None: ...
+    def register_packet(self, *packet_types: PacketType) -> None: ...
+
+    @abc.abstractmethod
+    async def process_session(self, session: Session) -> None: ...
 
     @property
     @abc.abstractmethod

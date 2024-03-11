@@ -38,10 +38,12 @@ class MessageExtension(Extension):
         self.client = client
         self._listen_keys: set[str] = set()
         self._keys: set[str] = set()
-        client.events.register(
-            MessageRegisterEvent, MessageListenEvent, MessageBroadcastEvent
+        client.network.register_packet(
+            MessageRegisterEvent,
+            MessageListenEvent,
+            MessageBroadcastEvent,
         )
-        client.connection.listeners.connected += self.on_connected
+        client.network.listeners.connected += self.on_connected
 
     def register[T](self, name: str, _t: type[T]) -> MessageKey[T]:
         key = f"{self.client.app.key()}:{name}"
@@ -68,7 +70,7 @@ class MessageExtension(Extension):
                 if event["key"] == key:
                     await callback(event["body"])
 
-            self.client.events.add_packet_handler(MessageBroadcastEvent, wrapper)
+            self.client.network.add_packet_handler(MessageBroadcastEvent, wrapper)
 
         return decorator
 

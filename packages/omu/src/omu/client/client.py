@@ -14,8 +14,8 @@ if TYPE_CHECKING:
     from omu.extension.registry import RegistryExtension
     from omu.extension.server import ServerExtension
     from omu.extension.table import TableExtension
-    from omu.network import Connection
-    from omu.network.packet import PacketDispatcher, PacketType
+    from omu.network import Network
+    from omu.network.packet import PacketType
 
 
 class ClientListeners:
@@ -36,11 +36,7 @@ class Client(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def connection(self) -> Connection: ...
-
-    @property
-    @abc.abstractmethod
-    def events(self) -> PacketDispatcher: ...
+    def network(self) -> Network: ...
 
     @property
     @abc.abstractmethod
