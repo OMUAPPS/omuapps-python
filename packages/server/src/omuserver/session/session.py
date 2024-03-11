@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import asyncio
 from typing import TYPE_CHECKING
 from omu.event_emitter import EventEmitter
 from omu.network.packet import Packet
@@ -77,7 +78,10 @@ class Session:
     async def listen(self) -> None:
         while not self._connection.closed:
             packet = await self._connection.receive(self.serializer)
-            await self.listeners.packet.emit(self, packet)
+            asyncio.create_task(self._dispatch_packet(packet))
+
+    async def _dispatch_packet(self, packet: Packet) -> None:
+        await self._listeners.packet.emit(self, packet)
 
     async def send[T](self, packet_type: PacketType[T], data: T) -> None:
         await self._connection.send(Packet(packet_type, data), self.serializer)

@@ -102,7 +102,9 @@ class EndpointExtension(Extension):
             json = endpoint.request_serializer.serialize(data)
             await self.client.send(
                 EndpointCallEvent,
-                EndpointDataReq(type=endpoint.info.key(), id=self.call_id, data=json),
+                EndpointDataReq(
+                    type=endpoint.info.identifier.key(), id=self.call_id, data=json
+                ),
             )
             res = await future
             return endpoint.response_serializer.deserialize(res)

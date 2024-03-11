@@ -39,6 +39,8 @@ class Network:
     def set_connection(self, connection: Connection) -> None:
         if self._connected:
             raise RuntimeError("Already connected")
+        if self._connection:
+            del self._connection
         self._connection = connection
 
     def register_packet(self, *packet_types: PacketType) -> None:

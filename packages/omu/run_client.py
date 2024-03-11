@@ -2,7 +2,7 @@ from omu.app import App
 from omu.client import OmuClient
 from omu.network import Address
 from omu.network.packet import PACKET_TYPES
-from omu.network.packet.packet import PacketData
+from omu.network.packet.packet import Packet
 
 address = Address(
     host="localhost",
@@ -30,11 +30,11 @@ async def on_disconnected() -> None:
 
 
 @client.network.listeners.packet.subscribe
-async def on_event(event: PacketData) -> None:
+async def on_event(event: Packet) -> None:
     print(event)
 
 
-@client.packet_dispatcher.add_packet_handler(PACKET_TYPES.Ready)
+@client.network.add_packet_handler(PACKET_TYPES.Ready)
 async def on_ready(_) -> None:
     print("Ready")
 

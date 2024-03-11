@@ -77,3 +77,8 @@ class WebsocketsConnection(Connection):
         writer.write_string(packet_data.type)
         writer.write_byte_array(packet_data.data)
         await self._socket.send_bytes(writer.finish())
+
+    def __del__(self) -> None:
+        if self._session:
+            self._client.loop.create_task(self._session.close())
+        del self._session
