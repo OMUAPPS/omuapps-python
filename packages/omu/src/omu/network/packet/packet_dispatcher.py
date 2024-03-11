@@ -3,20 +3,19 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict
 
-from loguru import logger
-
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
+from omu.network.packet.packet import Packet
 
 if TYPE_CHECKING:
-    from omu.network.connection import Connection
-    from omu.network.packet import PacketData, PacketType
+    from omu.network.connection import Network
+    from omu.network.packet import PacketType
 
 
 class PacketDispatcher:
-    def __init__(self, connection: Connection):
+    def __init__(self, network: Network):
         self._packet_listeners: Dict[str, PacketListeners] = {}
-        connection.listeners.packet += self.process_packet
+        network.listeners.packet += self.process_packet
 
     def register(self, *packet_types: PacketType) -> None:
         for packet_type in packet_types:
@@ -39,13 +38,11 @@ class PacketDispatcher:
             decorator(packet_handler)
         return decorator
 
-    async def process_packet(self, packet_data: PacketData) -> None:
-        event = self._packet_listeners.get(packet_data.type)
+    async def process_packet(self, packet: Packet) -> None:
+        event = self._packet_listeners.get(packet.packet_type.type)
         if not event:
-            logger.warning(f"Received unknown event type {packet_data.type}")
             return
-        data = event.event_type.serializer.deserialize(packet_data.data)
-        await event.listeners.emit(data)
+        await event.listeners.emit(packet.packet_data)
 
 
 @dataclass

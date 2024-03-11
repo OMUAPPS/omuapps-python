@@ -19,22 +19,22 @@ client = OmuClient(
 )
 
 
-@client.connection.listeners.connected.subscribe
+@client.network.listeners.connected.subscribe
 async def on_connected() -> None:
     print("Connected")
 
 
-@client.connection.listeners.disconnected.subscribe
+@client.network.listeners.disconnected.subscribe
 async def on_disconnected() -> None:
     print("Disconnected")
 
 
-@client.connection.listeners.packet.subscribe
+@client.network.listeners.packet.subscribe
 async def on_event(event: PacketData) -> None:
     print(event)
 
 
-@client.events.add_packet_handler(PACKET_TYPES.Ready)
+@client.packet_dispatcher.add_packet_handler(PACKET_TYPES.Ready)
 async def on_ready(_) -> None:
     print("Ready")
 

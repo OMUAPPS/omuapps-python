@@ -125,7 +125,7 @@ class Client:
         self.channels.add_listener(_ChannelListener(self.event_registry))
         self.providers.add_listener(_ProviderListener(self.event_registry))
         self.rooms.add_listener(_RoomListener(self.event_registry))
-        self.omu.connection.listeners.connected += self.on_connected
+        self.omu.network.listeners.connected += self.on_connected
 
     @property
     def loop(self):

@@ -25,13 +25,15 @@ class EndpointExtension(Extension):
         self.promises: Dict[int, Future] = {}
         self.endpoints: Dict[str, Tuple[EndpointType, Coro[[Any], Any]]] = {}
         self.call_id = 0
-        client.events.register(
-            EndpointCallEvent, EndpointReceiveEvent, EndpointErrorEvent
+        client.network.register_packet(
+            EndpointCallEvent,
+            EndpointReceiveEvent,
+            EndpointErrorEvent,
         )
-        client.events.add_packet_handler(EndpointReceiveEvent, self._on_receive)
-        client.events.add_packet_handler(EndpointErrorEvent, self._on_error)
-        client.events.add_packet_handler(EndpointCallEvent, self._on_call)
-        client.connection.listeners.connected += self.on_connected
+        client.network.add_packet_handler(EndpointReceiveEvent, self._on_receive)
+        client.network.add_packet_handler(EndpointErrorEvent, self._on_error)
+        client.network.add_packet_handler(EndpointCallEvent, self._on_call)
+        client.network.listeners.connected += self.on_connected
 
     async def _on_receive(self, data: EndpointDataReq) -> None:
         if data["id"] not in self.promises:

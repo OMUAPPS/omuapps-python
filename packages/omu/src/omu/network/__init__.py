@@ -1,11 +1,10 @@
 from .address import Address
-from .connection import Connection, ConnectionListeners, ConnectionStatus
-from .websockets_connection import WebsocketsConnection
+from .connection import ConnectionListeners, ConnectionStatus, Network
 
 __all__ = [
     "Address",
-    "Connection",
+    "Network",
     "ConnectionStatus",
     "ConnectionListeners",
-    "WebsocketsConnection",
+    "Network",
 ]
