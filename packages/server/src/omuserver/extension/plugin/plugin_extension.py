@@ -1,29 +1,28 @@
 from __future__ import annotations
+
 import asyncio
 import json
-from importlib.util import find_spec
-from multiprocessing import Process
-from pathlib import Path
 import re
 import subprocess
 import sys
+from importlib.util import find_spec
+from multiprocessing import Process
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Dict,
     NotRequired,
     Protocol,
-    TypeGuard,
     TypedDict,
+    TypeGuard,
 )
 
 from loguru import logger
 from omu import Address
-
-from omuserver.extension import Extension
-
 from omu.network.websocket_connection import WebsocketsConnection
 from omu.plugin import Plugin
 
+from omuserver.extension import Extension
 from omuserver.extension.plugin.plugin_connection import PluginConnection
 from omuserver.extension.plugin.plugin_session_connection import PluginSessionConnection
 from omuserver.session.session import Session

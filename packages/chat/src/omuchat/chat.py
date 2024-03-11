@@ -5,8 +5,8 @@ from typing import List, TypedDict
 from omu import Identifier
 from omu.extension.endpoint import SerializeEndpointType
 from omu.extension.table import TableType
-from omu.serializer import Serializer
 from omu.model import Model
+from omu.serializer import Serializer
 
 from omuchat.model.author import Author, AuthorJson
 from omuchat.model.channel import Channel

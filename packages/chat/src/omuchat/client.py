@@ -3,6 +3,7 @@ from typing import Callable, Dict
 import omu.client
 from omu import Address, App, OmuClient
 from omu.extension.table import TableListener
+
 from .chat import (
     AuthorsTableKey,
     ChannelsTableKey,
@@ -10,7 +11,6 @@ from .chat import (
     ProviderTableKey,
     RoomTableKey,
 )
-
 from .event import EventHandler, EventKey, EventRegistry, events
 from .model import Channel, Message, Provider, Room
 from .model.author import Author

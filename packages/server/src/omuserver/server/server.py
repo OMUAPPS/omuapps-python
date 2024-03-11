@@ -3,13 +3,13 @@ from __future__ import annotations
 import abc
 import asyncio
 from typing import TYPE_CHECKING
+
 from omu.event_emitter import EventEmitter
 
 if TYPE_CHECKING:
     from omu.network import Address
 
     from omuserver.directories import Directories
-    from omuserver.network.packet_dispatcher import ServerPacketDispatcher
     from omuserver.extension.asset.asset_extension import AssetExtension
     from omuserver.extension.endpoint import EndpointExtension
     from omuserver.extension.extension_registry import ExtensionRegistry
@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from omuserver.extension.registry import RegistryExtension
     from omuserver.extension.table import TableExtension
     from omuserver.network import Network
+    from omuserver.network.packet_dispatcher import ServerPacketDispatcher
     from omuserver.security import Security
 
 

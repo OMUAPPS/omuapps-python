@@ -9,7 +9,6 @@ from omu.network import Address
 
 from omuserver import __version__
 from omuserver.directories import Directories, get_directories
-from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.extension import ExtensionRegistry, ExtensionRegistryServer
 from omuserver.extension.asset.asset_extension import AssetExtension
 from omuserver.extension.endpoint import EndpointExtension
@@ -22,6 +21,7 @@ from omuserver.helper import safe_path_join
 from omuserver.network import Network
 from omuserver.network.aiohttp_network import AiohttpNetwork
 from omuserver.network.network import NetworkListeners
+from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.security.security import ServerSecurity
 
 from .server import Server, ServerListeners

@@ -15,12 +15,12 @@ from omu.extension.endpoint.endpoint_extension import (
     EndpointsTableType,
     EndpointType,
 )
+from omu.helper import Coro
 
 from omuserver.extension import Extension
 from omuserver.extension.table import TableExtension
 from omuserver.server import Server
 from omuserver.session import Session
-from omu.helper import Coro
 
 
 class Endpoint(abc.ABC):

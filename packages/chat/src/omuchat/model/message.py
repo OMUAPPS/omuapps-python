@@ -7,9 +7,9 @@ from omu.helper import map_optional
 from omu.interface import Keyable
 from omu.model import Model
 
+from . import content
 from .gift import Gift, GiftJson
 from .paid import Paid, PaidJson
-from . import content
 
 
 class MessageJson(TypedDict):

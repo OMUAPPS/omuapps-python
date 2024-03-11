@@ -1,12 +1,11 @@
 from typing import AsyncGenerator, Callable, Dict, List, Mapping
 
-from omu.extension.table import Table, TableListener, TableType, TableConfig
+from omu.extension.table import Table, TableConfig, TableListener, TableType
+from omu.helper import AsyncCallback, Coro
 from omu.interface import Keyable
-from omu.helper import AsyncCallback
 from omu.serializer import Serializable
 
 from .server_table import ServerTable, ServerTableListener
-from omu.helper import Coro
 
 
 class SerializeAdapter[T: Keyable](Mapping[str, T]):

@@ -5,6 +5,8 @@ from typing import Dict, List
 
 from omu.extension.table import Table, TableType
 from omu.extension.table.table_extension import (
+    SetConfigReq,
+    TableConfigSetEvent,
     TableEventData,
     TableFetchReq,
     TableItemAddEvent,
@@ -21,8 +23,6 @@ from omu.extension.table.table_extension import (
     TableProxyEndpoint,
     TableProxyEvent,
     TableProxyListenEvent,
-    TableConfigSetEvent,
-    SetConfigReq,
 )
 from omu.identifier import Identifier
 from omu.interface import Keyable

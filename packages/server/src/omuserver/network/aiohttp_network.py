@@ -1,23 +1,23 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
 
 import socket
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict
 
 from aiohttp import web
 from loguru import logger
 from omu import App
+from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES
 from omu.network.packet.packet import PacketType
 from omu.network.packet.packet_types import ConnectPacket
-from omu.event_emitter import EventEmitter
+
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
+from omuserver.session import Session
 from omuserver.session.aiohttp_connection import WebsocketsConnection
 
-from .network import Network
-from .network import NetworkListeners
-from omuserver.session import Session
+from .network import Network, NetworkListeners
 
 if TYPE_CHECKING:
     from omuserver.server import Server

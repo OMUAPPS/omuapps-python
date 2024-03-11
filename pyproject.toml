@@ -32,6 +32,17 @@ disable = [
     "missing-class-docstring",
 ]
 
+[tool.ruff.lint]
+select = [
+    # Pyflakes
+    "F",
+    # Pycodestyle
+    "E",
+    "W",
+    # isort
+    "I001",
+]
+
 [tool.hatch.metadata]
 allow-direct-references = true
 

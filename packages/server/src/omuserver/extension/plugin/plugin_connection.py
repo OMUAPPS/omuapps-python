@@ -1,6 +1,6 @@
 from __future__ import annotations
-import asyncio
 
+import asyncio
 
 from omu.network.connection import Connection, PacketMapper
 from omu.network.packet.packet import Packet

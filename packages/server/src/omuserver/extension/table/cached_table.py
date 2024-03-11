@@ -3,10 +3,9 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, AsyncIterator, Dict, List
 
-from omu.extension.table.table_extension import TableProxyData, TableProxyEvent
 from omu.extension.table import TableConfig
+from omu.extension.table.table_extension import TableProxyData, TableProxyEvent
 from omu.identifier import Identifier
-
 
 from .adapters.tableadapter import TableAdapter
 from .server_table import ServerTable, ServerTableListener

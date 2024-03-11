@@ -9,6 +9,7 @@ from omu.extension.registry.registry_extension import (
     RegistryUpdateEvent,
 )
 from omu.identifier import Identifier
+
 from omuserver.extension import Extension
 from omuserver.session.session import Session
 

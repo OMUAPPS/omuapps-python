@@ -1,6 +1,6 @@
+from . import content
 from .author import Author, AuthorJson
 from .channel import Channel, ChannelJson
-from . import content
 from .gift import Gift, GiftJson
 from .message import Message, MessageJson
 from .paid import Paid, PaidJson

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import abc
+
 from omu.event_emitter import EventEmitter
 from omu.network.packet.packet import PacketType
+
 from omuserver.session import Session
 
 

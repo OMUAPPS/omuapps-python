@@ -1,7 +1,7 @@
 import json
 from typing import Any
-from omu import Identifier
 
+from omu import Identifier
 from omu.extension.registry.registry_extension import (
     RegistryEventData,
     RegistryUpdateEvent,

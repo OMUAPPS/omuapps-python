@@ -4,11 +4,11 @@ import string
 from typing import Dict, Tuple
 
 import sqlitedict
+from omu import App
+
 from omuserver import Server
 from omuserver.security import Permission
 from omuserver.security.permission import AdminPermissions, Permissions
-
-from omu import App
 
 type Token = str
 

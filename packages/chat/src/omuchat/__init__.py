@@ -7,7 +7,6 @@ from .model import (
     AuthorJson,
     Channel,
     ChannelJson,
-    content,
     Gift,
     GiftJson,
     Message,
@@ -20,6 +19,7 @@ from .model import (
     RoleJson,
     Room,
     RoomJson,
+    content,
 )
 
 __all__ = [

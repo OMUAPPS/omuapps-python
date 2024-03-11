@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Literal, NotRequired, TypedDict, Hashable
-
-from omu.interface import Keyable
-from omu.model import Model
-from omu.helper import map_optional
 
 from datetime import datetime
+from typing import Hashable, Literal, NotRequired, TypedDict
+
+from omu.helper import map_optional
+from omu.interface import Keyable
+from omu.model import Model
 
 
 class RoomMetadata(TypedDict):

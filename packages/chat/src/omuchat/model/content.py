@@ -1,12 +1,12 @@
 from __future__ import annotations
-import abc
 
+import abc
 from typing import (
     Callable,
     Iterable,
     List,
-    LiteralString,
     Literal,
+    LiteralString,
     Protocol,
     TypedDict,
 )

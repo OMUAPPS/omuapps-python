@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass
 from typing import Dict, TypedDict
 
-from omuchat import App, Client, content, Message
+from omuchat import App, Client, Message, content
 
 APP = App(
     name="emoji",

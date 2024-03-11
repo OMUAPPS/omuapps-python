@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-
 from aiohttp import web
 from loguru import logger
-from omu.network.packet import PacketData, Packet
-from omu.network.connection import PacketMapper
 from omu.network.bytebuffer import ByteReader, ByteWriter
+from omu.network.connection import PacketMapper
+from omu.network.packet import Packet, PacketData
 
 from omuserver.security import Permission
 from omuserver.session.session import SessionConnection

@@ -4,8 +4,10 @@ import abc
 from typing import TYPE_CHECKING, AsyncIterator, Dict, List, Union
 
 if TYPE_CHECKING:
-    from omuserver.session import Session
     from omu.extension.table import TableConfig
+
+    from omuserver.session import Session
+
     from .adapters.tableadapter import TableAdapter
 
 type Json = Union[str, int, float, bool, None, Dict[str, Json], List[Json]]

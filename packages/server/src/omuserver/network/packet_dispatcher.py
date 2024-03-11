@@ -1,17 +1,17 @@
 from __future__ import annotations
-from dataclasses import dataclass, field
 
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable, Dict
 
 from loguru import logger
-
-from omuserver.session import Session
 from omu.event_emitter import EventEmitter
 from omu.network.connection import PacketMapper
 
+from omuserver.session import Session
+
 if TYPE_CHECKING:
-    from omu.network.packet import PacketType, Packet
     from omu.helper import Coro
+    from omu.network.packet import Packet, PacketType
 
 
 class ServerPacketDispatcher:

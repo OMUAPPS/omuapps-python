@@ -5,12 +5,12 @@ import iwashi
 from omu import Address, OmuClient
 from omuchat import App
 from omuchat.chat import (
+    IDENTIFIER,
     AuthorsTableKey,
     ChannelsTableKey,
     MessagesTableKey,
     ProviderTableKey,
     RoomTableKey,
-    IDENTIFIER,
 )
 from omuchat.model.channel import Channel, ChannelJson
 

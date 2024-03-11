@@ -5,7 +5,6 @@ from typing import Callable, Coroutine
 
 import aiohttp
 from loguru import logger
-
 from omuchat import Provider
 
 HTTP_REGEX = r"(https?://)?(www\.)?"
