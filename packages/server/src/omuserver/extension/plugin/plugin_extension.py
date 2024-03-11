@@ -1,13 +1,12 @@
 from __future__ import annotations
-import asyncio
 import json
-
+from multiprocessing import Process, Pipe
 from importlib.util import find_spec
+from multiprocessing.connection import PipeConnection
 from pathlib import Path
 import re
 import subprocess
 import sys
-import threading
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -22,9 +21,12 @@ from loguru import logger
 from omuserver.extension import Extension
 
 from omu.plugin import Plugin
+from omuserver.extension.plugin.pipe_plugin_connection import PipePluginConnection
+from omuserver.extension.plugin.pipe_session_connection import PipeSessionConnection
 
 from omuserver.extension.plugin.plugin_connection import PluginConnection
-from omuserver.extension.plugin.plugin_session import PluginSession
+from omuserver.extension.plugin.plugin_session_connection import PluginSessionConnection
+from omuserver.session.session import Session
 
 if TYPE_CHECKING:
     from omuserver.server import Server
@@ -105,30 +107,55 @@ class PluginExtension(Extension):
         for metadata in self.plugins.values():
             await self.run_plugin(metadata)
 
-    def validate_plugin_module(self, module: PluginModule) -> TypeGuard[PluginModule]:
-        get_plugin = getattr(module, "get_plugin", None)
-        if get_plugin is None:
-            raise ValueError(f"Plugin {get_plugin} does not have a get_plugin method")
-        return True
-
     async def run_plugin(self, metadata: PluginMetadata):
-        module = __import__(metadata["module"])
-        if not self.validate_plugin_module(module):
-            return
-        plugin = module.get_plugin()
-        client = plugin.client
         if metadata.get("isolated"):
-            loop = asyncio.new_event_loop()
-            loop.create_task(client.start())
-            thread = threading.Thread(
-                target=loop.run_forever,
-                daemon=True,
-                name=f"Plugin {metadata['module']}",
+            parent_pipe, child_pipe = Pipe()
+            process = Process(
+                target=run_plugin_process,
+                args=(metadata, child_pipe),
             )
-            thread.start()
+            process.start()
+            session_connection = PipeSessionConnection(parent_pipe)
+            session = await Session.from_connection(
+                self._server,
+                self._server.packet_dispatcher.packet_mapper,
+                session_connection,
+            )
+            self._server.loop.create_task(self._server.network.process_session(session))
         else:
+            module = __import__(metadata["module"])
+            if not validate_plugin_module(module):
+                return
+            plugin = module.get_plugin()
+            client = plugin.client
             connection = PluginConnection()
             client.network.set_connection(connection)
             await client.start()
-            session = await PluginSession.create(self._server, connection)
+            session_connection = PluginSessionConnection(connection)
+            session = await Session.from_connection(
+                self._server,
+                self._server.packet_dispatcher.packet_mapper,
+                session_connection,
+            )
             self._server.loop.create_task(self._server.network.process_session(session))
+
+
+def validate_plugin_module(module: PluginModule) -> TypeGuard[PluginModule]:
+    get_plugin = getattr(module, "get_plugin", None)
+    if get_plugin is None:
+        raise ValueError(f"Plugin {get_plugin} does not have a get_plugin method")
+    return True
+
+
+def run_plugin_process(
+    metadata: PluginMetadata,
+    child_pipe: PipeConnection,
+) -> None:
+    module = __import__(metadata["module"])
+    if not validate_plugin_module(module):
+        raise ValueError(f"Invalid plugin module {metadata['module']}")
+    plugin = module.get_plugin()
+    client = plugin.client
+    connection = PipePluginConnection(child_pipe)
+    client.network.set_connection(connection)
+    client.run()

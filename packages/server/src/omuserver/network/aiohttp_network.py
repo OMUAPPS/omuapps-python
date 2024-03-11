@@ -13,7 +13,7 @@ from omu.network.packet.packet import PacketType
 from omu.network.packet.packet_types import ConnectPacket
 from omu.event_emitter import EventEmitter
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
-from omuserver.session.aiohttp_session import WebsocketsConnection
+from omuserver.session.aiohttp_connection import WebsocketsConnection
 
 from .network import Network
 from .network import NetworkListeners

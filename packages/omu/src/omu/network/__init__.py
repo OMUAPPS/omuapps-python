@@ -1,5 +1,6 @@
 from .address import Address
 from .network import Network, NetworkListeners, NetworkStatus
+from .packet import Packet, PacketType
 
 __all__ = [
     "Address",
@@ -7,4 +8,6 @@ __all__ = [
     "NetworkStatus",
     "NetworkListeners",
     "Network",
+    "Packet",
+    "PacketType",
 ]
