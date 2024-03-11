@@ -21,12 +21,17 @@ from loguru import logger
 
 from omuserver.extension import Extension
 
+from omu.plugin import Plugin
+
+from omuserver.extension.plugin.plugin_connection import PluginConnection
+from omuserver.extension.plugin.plugin_session import PluginSession
+
 if TYPE_CHECKING:
     from omuserver.server import Server
 
 
-class Plugin(Protocol):
-    async def main(self) -> None: ...
+class PluginModule(Protocol):
+    def get_plugin(self) -> Plugin: ...
 
 
 class PluginMetadata(TypedDict):
@@ -100,21 +105,21 @@ class PluginExtension(Extension):
         for metadata in self.plugins.values():
             await self.run_plugin(metadata)
 
-    def validate_plugin(self, plugin: Plugin) -> TypeGuard[Plugin]:
-        main = getattr(plugin, "main", None)
-        if main is None:
-            raise ValueError(f"Plugin {plugin} does not have a main coroutine")
-        if not asyncio.iscoroutinefunction(plugin.main):
-            raise ValueError(f"Plugin {plugin} does not have a main coroutine")
+    def validate_plugin_module(self, module: PluginModule) -> TypeGuard[PluginModule]:
+        get_plugin = getattr(module, "get_plugin", None)
+        if get_plugin is None:
+            raise ValueError(f"Plugin {get_plugin} does not have a get_plugin method")
         return True
 
     async def run_plugin(self, metadata: PluginMetadata):
-        plugin = __import__(metadata["module"])
-        if not self.validate_plugin(plugin):
+        module = __import__(metadata["module"])
+        if not self.validate_plugin_module(module):
             return
+        plugin = module.get_plugin()
+        client = plugin.client
         if metadata.get("isolated"):
             loop = asyncio.new_event_loop()
-            loop.create_task(plugin.main())
+            loop.create_task(client.start())
             thread = threading.Thread(
                 target=loop.run_forever,
                 daemon=True,
@@ -122,4 +127,8 @@ class PluginExtension(Extension):
             )
             thread.start()
         else:
-            await plugin.main()
+            connection = PluginConnection()
+            client.network.set_connection(connection)
+            await client.start()
+            session = await PluginSession.create(self._server, connection)
+            self._server.loop.create_task(self._server.network.process_session(session))

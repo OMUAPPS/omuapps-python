@@ -6,7 +6,7 @@ from aiohttp import web
 from omu.client.client import Client
 from omu.network import Address
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.connection import Connection, PacketSerializer
+from omu.network.connection import Connection, PacketMapper
 from omu.network.packet import PacketData
 from omu.network.packet.packet import Packet
 
@@ -30,7 +30,7 @@ class WebsocketsConnection(Connection):
         self._socket = await self._session.ws_connect(self._ws_endpoint)
         self._connected = True
 
-    async def receive(self, serializer: PacketSerializer) -> Packet:
+    async def receive(self, packet_mapper: PacketMapper) -> Packet:
         if not self._socket or self._socket.closed:
             raise RuntimeError("Not connected")
         msg = await self._socket.receive()
@@ -50,7 +50,7 @@ class WebsocketsConnection(Connection):
                 event_type = reader.read_string()
                 event_data = reader.read_byte_array()
             packet_data = PacketData(event_type, event_data)
-            return serializer.deserialize(packet_data)
+            return packet_mapper.deserialize(packet_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 
@@ -69,10 +69,10 @@ class WebsocketsConnection(Connection):
         self._socket = None
         self._connected = False
 
-    async def send(self, packet: Packet, serializer: PacketSerializer) -> None:
+    async def send(self, packet: Packet, packet_mapper: PacketMapper) -> None:
         if not self._socket or self._socket.closed or not self._connected:
             raise RuntimeError("Not connected")
-        packet_data = serializer.serialize(packet)
+        packet_data = packet_mapper.serialize(packet)
         writer = ByteWriter()
         writer.write_string(packet_data.type)
         writer.write_byte_array(packet_data.data)

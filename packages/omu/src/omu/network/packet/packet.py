@@ -33,6 +33,9 @@ class PacketType[T](abc.ABC):
     @abc.abstractmethod
     def serializer(self) -> Serializable[T, bytes]: ...
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.type})"
+
 
 type Jsonable = str | int | float | bool | None | Dict[str, Jsonable] | List[Jsonable]
 

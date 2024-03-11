@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import dataclass, field
 
 import socket
 from typing import TYPE_CHECKING, Dict
@@ -8,23 +9,41 @@ from loguru import logger
 from omu import App
 from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES
-
-from omuserver.session.aiohttp_session import AiohttpSession
+from omu.network.packet.packet import PacketType
+from omu.network.packet.packet_types import ConnectPacket
+from omu.event_emitter import EventEmitter
+from omuserver.network.packet_dispatcher import ServerPacketDispatcher
+from omuserver.session.aiohttp_session import WebsocketsConnection
 
 from .network import Network
 from .network import NetworkListeners
+from omuserver.session import Session
 
 if TYPE_CHECKING:
     from omuserver.server import Server
-    from omuserver.session import Session
+
+
+@dataclass
+class PacketListeners[T]:
+    event_type: PacketType
+    listeners: EventEmitter[Session, T] = field(default_factory=EventEmitter)
 
 
 class AiohttpNetwork(Network):
-    def __init__(self, server: Server) -> None:
+    def __init__(
+        self, server: Server, packet_dispatcher: ServerPacketDispatcher
+    ) -> None:
         self._server = server
+        self._packet_dispatcher = packet_dispatcher
         self._listeners = NetworkListeners()
         self._sessions: Dict[str, Session] = {}
         self._app = web.Application()
+        self.add_websocket_route("/ws")
+        self.register_packet(PACKET_TYPES.Connect, PACKET_TYPES.Ready)
+        self.listeners.connected += self._packet_dispatcher.process_connection
+
+    def register_packet(self, *packet_types: PacketType) -> None:
+        self._packet_dispatcher.register(*packet_types)
 
     def add_http_route(
         self, path: str, handle: Coro[[web.Request], web.StreamResponse]
@@ -35,13 +54,18 @@ class AiohttpNetwork(Network):
         async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
             ws = web.WebSocketResponse()
             await ws.prepare(request)
-            session = await AiohttpSession.create(self._server, ws)
-            await self._handle_session(session)
+            connection = WebsocketsConnection(ws)
+            session = await Session.from_connection(
+                self._server,
+                self._packet_dispatcher.packet_mapper,
+                connection,
+            )
+            await self.process_session(session)
             return ws
 
         self._app.router.add_get(path, websocket_handler)
 
-    async def _handle_session(self, session: Session) -> None:
+    async def process_session(self, session: Session) -> None:
         if self.is_connected(session.app):
             logger.warning(f"Session {session.app} already connected")
             await self._sessions[session.app.key()].disconnect()
@@ -49,7 +73,7 @@ class AiohttpNetwork(Network):
         self._sessions[session.app.key()] = session
         session.listeners.disconnected += self.handle_disconnection
         await self._listeners.connected.emit(session)
-        await session.send(PACKET_TYPES.Ready, None)
+        await session.send(PACKET_TYPES.Connect, ConnectPacket(app=session.app))
         await session.listen()
 
     def is_connected(self, app: App) -> bool:

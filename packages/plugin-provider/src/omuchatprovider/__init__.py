@@ -1,7 +1,12 @@
-from .chatprovider import client
-
-__all__ = ["client"]
+from omu import Plugin
 
 
-async def main():
-    await client.start()
+def get_plugin():
+    from .chatprovider import client
+
+    return Plugin(
+        client.omu,
+    )
+
+
+__all__ = ["get_plugin"]

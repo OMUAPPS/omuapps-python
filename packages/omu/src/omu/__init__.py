@@ -1,15 +1,17 @@
 from .app import App
 from .client import Client, OmuClient
 from .identifier import Identifier
-from .network import Address, ConnectionListeners, ConnectionStatus, Network
+from .network import Address, Network, NetworkListeners, NetworkStatus
+from .plugin import Plugin
 
 __all__ = [
     "Address",
     "Network",
-    "ConnectionStatus",
-    "ConnectionListeners",
+    "NetworkStatus",
+    "NetworkListeners",
     "Client",
     "OmuClient",
     "App",
     "Identifier",
+    "Plugin",
 ]

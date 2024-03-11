@@ -6,7 +6,6 @@ import aiohttp
 from aiohttp import web
 from loguru import logger
 from omu.network import Address
-from omu.network.packet import PACKET_TYPES
 
 from omuserver import __version__
 from omuserver.directories import Directories, get_directories
@@ -56,13 +55,11 @@ class OmuServer(Server, NetworkListeners):
         self._listeners = ServerListeners()
         self._directories = directories or get_directories()
         self._directories.mkdir()
-        self._network = network or AiohttpNetwork(self)
+        self._packet_dispatcher = ServerPacketDispatcher()
+        self._network = network or AiohttpNetwork(self, self._packet_dispatcher)
         self._network.listeners.start += self._handle_network_start
-        self._network.add_websocket_route("/ws")
         self._network.add_http_route("/proxy", self._handle_proxy)
         self._network.add_http_route("/assets", self._handle_assets)
-        self._packet_dispatcher = ServerPacketDispatcher(self._network)
-        self._packet_dispatcher.register(PACKET_TYPES.Connect, PACKET_TYPES.Ready)
         self._extensions = extensions or ExtensionRegistryServer(self)
         self._security = ServerSecurity(self)
         self._running = False

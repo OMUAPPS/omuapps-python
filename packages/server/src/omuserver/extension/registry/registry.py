@@ -41,7 +41,8 @@ class Registry:
             if listener.closed:
                 raise Exception(f"Session {listener.app=} closed")
             await listener.send(
-                RegistryUpdateEvent, RegistryEventData(key=self._key, value=self.data)
+                RegistryUpdateEvent,
+                RegistryEventData(key=self._key, value=self.data),
             )
 
     async def attach_session(self, session: Session) -> None:

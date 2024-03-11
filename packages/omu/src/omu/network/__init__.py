@@ -1,10 +1,10 @@
 from .address import Address
-from .connection import ConnectionListeners, ConnectionStatus, Network
+from .network import Network, NetworkListeners, NetworkStatus
 
 __all__ = [
     "Address",
     "Network",
-    "ConnectionStatus",
-    "ConnectionListeners",
+    "NetworkStatus",
+    "NetworkListeners",
     "Network",
 ]
