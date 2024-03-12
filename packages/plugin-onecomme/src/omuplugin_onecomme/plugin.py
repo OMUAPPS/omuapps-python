@@ -8,8 +8,8 @@ from loguru import logger
 from omuchat import App, Client, events, model
 
 APP = App(
-    name="onesync",
-    group="omu.chat.plugins",
+    name="plugin-onesync",
+    group="cc.omuchat",
     version="0.1.0",
 )
 client = Client(APP)

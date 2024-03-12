@@ -3,8 +3,8 @@ from __future__ import annotations
 from omuchat import App, Client, content, model
 
 APP = App(
-    name="nyanya",
-    group="omu.chat.plugins",
+    name="plugin-nyanya",
+    group="cc.omuchat",
     version="0.1.0",
 )
 client = Client(APP)

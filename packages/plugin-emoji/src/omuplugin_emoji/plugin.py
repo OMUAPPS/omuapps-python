@@ -5,8 +5,8 @@ from typing import Dict, TypedDict
 from omuchat import App, Client, Message, content
 
 APP = App(
-    name="emoji",
-    group="omu.chat.plugins",
+    name="plugin-emoji",
+    group="cc.omuchat",
     version="0.1.0",
 )
 client = Client(APP)
