@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
-from .endpoint_info import EndpointInfo
-
 if TYPE_CHECKING:
     from omu.extension import ExtensionType
 
@@ -15,7 +13,7 @@ if TYPE_CHECKING:
 class EndpointType[Req, Res](abc.ABC):
     @property
     @abc.abstractmethod
-    def info(self) -> EndpointInfo: ...
+    def identifier(self) -> Identifier: ...
 
     @property
     @abc.abstractmethod
@@ -29,11 +27,11 @@ class EndpointType[Req, Res](abc.ABC):
 class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
     def __init__(
         self,
-        info: EndpointInfo,
+        identifier: Identifier,
         request_serializer: Serializable[Req, bytes],
         response_serializer: Serializable[Res, bytes],
     ):
-        self._info = info
+        self._identifier = identifier
         self._request_serializer = request_serializer
         self._response_serializer = response_serializer
 
@@ -46,7 +44,7 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(identifier=identifier / name),
+            identifier=identifier / name,
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
@@ -60,14 +58,14 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
         response_serializer: Serializable[Res, bytes],
     ):
         return cls(
-            info=EndpointInfo(identifier=extension / name),
+            identifier=extension / name,
             request_serializer=request_serializer,
             response_serializer=response_serializer,
         )
 
     @property
-    def info(self) -> EndpointInfo:
-        return self._info
+    def identifier(self) -> Identifier:
+        return self._identifier
 
     @property
     def request_serializer(self) -> Serializable[Req, bytes]:
@@ -81,10 +79,10 @@ class SerializeEndpointType[Req, Res](EndpointType[Req, Res]):
 class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
     def __init__(
         self,
-        info: EndpointInfo,
+        identifier: Identifier,
     ):
         super().__init__(
-            info,
+            identifier=identifier,
             request_serializer=Serializer.json(),
             response_serializer=Serializer.json(),
         )
@@ -96,7 +94,7 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
         name: str,
     ):
         return cls(
-            info=EndpointInfo(identifier=identifier / name),
+            identifier=identifier / name,
         )
 
     @classmethod
@@ -106,5 +104,5 @@ class JsonEndpointType[Req, Res](SerializeEndpointType[Req, Res]):
         name: str,
     ):
         return cls(
-            info=EndpointInfo(identifier=extension / name),
+            identifier=extension / name,
         )
