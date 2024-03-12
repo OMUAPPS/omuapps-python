@@ -150,7 +150,7 @@ class CallSerializer(Serializable[EndpointDataReq, bytes]):
 
 CALL_SERIALIZER = CallSerializer()
 
-EndpointRegisterEvent = JsonPacketType.of_extension(
+EndpointRegisterEvent = JsonPacketType[str].of_extension(
     EndpointExtensionType,
     "register",
     Serializer.json(),

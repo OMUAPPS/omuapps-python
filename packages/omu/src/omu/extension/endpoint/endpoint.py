@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
-
-if TYPE_CHECKING:
-    from omu.extension import ExtensionType
 
 
 @dataclass
@@ -19,7 +15,7 @@ class EndpointType[Req, Res]:
     @classmethod
     def create_json(
         cls,
-        identifier: Identifier | ExtensionType,
+        identifier: Identifier,
         name: str,
     ):
         return cls(
