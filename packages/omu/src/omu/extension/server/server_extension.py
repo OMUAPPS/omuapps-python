@@ -8,7 +8,7 @@ ServerExtensionType = ExtensionType(
     "server", lambda client: ServerExtension(client), lambda: []
 )
 
-AppsTableType = TableType.model(
+AppsTableType = TableType.create_model(
     ServerExtensionType,
     "apps",
     App,

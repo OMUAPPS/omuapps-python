@@ -134,7 +134,7 @@ class TableType[T]:
     key_func: Callable[[T], str]
 
     @classmethod
-    def model[_T: Keyable, _D](
+    def create_model[_T: Keyable, _D](
         cls,
         identifier: Identifier,
         name: str,
@@ -143,5 +143,18 @@ class TableType[T]:
         return TableType(
             identifier=identifier / name,
             serializer=Serializer.model(model).pipe(Serializer.json()),
+            key_func=lambda item: item.key(),
+        )
+
+    @classmethod
+    def create_serialized[_T: Keyable](
+        cls,
+        identifier: Identifier,
+        name: str,
+        serializer: Serializable[_T, bytes],
+    ) -> TableType[_T]:
+        return TableType(
+            identifier=identifier / name,
+            serializer=serializer,
             key_func=lambda item: item.key(),
         )

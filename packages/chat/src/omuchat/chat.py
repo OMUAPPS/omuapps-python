@@ -16,27 +16,27 @@ from omuchat.model.room import Room
 
 IDENTIFIER = Identifier.from_key("cc.omuchat:chat")
 
-MessagesTableKey = TableType.model(
+MessagesTableKey = TableType.create_model(
     IDENTIFIER,
     "messages",
     Message,
 )
-AuthorsTableKey = TableType.model(
+AuthorsTableKey = TableType.create_model(
     IDENTIFIER,
     "authors",
     Author,
 )
-ChannelsTableKey = TableType.model(
+ChannelsTableKey = TableType.create_model(
     IDENTIFIER,
     "channels",
     Channel,
 )
-ProviderTableKey = TableType.model(
+ProviderTableKey = TableType.create_model(
     IDENTIFIER,
     "providers",
     Provider,
 )
-RoomTableKey = TableType.model(
+RoomTableKey = TableType.create_model(
     IDENTIFIER,
     "rooms",
     Room,
