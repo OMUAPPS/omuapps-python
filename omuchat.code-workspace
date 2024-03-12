@@ -5,17 +5,10 @@
             "path": "."
         },
         {
-            "name": "appdata",
-            "path": "appdata"
-        },
-        {
             "path": "packages/omu"
         },
         {
             "path": "packages/chat"
-        },
-        {
-            "path": "packages/provider"
         },
         {
             "path": "packages/server"
