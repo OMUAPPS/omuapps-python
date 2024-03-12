@@ -10,7 +10,7 @@ from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import JsonPacketType, SerializedPacketType
 from omu.serializer import Serializable, Serializer
 
-from .endpoint import EndpointType, JsonEndpointType
+from .endpoint import EndpointType
 
 EndpointExtensionType = ExtensionType(
     "endpoint",
@@ -84,8 +84,10 @@ class EndpointExtension(Extension):
         self, func: Coro | None = None, name: str | None = None
     ) -> Callable[[Coro], Coro]:
         def decorator(func: Coro) -> Coro:
-            identifier = self.client.app.identifier / (name or func.__name__)
-            type = JsonEndpointType(identifier)
+            type = EndpointType.create_json(
+                self.client.app.identifier,
+                name or func.__name__,
+            )
             self.register(type, func)
             return func
 

@@ -10,7 +10,7 @@ from typing import (
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
-from omu.extension.endpoint import JsonEndpointType, SerializeEndpointType
+from omu.extension.endpoint import EndpointType
 from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -165,7 +165,7 @@ TableProxyEvent = SerializedPacketType[TableProxyData].of_extension(
     "proxy",
     serializer=TableProxySerielizer(),
 )
-TableProxyEndpoint = SerializeEndpointType[TableProxyData, int].of_extension(
+TableProxyEndpoint = EndpointType[TableProxyData, int].create_serialized(
     TableExtensionType,
     "proxy",
     request_serializer=TableProxySerielizer(),
@@ -187,9 +187,7 @@ TableItemClearEvent = JsonPacketType[TableEventData].of_extension(
 )
 
 
-TableItemGetEndpoint = SerializeEndpointType[
-    TableKeysData, TableItemsData
-].of_extension(
+TableItemGetEndpoint = EndpointType[TableKeysData, TableItemsData].create_serialized(
     TableExtensionType,
     "item_get",
     request_serializer=Serializer.json(),
@@ -204,15 +202,13 @@ class TableFetchReq(TypedDict):
     cursor: str | None
 
 
-TableItemFetchEndpoint = SerializeEndpointType[
-    TableFetchReq, TableItemsData
-].of_extension(
+TableItemFetchEndpoint = EndpointType[TableFetchReq, TableItemsData].create_serialized(
     TableExtensionType,
     "item_fetch",
     request_serializer=Serializer.json(),
     response_serializer=TableItemsSerielizer(),
 )
-TableItemSizeEndpoint = JsonEndpointType[TableEventData, int].of_extension(
+TableItemSizeEndpoint = EndpointType[TableEventData, int].create_json(
     TableExtensionType, "item_size"
 )
 

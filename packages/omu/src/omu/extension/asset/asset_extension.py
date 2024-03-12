@@ -1,7 +1,7 @@
 from typing import Dict, List
 
 from omu.client import Client
-from omu.extension.endpoint import SerializeEndpointType
+from omu.extension.endpoint import EndpointType
 from omu.extension.extension import Extension, ExtensionType
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.serializer import Serializable, Serializer
@@ -34,7 +34,7 @@ class FilesSerializer(Serializable[Files, bytes]):
         return files
 
 
-AssetUploadEndpoint = SerializeEndpointType[Files, List[str]].of_extension(
+AssetUploadEndpoint = EndpointType[Files, List[str]].create_serialized(
     AssetExtensionType,
     "upload",
     request_serializer=FilesSerializer(),

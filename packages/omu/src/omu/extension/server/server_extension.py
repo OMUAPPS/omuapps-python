@@ -1,6 +1,6 @@
 from omu.app import App
 from omu.client import Client
-from omu.extension.endpoint import JsonEndpointType
+from omu.extension.endpoint import EndpointType
 from omu.extension.extension import Extension, ExtensionType
 from omu.extension.table import TableExtensionType, TableType
 
@@ -13,11 +13,11 @@ AppsTableType = TableType.model(
     "apps",
     App,
 )
-ShutdownEndpointType = JsonEndpointType[bool, bool].of_extension(
+ShutdownEndpointType = EndpointType[bool, bool].create_json(
     ServerExtensionType,
     "shutdown",
 )
-PrintTasksEndpointType = JsonEndpointType[None, None].of_extension(
+PrintTasksEndpointType = EndpointType[None, None].create_json(
     ServerExtensionType,
     "print_tasks",
 )
