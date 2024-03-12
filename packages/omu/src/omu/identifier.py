@@ -32,10 +32,6 @@ class Identifier(Keyable):
         return f"{namespace}:{'/'.join(path)}"
 
     @classmethod
-    def create(cls, namespace: str, name: str) -> Identifier:
-        return cls(namespace, name)
-
-    @classmethod
     def from_key(cls, key: str) -> Identifier:
         separator = key.rfind(":")
         if separator == -1:
