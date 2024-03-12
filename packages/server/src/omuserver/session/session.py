@@ -75,11 +75,15 @@ class Session:
 
     async def disconnect(self) -> None:
         await self._connection.close()
+        await self._listeners.disconnected.emit(self)
 
     async def listen(self) -> None:
-        while not self._connection.closed:
-            packet = await self._connection.receive(self.serializer)
-            asyncio.create_task(self._dispatch_packet(packet))
+        try:
+            while not self._connection.closed:
+                packet = await self._connection.receive(self.serializer)
+                asyncio.create_task(self._dispatch_packet(packet))
+        finally:
+            await self.disconnect()
 
     async def _dispatch_packet(self, packet: Packet) -> None:
         await self._listeners.packet.emit(self, packet)
