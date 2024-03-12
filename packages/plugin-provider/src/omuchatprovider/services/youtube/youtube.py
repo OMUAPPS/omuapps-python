@@ -52,7 +52,7 @@ class ReactionEvent(TypedDict):
     reactions: Dict[str, int]
 
 
-REACTION_MESSAGE = client.omu.message.register("youtube-reaction", ReactionEvent)
+REACTION_MESSAGE = client.omu.message.create("youtube-reaction", ReactionEvent)
 
 HEADERS = {
     "User-Agent": (
@@ -562,8 +562,7 @@ class YoutubeChatService(ChatService):
                 )
         if not reaction_counts:
             return
-        await self.client.omu.message.broadcast(
-            REACTION_MESSAGE,
+        await REACTION_MESSAGE.broadcast(
             ReactionEvent(
                 room_id=self._room.key(),
                 reactions=dict(reaction_counts),

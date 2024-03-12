@@ -24,10 +24,10 @@ class ExtensionType[T: Extension](Identifier):
         create: Callable[[Client], T],
         dependencies: Callable[[], List[ExtensionType]],
     ) -> None:
+        super().__init__("ext", name)
         self.name = name
         self.create = create
         self.dependencies = dependencies
-        super().__init__("ext", name)
 
     def key(self) -> str:
         return self.name

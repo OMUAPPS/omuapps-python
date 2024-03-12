@@ -24,7 +24,3 @@ class AssetExtension:
             file_path.write_bytes(file_data)
             uploaded_files.append(file_name)
         return uploaded_files
-
-    @classmethod
-    def create(cls, server: Server) -> AssetExtension:
-        return cls(server)

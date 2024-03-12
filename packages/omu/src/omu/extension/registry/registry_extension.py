@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, TypedDict
+from dataclasses import dataclass
+from typing import Callable, List
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.helper import Coro
 from omu.identifier import Identifier
+from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import JsonPacketType
+from omu.network.packet.packet import SerializedPacketType
+from omu.serializer import Serializable, Serializer
 
-from .registry import Registry
+from .registry import Registry, RegistryType
 
 RegistryExtensionType = ExtensionType(
     "registry",
@@ -18,18 +22,40 @@ RegistryExtensionType = ExtensionType(
 )
 
 
-class RegistryEventData(TypedDict):
+@dataclass
+class RegistryData:
     key: str
-    value: Any
+    existing: bool
+    value: bytes
 
 
-RegistryUpdateEvent = JsonPacketType[RegistryEventData].of_extension(
-    RegistryExtensionType, "update"
+class RegistryDataSerializer(Serializable[RegistryData, bytes]):
+    def serialize(self, item: RegistryData) -> bytes:
+        writer = ByteWriter()
+        writer.write_string(item.key)
+        writer.write_bool(item.existing)
+        writer.write_byte_array(item.value)
+        return writer.finish()
+
+    def deserialize(self, item: bytes) -> RegistryData:
+        with ByteReader(item) as reader:
+            key = reader.read_string()
+            existing = reader.read_bool()
+            value = reader.read_byte_array()
+            return RegistryData(key, existing, value)
+
+
+RegistryUpdateEvent = SerializedPacketType[RegistryData].of_extension(
+    RegistryExtensionType,
+    "update",
+    serializer=RegistryDataSerializer(),
 )
 RegistryListenEvent = JsonPacketType[str].of_extension(RegistryExtensionType, "listen")
-RegistryGetEndpoint = EndpointType[str, Any].create_json(
+RegistryGetEndpoint = EndpointType[str, RegistryData].create_serialized(
     RegistryExtensionType,
     "get",
+    request_serializer=Serializer.json(),
+    response_serializer=RegistryDataSerializer(),
 )
 
 
@@ -38,35 +64,52 @@ class RegistryExtension(Extension):
         self.client = client
         client.network.register_packet(RegistryUpdateEvent)
 
-    def get[T](self, identifier: Identifier, default_value: T) -> Registry[T]:
-        return RegistryImpl(self.client, identifier, default_value)
+    def get[T](self, registry_type: RegistryType[T]) -> Registry[T]:
+        return RegistryImpl(
+            self.client,
+            registry_type.identifier,
+            registry_type.default_value,
+            registry_type.serializer,
+        )
 
     def create[T](self, name: str, default_value: T) -> Registry[T]:
-        return self.get(self.client.app.identifier / name, default_value)
+        identifier = self.client.app.identifier / name
+        return RegistryImpl(self.client, identifier, default_value, Serializer.json())
 
 
 class RegistryImpl[T](Registry[T]):
     def __init__(
-        self, client: Client, identifier: Identifier, default_value: T
+        self,
+        client: Client,
+        identifier: Identifier,
+        default_value: T,
+        serializer: Serializable[T, bytes],
     ) -> None:
         self.client = client
         self.identifier = identifier
         self.default_value = default_value
+        self.serializer = serializer
         self.key = identifier.key()
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
         client.network.add_packet_handler(RegistryUpdateEvent, self._on_update)
 
     async def get(self) -> T:
-        return (
-            await self.client.endpoints.call(RegistryGetEndpoint, self.key)
-        ) or self.default_value
+        result = await self.client.endpoints.call(RegistryGetEndpoint, self.key)
+        if not result.existing:
+            return self.default_value
+        return self.serializer.deserialize(result.value)
 
     async def update(self, fn: Coro[[T], T]) -> None:
         value = await self.get()
         new_value = await fn(value)
         await self.client.send(
-            RegistryUpdateEvent, RegistryEventData(key=self.key, value=new_value)
+            RegistryUpdateEvent,
+            RegistryData(
+                self.key,
+                True,
+                self.serializer.serialize(new_value),
+            ),
         )
 
     def listen(self, handler: Coro[[T], None]) -> Callable[[], None]:
@@ -79,8 +122,12 @@ class RegistryImpl[T](Registry[T]):
         self.listeners.append(handler)
         return lambda: self.listeners.remove(handler)
 
-    async def _on_update(self, event: RegistryEventData) -> None:
-        if event["key"] != self.key:
+    async def _on_update(self, event: RegistryData) -> None:
+        if event.key != self.key:
             return
+        if event.existing:
+            value = self.serializer.deserialize(event.value)
+        else:
+            value = self.default_value
         for listener in self.listeners:
-            await listener(event["value"])
+            await listener(value)

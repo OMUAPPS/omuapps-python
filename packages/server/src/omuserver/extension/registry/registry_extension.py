@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Dict
 
 from omu.extension.registry.registry_extension import (
-    RegistryEventData,
+    RegistryData,
     RegistryGetEndpoint,
     RegistryListenEvent,
     RegistryUpdateEvent,
 )
 from omu.identifier import Identifier
+from omu.serializer import Serializable
 
 from omuserver.session import Session
 
-from .registry import Registry
+from .registry import Registry, ServerRegistry
 
 if TYPE_CHECKING:
     from omuserver.server import Server
@@ -29,33 +30,35 @@ class RegistryExtension:
             RegistryUpdateEvent, self._on_update
         )
         server.endpoints.bind_endpoint(RegistryGetEndpoint, self._on_get)
-        self.registries: Dict[Identifier, Registry] = {}
-
-    @classmethod
-    def create(cls, server: Server) -> RegistryExtension:
-        return cls(server)
+        self.registries: Dict[Identifier, ServerRegistry] = {}
 
     async def _on_listen(self, session: Session, key: str) -> None:
         registry = await self.get(key)
         await registry.attach_session(session)
 
-    async def _on_update(self, session: Session, event: RegistryEventData) -> None:
-        registry = await self.get(event["key"])
-        await registry.store(event["value"])
+    async def _on_update(self, session: Session, event: RegistryData) -> None:
+        registry = await self.get(event.key)
+        await registry.store(event.value)
 
-    async def _on_get(self, session: Session, key: str) -> Any:
+    async def _on_get(self, session: Session, key: str) -> RegistryData:
         registry = await self.get(key)
-        return registry.data
+        return RegistryData(key, registry.existing, registry.data)
 
-    async def get(self, key: str) -> Registry:
+    async def get(self, key: str) -> ServerRegistry:
         identifier = Identifier.from_key(key)
         registry = self.registries.get(identifier)
         if registry is None:
-            registry = Registry(self._server, identifier)
+            registry = ServerRegistry(self._server, identifier)
             self.registries[identifier] = registry
             await registry.load()
         return registry
 
-    async def store(self, key: str, value: Any) -> None:
+    async def create[T](
+        self, key: str, default_value: T, serializer: Serializable[T, bytes]
+    ) -> Registry[T]:
+        server_registry = await self.get(key)
+        return Registry(server_registry, default_value, serializer)
+
+    async def store(self, key: str, value: bytes) -> None:
         registry = await self.get(key)
         await registry.store(value)

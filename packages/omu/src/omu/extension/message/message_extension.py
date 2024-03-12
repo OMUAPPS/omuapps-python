@@ -1,9 +1,14 @@
-from typing import Any, Callable, TypedDict
+from __future__ import annotations
+
+from typing import Any, TypedDict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
+from omu.identifier import Identifier
 from omu.network.packet import JsonPacketType
+
+from .message import Message
 
 MessageExtensionType = ExtensionType(
     "message",
@@ -12,25 +17,18 @@ MessageExtensionType = ExtensionType(
 )
 
 
-class MessageEventData(TypedDict):
+class MessageData(TypedDict):
     key: str
     body: Any
 
 
-MessageRegisterEvent = JsonPacketType[str].of_extension(
+MessageRegisterPacket = JsonPacketType[str].of_extension(
     MessageExtensionType, "register"
 )
-MessageListenEvent = JsonPacketType[str].of_extension(MessageExtensionType, "listen")
-MessageBroadcastEvent = JsonPacketType[MessageEventData].of_extension(
+MessageListenPacket = JsonPacketType[str].of_extension(MessageExtensionType, "listen")
+MessageBroadcastPacket = JsonPacketType[MessageData].of_extension(
     MessageExtensionType, "broadcast"
 )
-
-
-class MessageKey[T]:
-    def __init__(self, name: str, app: str, _t: type[T]):
-        self.name = name
-        self.app = app
-        self.key = f"{self.app}:{self.name}"
 
 
 class MessageExtension(Extension):
@@ -39,41 +37,45 @@ class MessageExtension(Extension):
         self._listen_keys: set[str] = set()
         self._keys: set[str] = set()
         client.network.register_packet(
-            MessageRegisterEvent,
-            MessageListenEvent,
-            MessageBroadcastEvent,
+            MessageRegisterPacket,
+            MessageListenPacket,
+            MessageBroadcastPacket,
         )
-        client.network.listeners.connected += self.on_connected
 
-    def register[T](self, name: str, _t: type[T]) -> MessageKey[T]:
-        key = f"{self.client.app.key()}:{name}"
-        if key in self._keys:
-            raise Exception(f"Key {key} is already registered")
-        self._keys.add(key)
-        return MessageKey(name, self.client.app.key(), _t)
+    def create[T](self, name: str, _t: type[T] | None = None) -> Message[T]:
+        identifier = self.client.app.identifier / name
+        return MessageImpl(self.client, identifier)
 
-    async def broadcast[T](self, key: MessageKey[T], body: T) -> None:
+    def get(self, identifier: Identifier) -> Message:
+        return MessageImpl(self.client, identifier)
+
+
+class MessageImpl[T](Message):
+    def __init__(self, client: Client, identifier: Identifier):
+        self.client = client
+        self.identifier = identifier
+        self.key = identifier.key()
+        self.listeners = []
+        self.listening = False
+        client.network.add_packet_handler(MessageBroadcastPacket, self._on_broadcast)
+
+    async def broadcast(self, body: T) -> None:
         await self.client.send(
-            MessageBroadcastEvent,
-            MessageEventData(key=key.key, body=body),
+            MessageBroadcastPacket,
+            MessageData(key=self.key, body=body),
         )
 
-    def listen[T](
-        self, name: str, app: str | None = None
-    ) -> Callable[[Coro[[T | None], None]], None]:
-        key = f"{app or self.client.app.key()}:{name}"
+    def listen(self, listener: Coro[[T], None]) -> None:
+        self.listeners.append(listener)
+        if not self.listening:
+            self.client.network.add_task(self._listen)
+            self.listening = True
 
-        def decorator(callback: Coro[[T | None], None]) -> None:
-            self._listen_keys.add(key)
+    async def _listen(self) -> None:
+        await self.client.send(MessageListenPacket, self.key)
 
-            async def wrapper(event: MessageEventData) -> None:
-                if event["key"] == key:
-                    await callback(event["body"])
-
-            self.client.network.add_packet_handler(MessageBroadcastEvent, wrapper)
-
-        return decorator
-
-    async def on_connected(self) -> None:
-        for key in self._keys:
-            await self.client.send(MessageRegisterEvent, key)
+    async def _on_broadcast(self, data: MessageData) -> None:
+        if data["key"] != self.key:
+            return
+        for listener in self.listeners:
+            await listener(data["body"])

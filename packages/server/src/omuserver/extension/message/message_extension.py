@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict
 
 from omu.extension.message.message_extension import (
-    MessageBroadcastEvent,
-    MessageEventData,
-    MessageListenEvent,
-    MessageRegisterEvent,
+    MessageBroadcastPacket,
+    MessageData,
+    MessageListenPacket,
+    MessageRegisterPacket,
 )
 
 if TYPE_CHECKING:
@@ -32,14 +32,16 @@ class MessageExtension:
         self._server = server
         self._keys: Dict[str, Message] = {}
         server.packet_dispatcher.register(
-            MessageRegisterEvent, MessageListenEvent, MessageBroadcastEvent
+            MessageRegisterPacket, MessageListenPacket, MessageBroadcastPacket
         )
         server.packet_dispatcher.add_packet_handler(
-            MessageRegisterEvent, self._on_register
+            MessageRegisterPacket, self._on_register
         )
-        server.packet_dispatcher.add_packet_handler(MessageListenEvent, self._on_listen)
         server.packet_dispatcher.add_packet_handler(
-            MessageBroadcastEvent, self._on_broadcast
+            MessageListenPacket, self._on_listen
+        )
+        server.packet_dispatcher.add_packet_handler(
+            MessageBroadcastPacket, self._on_broadcast
         )
 
     async def _on_register(self, session: Session, key: str) -> None:
@@ -56,10 +58,10 @@ class MessageExtension:
         message = self._keys[key]
         message.add_listener(session)
 
-    async def _on_broadcast(self, session: Session, data: MessageEventData) -> None:
+    async def _on_broadcast(self, session: Session, data: MessageData) -> None:
         key = data["key"]
         if key not in self._keys:
             self._keys[key] = Message(key)
         message = self._keys[key]
         for listener in message.listeners:
-            await listener.send(MessageBroadcastEvent, data)
+            await listener.send(MessageBroadcastPacket, data)

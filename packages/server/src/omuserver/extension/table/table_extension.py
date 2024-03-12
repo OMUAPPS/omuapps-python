@@ -81,10 +81,6 @@ class TableExtension:
         server.endpoints.bind_endpoint(TableProxyEndpoint, self._on_table_proxy)
         server.listeners.stop += self.on_server_stop
 
-    @classmethod
-    def create(cls, server: Server) -> TableExtension:
-        return cls(server)
-
     async def _on_table_item_get(
         self, session: Session, req: TableKeysData
     ) -> TableItemsData:

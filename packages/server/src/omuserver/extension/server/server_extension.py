@@ -9,6 +9,7 @@ from omu.extension.server.server_extension import (
     PrintTasksEndpointType,
     ShutdownEndpointType,
 )
+from omu.serializer import Serializer
 
 from omuserver import __version__
 from omuserver.helper import get_launch_command
@@ -46,16 +47,16 @@ class ServerExtension:
         else:
             self._server.loop.stop()
 
-    @classmethod
-    def create(cls, server: Server) -> ServerExtension:
-        return cls(server)
-
     async def on_start(self) -> None:
         self.apps = await self._server.tables.register_table(AppsTableType)
-        await self._server.registry.store("server:version", __version__)
-        await self._server.registry.store(
-            "server:directories", self._server.directories.to_json()
+        version = await self._server.registry.create(
+            "server:version", __version__, Serializer.json()
         )
+        await version.set(__version__)
+        directories = await self._server.registry.create(
+            "server:directories", self._server.directories.to_json(), Serializer.json()
+        )
+        await directories.set(self._server.directories.to_json())
         await self.apps.clear()
 
     async def on_connected(self, session: Session) -> None:

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import TYPE_CHECKING, Callable, Protocol
-
-if TYPE_CHECKING:
-    pass
+from typing import Callable, Protocol
 
 
 class Serializable[T, D](abc.ABC):
