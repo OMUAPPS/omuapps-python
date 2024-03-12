@@ -5,7 +5,9 @@ description = "Add your description here"
 authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" },
 ]
-dependencies = []
+dependencies = [
+    "edgetrans>=0.2.3",
+]
 readme = "README.md"
 requires-python = ">= 3.12"
 
