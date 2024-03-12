@@ -4,13 +4,13 @@ from asyncio import Future
 from typing import Any, Callable, Dict, Tuple, TypedDict
 
 from omu.client import Client
-from omu.extension.endpoint import EndpointInfo, EndpointType, JsonEndpointType
-from omu.extension.extension import Extension, ExtensionType
-from omu.extension.table import TableType
+from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import JsonPacketType, SerializedPacketType
 from omu.serializer import Serializable, Serializer
+
+from .endpoint import EndpointType
 
 EndpointExtensionType = ExtensionType(
     "endpoint",
@@ -69,24 +69,25 @@ class EndpointExtension(Extension):
 
     async def on_connected(self) -> None:
         for endpoint, _ in self.endpoints.values():
-            await self.client.send(EndpointRegisterEvent, endpoint.info)
+            await self.client.send(EndpointRegisterEvent, endpoint.identifier.key())
 
     def register[Req, Res](
         self, type: EndpointType[Req, Res], func: Coro[[Req], Res]
     ) -> None:
-        if type.info.key() in self.endpoints:
-            raise Exception(f"Endpoint for key {type.info.key()} already registered")
-        self.endpoints[type.info.key()] = (type, func)
+        if type.identifier.key() in self.endpoints:
+            raise Exception(
+                f"Endpoint for key {type.identifier.key()} already registered"
+            )
+        self.endpoints[type.identifier.key()] = (type, func)
 
     def listen(
         self, func: Coro | None = None, name: str | None = None
     ) -> Callable[[Coro], Coro]:
         def decorator(func: Coro) -> Coro:
-            info = EndpointInfo(
-                identifier=self.client.app.identifier / (name or func.__name__),
-                description=getattr(func, "__doc__", ""),
+            type = EndpointType.create_json(
+                self.client.app.identifier,
+                name or func.__name__,
             )
-            type = JsonEndpointType(info)
             self.register(type, func)
             return func
 
@@ -103,13 +104,15 @@ class EndpointExtension(Extension):
             await self.client.send(
                 EndpointCallEvent,
                 EndpointDataReq(
-                    type=endpoint.info.identifier.key(), id=self.call_id, data=json
+                    type=endpoint.identifier.key(), id=self.call_id, data=json
                 ),
             )
             res = await future
             return endpoint.response_serializer.deserialize(res)
         except Exception as e:
-            raise Exception(f"Error calling endpoint {endpoint.info.key()}") from e
+            raise Exception(
+                f"Error calling endpoint {endpoint.identifier.key()}"
+            ) from e
 
 
 class EndpointReq(TypedDict):
@@ -127,13 +130,6 @@ class EndpointError(EndpointReq):
     type: str
     id: int
     error: str
-
-
-EndpointRegisterEvent = JsonPacketType.of_extension(
-    EndpointExtensionType,
-    "register",
-    Serializer.model(EndpointInfo),
-)
 
 
 class CallSerializer(Serializable[EndpointDataReq, bytes]):
@@ -154,6 +150,11 @@ class CallSerializer(Serializable[EndpointDataReq, bytes]):
 
 CALL_SERIALIZER = CallSerializer()
 
+EndpointRegisterEvent = JsonPacketType.of_extension(
+    EndpointExtensionType,
+    "register",
+    Serializer.json(),
+)
 EndpointCallEvent = SerializedPacketType[EndpointDataReq].of_extension(
     EndpointExtensionType,
     "call",
@@ -167,9 +168,4 @@ EndpointReceiveEvent = SerializedPacketType[EndpointDataReq].of_extension(
 EndpointErrorEvent = JsonPacketType[EndpointError].of_extension(
     EndpointExtensionType,
     "error",
-)
-EndpointsTableType = TableType.model(
-    EndpointExtensionType,
-    "endpoints",
-    EndpointInfo,
 )

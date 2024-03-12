@@ -9,13 +9,12 @@ from omu.extension.endpoint.endpoint_extension import (
     EndpointDataReq,
     EndpointError,
     EndpointErrorEvent,
-    EndpointInfo,
     EndpointReceiveEvent,
     EndpointRegisterEvent,
-    EndpointsTableType,
     EndpointType,
 )
 from omu.helper import Coro
+from omu.identifier import Identifier
 
 from omuserver.server import Server
 from omuserver.session import Session
@@ -24,20 +23,20 @@ from omuserver.session import Session
 class Endpoint(abc.ABC):
     @property
     @abc.abstractmethod
-    def info(self) -> EndpointInfo: ...
+    def identifier(self) -> Identifier: ...
 
     @abc.abstractmethod
     async def call(self, data: EndpointDataReq, session: Session) -> None: ...
 
 
 class SessionEndpoint(Endpoint):
-    def __init__(self, session: Session, info: EndpointInfo) -> None:
+    def __init__(self, session: Session, identifier: Identifier) -> None:
         self._session = session
-        self._info = info
+        self._identifier = identifier
 
     @property
-    def info(self) -> EndpointInfo:
-        return self._info
+    def identifier(self) -> Identifier:
+        return self._identifier
 
     async def call(self, data: EndpointDataReq, session: Session) -> None:
         if self._session.closed:
@@ -57,8 +56,8 @@ class ServerEndpoint[Req, Res](Endpoint):
         self._callback = callback
 
     @property
-    def info(self) -> EndpointInfo:
-        return self._endpoint.info
+    def identifier(self) -> Identifier:
+        return self._endpoint.identifier
 
     async def call(self, data: EndpointDataReq, session: Session) -> None:
         if session.closed:
@@ -97,7 +96,6 @@ class EndpointCall:
 class EndpointExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self._server.listeners.start += self.on_server_start
         self._endpoints: Dict[str, Endpoint] = {}
         self._calls: Dict[str, EndpointCall] = {}
         server.packet_dispatcher.register(
@@ -119,20 +117,20 @@ class EndpointExtension:
             EndpointErrorEvent, self._on_endpoint_error
         )
 
-    async def _on_endpoint_register(self, session: Session, info: EndpointInfo) -> None:
-        await self.endpoints.add(info)
-        endpoint = SessionEndpoint(session, info)
-        self._endpoints[info.key()] = endpoint
+    async def _on_endpoint_register(self, session: Session, id: str) -> None:
+        identifier = Identifier.from_key(id)
+        endpoint = SessionEndpoint(session, identifier)
+        self._endpoints[identifier.key()] = endpoint
 
     def bind_endpoint[Req, Res](
         self,
         type: EndpointType[Req, Res],
         callback: Coro[[Session, Req], Res],
     ) -> None:
-        if type.info.key() in self._endpoints:
-            raise ValueError(f"Endpoint {type.info.key()} already bound")
+        if type.identifier.key() in self._endpoints:
+            raise ValueError(f"Endpoint {type.identifier.key()} already bound")
         endpoint = ServerEndpoint(self._server, type, callback)
-        self._endpoints[type.info.key()] = endpoint
+        self._endpoints[type.identifier.key()] = endpoint
 
     async def _on_endpoint_call(self, session: Session, req: EndpointDataReq) -> None:
         endpoint = await self._get_endpoint(req, session)
@@ -194,8 +192,3 @@ class EndpointExtension:
             )
             return
         return endpoint
-
-    async def on_server_start(self) -> None:
-        self.endpoints = await self._server.tables.register_table(EndpointsTableType)
-        for endpoint in self._endpoints.values():
-            await self.endpoints.add(endpoint.info)
