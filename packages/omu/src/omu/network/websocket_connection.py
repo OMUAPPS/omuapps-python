@@ -3,12 +3,12 @@ from __future__ import annotations
 import aiohttp
 from aiohttp import web
 
-from omu.client.client import Client
+from omu.client import Client
 from omu.network import Address
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.connection import Connection, PacketMapper
-from omu.network.packet import PacketData
-from omu.network.packet.packet import Packet
+from omu.network.connection import Connection
+from omu.network.packet import Packet, PacketData
+from omu.serializer import Serializable
 
 
 class WebsocketsConnection(Connection):
@@ -30,7 +30,7 @@ class WebsocketsConnection(Connection):
         self._socket = await self._session.ws_connect(self._ws_endpoint)
         self._connected = True
 
-    async def receive(self, packet_mapper: PacketMapper) -> Packet:
+    async def receive(self, packet_mapper: Serializable[Packet, PacketData]) -> Packet:
         if not self._socket or self._socket.closed:
             raise RuntimeError("Not connected")
         msg = await self._socket.receive()
@@ -69,10 +69,12 @@ class WebsocketsConnection(Connection):
         self._socket = None
         self._connected = False
 
-    async def send(self, packet: Packet, packet_mapper: PacketMapper) -> None:
+    async def send(
+        self, packet: Packet, serializer: Serializable[Packet, PacketData]
+    ) -> None:
         if not self._socket or self._socket.closed or not self._connected:
             raise RuntimeError("Not connected")
-        packet_data = packet_mapper.serialize(packet)
+        packet_data = serializer.serialize(packet)
         writer = ByteWriter()
         writer.write_string(packet_data.type)
         writer.write_byte_array(packet_data.data)
