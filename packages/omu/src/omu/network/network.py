@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal
+from typing import Dict, Final, List, Literal
 
 from omu.client.client import Client
 from omu.event_emitter import EventEmitter
@@ -14,8 +14,8 @@ from omu.network.packet.packet_types import PACKET_TYPES, ConnectPacket
 
 @dataclass
 class PacketListeners[T]:
-    event_type: PacketType[T]
-    listeners: EventEmitter[T] = field(default_factory=EventEmitter)
+    event_type: Final[PacketType[T]]
+    listeners: Final[EventEmitter[T]] = field(default_factory=EventEmitter)
 
 
 class Network:
@@ -59,7 +59,7 @@ class Network:
             raise ValueError(f"Event type {packet_type.type} not registered")
 
         def decorator(packet_handler: Coro[[T], None]) -> None:
-            self._packet_handlers[packet_type.type].listeners += packet_handler
+            self._packet_handlers[packet_type.type].listeners.subscribe(packet_handler)
 
         if packet_handler:
             decorator(packet_handler)

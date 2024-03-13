@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, Final, List
 
 from omu.serializer import Serializer
 
@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 
 @dataclass
 class PacketData:
-    type: str
-    data: bytes
+    type: Final[str]
+    data: Final[bytes]
 
 
 @dataclass
 class Packet[T]:
-    packet_type: PacketType
-    packet_data: T
+    packet_type: Final[PacketType]
+    packet_data: Final[T]
 
 
 class PacketType[T](abc.ABC):

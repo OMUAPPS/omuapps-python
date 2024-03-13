@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Dict
+from typing import TYPE_CHECKING, Callable, Dict, Final
 
 from loguru import logger
 from omu.event_emitter import EventEmitter
@@ -45,7 +45,7 @@ class ServerPacketDispatcher:
             raise ValueError(f"Event type {event_type.type} not registered")
 
         def decorator(listener: Coro[[Session, T], None]) -> None:
-            self._packet_listeners[event_type.type].listeners += listener
+            self._packet_listeners[event_type.type].listeners.subscribe(listener)
 
         if listener:
             decorator(listener)
@@ -54,5 +54,5 @@ class ServerPacketDispatcher:
 
 @dataclass
 class PacketListeners[T]:
-    event_type: PacketType[T]
-    listeners: EventEmitter[Session, T] = field(default_factory=EventEmitter)
+    event_type: Final[PacketType[T]]
+    listeners: Final[EventEmitter[Session, T]] = field(default_factory=EventEmitter)
