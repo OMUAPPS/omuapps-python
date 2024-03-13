@@ -115,10 +115,10 @@ class Network:
 
     async def dispatch_packet(self, packet: Packet) -> None:
         await self._listeners.packet.emit(packet)
-        packet_handler = self._packet_handlers.get(packet.packet_type.identifier)
+        packet_handler = self._packet_handlers.get(packet.type.identifier)
         if not packet_handler:
             return
-        await packet_handler.listeners.emit(packet.packet_data)
+        await packet_handler.listeners.emit(packet.data)
 
     async def disconnect(self) -> None:
         if self._connection.closed:

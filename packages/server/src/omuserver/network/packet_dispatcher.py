@@ -24,11 +24,11 @@ class ServerPacketDispatcher:
         session.listeners.packet += self.process_packet
 
     async def process_packet(self, session: Session, packet: Packet) -> None:
-        listeners = self._packet_listeners.get(packet.packet_type.identifier)
+        listeners = self._packet_listeners.get(packet.type.identifier)
         if not listeners:
-            logger.warning(f"Received unknown event type {packet.packet_type}")
+            logger.warning(f"Received unknown event type {packet.type}")
             return
-        await listeners.listeners.emit(session, packet.packet_data)
+        await listeners.listeners.emit(session, packet.data)
 
     def register(self, *types: PacketType) -> None:
         self.packet_mapper.register(*types)

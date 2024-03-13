@@ -18,8 +18,8 @@ class PacketData:
 
 @dataclass
 class Packet[T]:
-    packet_type: Final[PacketType]
-    packet_data: Final[T]
+    type: Final[PacketType[T]]
+    data: Final[T]
 
 
 @dataclass

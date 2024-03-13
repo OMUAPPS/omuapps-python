@@ -54,14 +54,14 @@ class Session:
         packet_mapper: PacketMapper,
         connection: SessionConnection,
     ) -> Session:
-        data = await connection.receive(packet_mapper)
-        if data is None:
+        packet = await connection.receive(packet_mapper)
+        if packet is None:
             raise RuntimeError("Socket closed before connect")
-        if data.packet_type != PACKET_TYPES.Connect:
+        if packet.type != PACKET_TYPES.Connect:
             raise RuntimeError(
-                f"Expected {PACKET_TYPES.Connect.type} but got {data.packet_type}"
+                f"Expected {PACKET_TYPES.Connect.identifier} but got {packet.type}"
             )
-        event: ConnectPacket = data.packet_data
+        event: ConnectPacket = packet.data
         permissions, token = await server.security.authenticate_app(
             event.app, event.token
         )
