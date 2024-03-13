@@ -22,7 +22,7 @@ EndpointExtensionType = ExtensionType(
 class EndpointExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        self.promises: Dict[int, Future] = {}
+        self.response_promises: Dict[int, Future] = {}
         self.endpoints: Dict[str, Tuple[EndpointType, Coro[[Any], Any]]] = {}
         self.call_id = 0
         client.network.register_packet(
@@ -36,16 +36,15 @@ class EndpointExtension(Extension):
         client.network.listeners.connected += self.on_connected
 
     async def _on_receive(self, data: EndpointDataReq) -> None:
-        if data["id"] not in self.promises:
-            return
-        future = self.promises[data["id"]]
+        if data["id"] not in self.response_promises:
+            raise Exception(f"Received response for unknown call id {data['id']}")
+        future = self.response_promises.pop(data["id"])
         future.set_result(data["data"])
-        self.promises.pop(data["id"])
 
     async def _on_error(self, data: EndpointError) -> None:
-        if data["id"] not in self.promises:
-            return
-        future = self.promises[data["id"]]
+        if data["id"] not in self.response_promises:
+            raise Exception(f"Received error for unknown call id {data['id']}")
+        future = self.response_promises.pop(data["id"])
         future.set_exception(Exception(data["error"]))
 
     async def _on_call(self, data: EndpointDataReq) -> None:
@@ -80,6 +79,9 @@ class EndpointExtension(Extension):
             )
         self.endpoints[type.identifier.key()] = (type, func)
 
+    def bind[T, R](self, func: Coro[[T], R], endpoint_type: EndpointType[T, R]) -> None:
+        self.register(endpoint_type, func)
+
     def listen(
         self, func: Coro | None = None, name: str | None = None
     ) -> Callable[[Coro], Coro]:
@@ -99,7 +101,7 @@ class EndpointExtension(Extension):
         try:
             self.call_id += 1
             future = Future[bytes]()
-            self.promises[self.call_id] = future
+            self.response_promises[self.call_id] = future
             json = endpoint.request_serializer.serialize(data)
             await self.client.send(
                 EndpointCallEvent,
