@@ -1,12 +1,44 @@
 import abc
-from typing import Callable
+from dataclasses import dataclass
+from typing import Callable, Final
 
 from omu.helper import Coro
+from omu.identifier import Identifier
+from omu.serializer import Serializable, Serializer
+
+
+@dataclass
+class MessageType[T]:
+    identifier: Final[Identifier]
+    serializer: Final[Serializable[T, bytes]]
+
+    @classmethod
+    def create_json(
+        cls,
+        identifier: Identifier,
+        name: str,
+    ):
+        return cls(
+            identifier=identifier / name,
+            serializer=Serializer.json(),
+        )
+
+    @classmethod
+    def create_serialized(
+        cls,
+        identifier: Identifier,
+        name: str,
+        serializer: Serializable[T, bytes],
+    ):
+        return cls(
+            identifier=identifier / name,
+            serializer=serializer,
+        )
 
 
 class Message[T](abc.ABC):
     @abc.abstractmethod
-    async def broadcast(self, body: T) -> None: ...
+    def listen(self, fn: Coro[[T], None]) -> Callable[[], None]: ...
 
     @abc.abstractmethod
-    def listen(self, fn: Coro[[T], None]) -> Callable[[], None]: ...
+    async def broadcast(self, body: T) -> None: ...

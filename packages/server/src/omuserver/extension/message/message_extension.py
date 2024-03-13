@@ -6,7 +6,6 @@ from omu.extension.message.message_extension import (
     MessageBroadcastPacket,
     MessageData,
     MessageListenPacket,
-    MessageRegisterPacket,
 )
 
 if TYPE_CHECKING:
@@ -31,12 +30,7 @@ class MessageExtension:
     def __init__(self, server: Server):
         self._server = server
         self._keys: Dict[str, Message] = {}
-        server.packet_dispatcher.register(
-            MessageRegisterPacket, MessageListenPacket, MessageBroadcastPacket
-        )
-        server.packet_dispatcher.add_packet_handler(
-            MessageRegisterPacket, self._on_register
-        )
+        server.packet_dispatcher.register(MessageListenPacket, MessageBroadcastPacket)
         server.packet_dispatcher.add_packet_handler(
             MessageListenPacket, self._on_listen
         )
@@ -59,7 +53,7 @@ class MessageExtension:
         message.add_listener(session)
 
     async def _on_broadcast(self, session: Session, data: MessageData) -> None:
-        key = data["key"]
+        key = data.key
         if key not in self._keys:
             self._keys[key] = Message(key)
         message = self._keys[key]
