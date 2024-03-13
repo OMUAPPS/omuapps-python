@@ -94,7 +94,7 @@ class CachedTable(ServerTable):
     async def get_all(self, keys: List[str]) -> Dict[str, bytes]:
         if self._adapter is None:
             raise Exception("Table not set")
-        items = {}
+        items: Dict[str, bytes] = {}
         for key in tuple(keys):
             if key in self._cache:
                 items[key] = self._cache[key]

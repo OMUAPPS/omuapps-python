@@ -75,7 +75,7 @@ class PluginExtension:
 
     async def install_dependencies(self) -> None:
         # https://stackoverflow.com/a/44210735
-        dependencies: dict[str, str] = {}
+        dependencies: Dict[str, str] = {}
         for metadata in self.plugins.values():
             dependencies.update(metadata["dependencies"])
         to_install: Dict[str, str] = {}

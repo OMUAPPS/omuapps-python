@@ -116,7 +116,7 @@ class TableItemsSerielizer(Serializable[TableItemsData, bytes]):
         with ByteReader(data) as reader:
             type = reader.read_string()
             item_count = reader.read_int()
-            items = {}
+            items: Dict[str, bytes] = {}
             for _ in range(item_count):
                 key = reader.read_string()
                 value = reader.read_byte_array()
@@ -140,7 +140,7 @@ class TableProxySerielizer(Serializable[TableProxyData, bytes]):
             type = reader.read_string()
             key = reader.read_int()
             item_count = reader.read_int()
-            items = {}
+            items: Dict[str, bytes] = {}
             for _ in range(item_count):
                 item_key = reader.read_string()
                 value = reader.read_byte_array()

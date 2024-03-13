@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
 from .tableadapter import TableAdapter
 
@@ -83,7 +83,7 @@ class SqliteTableAdapter(TableAdapter):
             _cursor = self._conn.execute("SELECT key, value FROM data")
             return {row[0]: (row[1]) for row in _cursor.fetchall()}
 
-        items = {}
+        items: Dict[int, Tuple[str, bytes]] = {}
         if before is not None:
             if cursor_id is None:
                 _cursor = self._conn.execute(

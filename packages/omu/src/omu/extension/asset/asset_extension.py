@@ -26,7 +26,7 @@ class FilesSerializer(Serializable[Files, bytes]):
     def deserialize(self, data: bytes) -> Files:
         with ByteReader(data) as reader:
             length = reader.read_int()
-            files = {}
+            files: Files = {}
             for _ in range(length):
                 key = reader.read_string()
                 value = reader.read_byte_array()
