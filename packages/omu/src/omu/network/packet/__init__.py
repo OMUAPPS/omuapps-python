@@ -1,4 +1,4 @@
-from .packet import JsonPacketType, Packet, PacketData, PacketType, SerializedPacketType
+from .packet import Packet, PacketData, PacketType
 from .packet_types import PACKET_TYPES
 
 __all__ = [
@@ -6,6 +6,4 @@ __all__ = [
     "PacketType",
     "Packet",
     "PACKET_TYPES",
-    "JsonPacketType",
-    "SerializedPacketType",
 ]

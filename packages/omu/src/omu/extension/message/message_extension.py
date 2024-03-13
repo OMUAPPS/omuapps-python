@@ -8,8 +8,7 @@ from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.packet import JsonPacketType
-from omu.network.packet.packet import SerializedPacketType
+from omu.network.packet import PacketType
 from omu.serializer import Serializable
 
 from .message import Message, MessageType
@@ -41,8 +40,8 @@ class MessageSerializer(Serializable[MessageData, bytes]):
         return MessageData(key=key, body=body)
 
 
-MessageListenPacket = JsonPacketType[str].of_extension(MessageExtensionType, "listen")
-MessageBroadcastPacket = SerializedPacketType[MessageData].of_extension(
+MessageListenPacket = PacketType[str].create_json(MessageExtensionType, "listen")
+MessageBroadcastPacket = PacketType[MessageData].create_serialized(
     MessageExtensionType,
     "broadcast",
     MessageSerializer(),

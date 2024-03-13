@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Dict
 
 from omu.app import App
+from omu.identifier import Identifier
 from omu.model import Model
-from omu.network.packet import JsonPacketType
+from omu.network.packet import PacketType
 from omu.serializer import Serializer
 
 
@@ -42,23 +43,24 @@ class DisconnectPacket(Model):
 
 
 class PACKET_TYPES:
-    Connect = JsonPacketType(
-        "",
+    IDENTIFIER = Identifier("core", "packet")
+    Connect = PacketType.create_json(
+        IDENTIFIER,
         "connect",
         Serializer.model(ConnectPacket),
     )
-    Disconnect = JsonPacketType(
-        "",
+    Disconnect = PacketType.create_json(
+        IDENTIFIER,
         "disconnect",
         Serializer.model(DisconnectPacket),
     )
-    Token = JsonPacketType[str](
-        "",
+    Token = PacketType[str].create_json(
+        IDENTIFIER,
         "token",
         Serializer.noop(),
     )
-    Ready = JsonPacketType[None](
-        "",
+    Ready = PacketType[None].create_json(
+        IDENTIFIER,
         "ready",
         Serializer.noop(),
     )

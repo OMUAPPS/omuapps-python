@@ -7,6 +7,7 @@ from typing import Dict, Final, List, Literal
 from omu.client.client import Client
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
+from omu.identifier import Identifier
 from omu.network.connection import Connection, PacketMapper
 from omu.network.packet.packet import Packet, PacketType
 from omu.network.packet.packet_types import PACKET_TYPES, ConnectPacket
@@ -28,7 +29,7 @@ class Network:
         self._token: str | None = None
         self._closed_event = asyncio.Event()
         self._packet_mapper = PacketMapper()
-        self._packet_handlers: Dict[str, PacketListeners] = {}
+        self._packet_handlers: Dict[Identifier, PacketListeners] = {}
         self._packet_mapper.register(
             PACKET_TYPES.Connect,
             PACKET_TYPES.Disconnect,
@@ -46,20 +47,24 @@ class Network:
     def register_packet(self, *packet_types: PacketType) -> None:
         self._packet_mapper.register(*packet_types)
         for packet_type in packet_types:
-            if self._packet_handlers.get(packet_type.type):
-                raise ValueError(f"Event type {packet_type.type} already registered")
-            self._packet_handlers[packet_type.type] = PacketListeners(packet_type)
+            if self._packet_handlers.get(packet_type.identifier):
+                raise ValueError(
+                    f"Event type {packet_type.identifier} already registered"
+                )
+            self._packet_handlers[packet_type.identifier] = PacketListeners(packet_type)
 
     def add_packet_handler[T](
         self,
         packet_type: PacketType[T],
         packet_handler: Coro[[T], None] | None = None,
     ):
-        if not self._packet_handlers.get(packet_type.type):
-            raise ValueError(f"Event type {packet_type.type} not registered")
+        if not self._packet_handlers.get(packet_type.identifier):
+            raise ValueError(f"Event type {packet_type.identifier} not registered")
 
         def decorator(packet_handler: Coro[[T], None]) -> None:
-            self._packet_handlers[packet_type.type].listeners.subscribe(packet_handler)
+            self._packet_handlers[packet_type.identifier].listeners.subscribe(
+                packet_handler
+            )
 
         if packet_handler:
             decorator(packet_handler)
@@ -110,7 +115,7 @@ class Network:
 
     async def dispatch_packet(self, packet: Packet) -> None:
         await self._listeners.packet.emit(packet)
-        packet_handler = self._packet_handlers.get(packet.packet_type.type)
+        packet_handler = self._packet_handlers.get(packet.packet_type.identifier)
         if not packet_handler:
             return
         await packet_handler.listeners.emit(packet.packet_data)

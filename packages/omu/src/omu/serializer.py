@@ -32,6 +32,10 @@ class Serializer[T, D](Serializable[T, D]):
         return self._deserialize(item)
 
     @classmethod
+    def of[_T, _D](cls, serializer: Serializable[_T, _D]) -> Serializer[_T, _D]:
+        return Serializer(serializer.serialize, serializer.deserialize)
+
+    @classmethod
     def noop(cls) -> Serializer[T, T]:
         return NoopSerializer()
 

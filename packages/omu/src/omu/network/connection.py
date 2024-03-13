@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, Dict
 
+from omu.identifier import Identifier
 from omu.network.packet.packet import Packet, PacketData, PacketType
 
 if TYPE_CHECKING:
@@ -11,22 +12,25 @@ if TYPE_CHECKING:
 
 class PacketMapper:
     def __init__(self) -> None:
-        self._mappers: Dict[str, PacketType] = {}
+        self._mappers: Dict[Identifier, PacketType] = {}
 
     def register(self, *packet_types: PacketType) -> None:
         for packet_type in packet_types:
-            if self._mappers.get(packet_type.type):
-                raise ValueError(f"Packet type {packet_type.type} already registered")
-            self._mappers[packet_type.type] = packet_type
+            if self._mappers.get(packet_type.identifier):
+                raise ValueError(
+                    f"Packet id {packet_type.identifier} already registered"
+                )
+            self._mappers[packet_type.identifier] = packet_type
 
     def serialize(self, packet: Packet) -> PacketData:
         return PacketData(
-            type=packet.packet_type.type,
+            type=packet.packet_type.identifier.key(),
             data=packet.packet_type.serializer.serialize(packet.packet_data),
         )
 
     def deserialize(self, data: PacketData) -> Packet:
-        packet_type = self._mappers.get(data.type)
+        identifier = Identifier.from_key(data.type)
+        packet_type = self._mappers.get(identifier)
         if not packet_type:
             raise ValueError(f"Unknown packet type {data.type}")
         return Packet(

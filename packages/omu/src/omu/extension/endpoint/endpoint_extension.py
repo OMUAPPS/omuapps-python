@@ -7,7 +7,7 @@ from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.packet import JsonPacketType, SerializedPacketType
+from omu.network.packet import PacketType
 from omu.serializer import Serializable, Serializer
 
 from .endpoint import EndpointType
@@ -152,22 +152,22 @@ class CallSerializer(Serializable[EndpointDataReq, bytes]):
 
 CALL_SERIALIZER = CallSerializer()
 
-EndpointRegisterEvent = JsonPacketType[str].of_extension(
+EndpointRegisterEvent = PacketType[str].create_json(
     EndpointExtensionType,
     "register",
     Serializer.json(),
 )
-EndpointCallEvent = SerializedPacketType[EndpointDataReq].of_extension(
+EndpointCallEvent = PacketType[EndpointDataReq].create_serialized(
     EndpointExtensionType,
     "call",
     CALL_SERIALIZER,
 )
-EndpointReceiveEvent = SerializedPacketType[EndpointDataReq].of_extension(
+EndpointReceiveEvent = PacketType[EndpointDataReq].create_serialized(
     EndpointExtensionType,
     "receive",
     CALL_SERIALIZER,
 )
-EndpointErrorEvent = JsonPacketType[EndpointError].of_extension(
+EndpointErrorEvent = PacketType[EndpointError].create_json(
     EndpointExtensionType,
     "error",
 )

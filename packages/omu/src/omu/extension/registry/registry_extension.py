@@ -9,8 +9,7 @@ from omu.extension.endpoint import EndpointType
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.packet import JsonPacketType
-from omu.network.packet.packet import SerializedPacketType
+from omu.network.packet import PacketType
 from omu.serializer import Serializable, Serializer
 
 from .registry import Registry, RegistryType
@@ -45,12 +44,12 @@ class RegistryDataSerializer(Serializable[RegistryData, bytes]):
             return RegistryData(key, existing, value)
 
 
-RegistryUpdateEvent = SerializedPacketType[RegistryData].of_extension(
+RegistryUpdateEvent = PacketType[RegistryData].create_serialized(
     RegistryExtensionType,
     "update",
     serializer=RegistryDataSerializer(),
 )
-RegistryListenEvent = JsonPacketType[str].of_extension(RegistryExtensionType, "listen")
+RegistryListenEvent = PacketType[str].create_json(RegistryExtensionType, "listen")
 RegistryGetEndpoint = EndpointType[str, RegistryData].create_serialized(
     RegistryExtensionType,
     "get",

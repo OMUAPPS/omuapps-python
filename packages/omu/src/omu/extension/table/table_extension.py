@@ -15,7 +15,7 @@ from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.packet import JsonPacketType, SerializedPacketType
+from omu.network.packet import PacketType
 from omu.serializer import JsonSerializable, Serializable, Serializer
 
 from .table import (
@@ -153,14 +153,12 @@ class SetConfigReq(TypedDict):
     config: TableConfig
 
 
-TableConfigSetEvent = JsonPacketType[SetConfigReq].of_extension(
+TableConfigSetEvent = PacketType[SetConfigReq].create_json(
     TableExtensionType, "config_set"
 )
-TableListenEvent = JsonPacketType[str].of_extension(TableExtensionType, name="listen")
-TableProxyListenEvent = JsonPacketType[str].of_extension(
-    TableExtensionType, "proxy_listen"
-)
-TableProxyEvent = SerializedPacketType[TableProxyData].of_extension(
+TableListenEvent = PacketType[str].create_json(TableExtensionType, name="listen")
+TableProxyListenEvent = PacketType[str].create_json(TableExtensionType, "proxy_listen")
+TableProxyEvent = PacketType[TableProxyData].create_serialized(
     TableExtensionType,
     "proxy",
     serializer=TableProxySerielizer(),
@@ -173,16 +171,16 @@ TableProxyEndpoint = EndpointType[TableProxyData, int].create_serialized(
 )
 
 
-TableItemAddEvent = SerializedPacketType[TableItemsData].of_extension(
+TableItemAddEvent = PacketType[TableItemsData].create_serialized(
     TableExtensionType, "item_add", TableItemsSerielizer()
 )
-TableItemUpdateEvent = SerializedPacketType[TableItemsData].of_extension(
+TableItemUpdateEvent = PacketType[TableItemsData].create_serialized(
     TableExtensionType, "item_update", TableItemsSerielizer()
 )
-TableItemRemoveEvent = SerializedPacketType[TableItemsData].of_extension(
+TableItemRemoveEvent = PacketType[TableItemsData].create_serialized(
     TableExtensionType, "item_remove", TableItemsSerielizer()
 )
-TableItemClearEvent = JsonPacketType[TableEventData].of_extension(
+TableItemClearEvent = PacketType[TableEventData].create_json(
     TableExtensionType, "item_clear"
 )
 
