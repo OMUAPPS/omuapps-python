@@ -45,10 +45,7 @@ class Connection(abc.ABC):
     async def connect(self) -> Network: ...
 
     @abc.abstractmethod
-    async def receive(
-        self,
-        serializer: Serializable[Packet, PacketData],
-    ) -> Packet: ...
+    async def close(self) -> None: ...
 
     @abc.abstractmethod
     async def send(
@@ -58,7 +55,10 @@ class Connection(abc.ABC):
     ) -> None: ...
 
     @abc.abstractmethod
-    async def close(self) -> None: ...
+    async def receive(
+        self,
+        serializer: Serializable[Packet, PacketData],
+    ) -> Packet: ...
 
     @property
     @abc.abstractmethod
