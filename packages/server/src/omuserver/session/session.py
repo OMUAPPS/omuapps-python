@@ -57,16 +57,16 @@ class Session:
         packet = await connection.receive(packet_mapper)
         if packet is None:
             raise RuntimeError("Socket closed before connect")
-        if packet.type != PACKET_TYPES.Connect:
+        if packet.type != PACKET_TYPES.CONNECT:
             raise RuntimeError(
-                f"Expected {PACKET_TYPES.Connect.identifier} but got {packet.type}"
+                f"Expected {PACKET_TYPES.CONNECT.identifier} but got {packet.type}"
             )
         event: ConnectPacket = packet.data
         permissions, token = await server.security.authenticate_app(
             event.app, event.token
         )
         session = Session(packet_mapper, event.app, permissions, connection)
-        await session.send(PACKET_TYPES.Token, token)
+        await session.send(PACKET_TYPES.TOKEN, token)
         return session
 
     @property
