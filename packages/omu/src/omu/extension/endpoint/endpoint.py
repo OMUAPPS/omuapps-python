@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
 
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
 
-@dataclass
+@dataclass(frozen=True)
 class EndpointType[Req, Res]:
-    identifier: Final[Identifier]
-    request_serializer: Final[Serializable[Req, bytes]]
-    response_serializer: Final[Serializable[Res, bytes]]
+    identifier: Identifier
+    request_serializer: Serializable[Req, bytes]
+    response_serializer: Serializable[Res, bytes]
 
     @classmethod
     def create_json(

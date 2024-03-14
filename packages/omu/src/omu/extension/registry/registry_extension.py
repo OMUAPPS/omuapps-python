@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Final, List
+from typing import Callable, List
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -21,11 +21,11 @@ RegistryExtensionType = ExtensionType(
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class RegistryData:
-    key: Final[str]
-    existing: Final[bool]
-    value: Final[bytes]
+    key: str
+    existing: bool
+    value: bytes
 
 
 class RegistryDataSerializer(Serializable[RegistryData, bytes]):

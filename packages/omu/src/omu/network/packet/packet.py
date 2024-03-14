@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
 from omu.identifier import Identifier
 from omu.serializer import Serializer
@@ -10,22 +10,22 @@ if TYPE_CHECKING:
     from omu.serializer import Serializable
 
 
-@dataclass
+@dataclass(frozen=True)
 class PacketData:
-    type: Final[str]
-    data: Final[bytes]
+    type: str
+    data: bytes
 
 
-@dataclass
+@dataclass(frozen=True)
 class Packet[T]:
-    type: Final[PacketType[T]]
-    data: Final[T]
+    type: PacketType[T]
+    data: T
 
 
-@dataclass
+@dataclass(frozen=True)
 class PacketType[T]:
-    identifier: Final[Identifier]
-    serializer: Final[Serializable[T, bytes]]
+    identifier: Identifier
+    serializer: Serializable[T, bytes]
 
     @classmethod
     def create_json[_T](

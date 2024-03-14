@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import socket
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, Final
+from typing import TYPE_CHECKING, Dict
 
 from aiohttp import web
 from loguru import logger
@@ -20,10 +20,10 @@ if TYPE_CHECKING:
     from omuserver.server import Server
 
 
-@dataclass
+@dataclass(frozen=True)
 class PacketListeners[T]:
-    event_type: Final[PacketType]
-    listeners: Final[EventEmitter[Session, T]] = field(default_factory=EventEmitter)
+    event_type: PacketType
+    listeners: EventEmitter[Session, T] = field(default_factory=EventEmitter)
 
 
 class Network:

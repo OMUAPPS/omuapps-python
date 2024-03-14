@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Final
 
 
-@dataclass
+@dataclass(frozen=True)
 class Address:
-    host: Final[str]
-    port: Final[int]
-    secure: Final[bool] = False
+    host: str
+    port: int
+    secure: bool = False

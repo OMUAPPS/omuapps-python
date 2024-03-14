@@ -7,7 +7,6 @@ from typing import (
     AsyncGenerator,
     Callable,
     Dict,
-    Final,
     Mapping,
     NotRequired,
     TypedDict,
@@ -128,11 +127,11 @@ class TableListener[T]:
 type ModelEntry[T: Keyable, D] = JsonSerializable[T, D]
 
 
-@dataclass
+@dataclass(frozen=True)
 class TableType[T]:
-    identifier: Final[Identifier]
-    serializer: Final[Serializable[T, bytes]]
-    key_func: Final[Callable[[T], str]]
+    identifier: Identifier
+    serializer: Serializable[T, bytes]
+    key_func: Callable[[T], str]
 
     @classmethod
     def create_model[_T: Keyable, _D](

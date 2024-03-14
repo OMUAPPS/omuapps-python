@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import Callable, Final
+from typing import Callable
 
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
 
-@dataclass
+@dataclass(frozen=True)
 class RegistryType[T]:
-    identifier: Final[Identifier]
-    default_value: Final[T]
-    serializer: Final[Serializable[T, bytes]]
+    identifier: Identifier
+    default_value: T
+    serializer: Serializable[T, bytes]
 
     @classmethod
     def create_json(

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Dict, Final
+from typing import TYPE_CHECKING, Callable, Dict
 
 from loguru import logger
 from omu.event_emitter import EventEmitter
@@ -53,7 +53,7 @@ class ServerPacketDispatcher:
         return decorator
 
 
-@dataclass
+@dataclass(frozen=True)
 class PacketListeners[T]:
-    event_type: Final[PacketType[T]]
-    listeners: Final[EventEmitter[Session, T]] = field(default_factory=EventEmitter)
+    event_type: PacketType[T]
+    listeners: EventEmitter[Session, T] = field(default_factory=EventEmitter)

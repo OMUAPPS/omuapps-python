@@ -1,16 +1,16 @@
 import abc
 from dataclasses import dataclass
-from typing import Callable, Final
+from typing import Callable
 
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
 
-@dataclass
+@dataclass(frozen=True)
 class MessageType[T]:
-    identifier: Final[Identifier]
-    serializer: Final[Serializable[T, bytes]]
+    identifier: Identifier
+    serializer: Serializable[T, bytes]
 
     @classmethod
     def create_json(

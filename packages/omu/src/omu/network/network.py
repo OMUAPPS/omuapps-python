@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Dict, Final, List, Literal
+from typing import Dict, List, Literal
 
 from omu.client import Client
 from omu.event_emitter import EventEmitter
@@ -15,10 +15,10 @@ from .packet.packet_types import PACKET_TYPES, ConnectPacket
 from .packet_mapper import PacketMapper
 
 
-@dataclass
+@dataclass(frozen=True)
 class PacketListeners[T]:
-    event_type: Final[PacketType[T]]
-    listeners: Final[EventEmitter[T]] = field(default_factory=EventEmitter)
+    event_type: PacketType[T]
+    listeners: EventEmitter[T] = field(default_factory=EventEmitter)
 
 
 class Network:

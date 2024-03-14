@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-from typing import Final
 
 from omu import Client
 
 
-@dataclass
+@dataclass(frozen=True)
 class Plugin:
-    client: Final[Client]
+    client: Client
