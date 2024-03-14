@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Dict
 from loguru import logger
 from omu.event_emitter import EventEmitter
 from omu.identifier import Identifier
-from omu.network.connection import PacketMapper
+from omu.network.packet_mapper import PacketMapper
 
 from omuserver.session import Session
 
