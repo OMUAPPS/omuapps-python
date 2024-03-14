@@ -5,10 +5,9 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from omu.event_emitter import EventEmitter
-from omu.network.connection import PacketMapper
-from omu.network.packet import PACKET_TYPES, Packet
-from omu.network.packet.packet import PacketType
+from omu.network.packet import PACKET_TYPES, Packet, PacketType
 from omu.network.packet.packet_types import ConnectPacket
+from omu.network.packet_mapper import PacketMapper
 
 from omuserver.server.server import Server
 

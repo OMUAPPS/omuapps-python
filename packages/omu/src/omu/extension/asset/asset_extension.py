@@ -1,8 +1,8 @@
 from typing import Dict, List
 
 from omu.client import Client
+from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
-from omu.extension.extension import Extension, ExtensionType
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.serializer import Serializable, Serializer
 

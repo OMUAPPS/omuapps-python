@@ -14,7 +14,7 @@ from typing import (
 )
 
 from omu.identifier import Identifier
-from omu.interface.keyable import Keyable
+from omu.interface import Keyable
 from omu.serializer import Serializer
 
 if TYPE_CHECKING:

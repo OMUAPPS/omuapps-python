@@ -1,8 +1,7 @@
 from omu.app import App
 from omu.client import OmuClient
 from omu.network import Address
-from omu.network.packet import PACKET_TYPES
-from omu.network.packet.packet import Packet
+from omu.network.packet import PACKET_TYPES, Packet
 
 address = Address(
     host="localhost",

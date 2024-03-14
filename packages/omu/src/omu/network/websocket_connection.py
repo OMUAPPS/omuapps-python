@@ -4,11 +4,12 @@ import aiohttp
 from aiohttp import web
 
 from omu.client import Client
-from omu.network import Address
-from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.connection import Connection
-from omu.network.packet import Packet, PacketData
 from omu.serializer import Serializable
+
+from .address import Address
+from .bytebuffer import ByteReader, ByteWriter
+from .connection import Connection
+from .packet import Packet, PacketData
 
 
 class WebsocketsConnection(Connection):
@@ -30,7 +31,20 @@ class WebsocketsConnection(Connection):
         self._socket = await self._session.ws_connect(self._ws_endpoint)
         self._connected = True
 
-    async def receive(self, packet_mapper: Serializable[Packet, PacketData]) -> Packet:
+    async def send(
+        self, packet: Packet, serializer: Serializable[Packet, PacketData]
+    ) -> None:
+        if not self._socket or self._socket.closed or not self._connected:
+            raise RuntimeError("Not connected")
+        packet_data = serializer.serialize(packet)
+        writer = ByteWriter()
+        writer.write_string(packet_data.type)
+        writer.write_byte_array(packet_data.data)
+        await self._socket.send_bytes(writer.finish())
+
+    async def receive(
+        self, packet_serializer: Serializable[Packet, PacketData]
+    ) -> Packet:
         if not self._socket or self._socket.closed:
             raise RuntimeError("Not connected")
         msg = await self._socket.receive()
@@ -50,13 +64,9 @@ class WebsocketsConnection(Connection):
                 event_type = reader.read_string()
                 event_data = reader.read_byte_array()
             packet_data = PacketData(event_type, event_data)
-            return packet_mapper.deserialize(packet_data)
+            return packet_serializer.deserialize(packet_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
-
-    @property
-    def closed(self) -> bool:
-        return not self._socket or self._socket.closed
 
     async def close(self) -> None:
         if not self._socket or self._socket.closed:
@@ -69,16 +79,9 @@ class WebsocketsConnection(Connection):
         self._socket = None
         self._connected = False
 
-    async def send(
-        self, packet: Packet, serializer: Serializable[Packet, PacketData]
-    ) -> None:
-        if not self._socket or self._socket.closed or not self._connected:
-            raise RuntimeError("Not connected")
-        packet_data = serializer.serialize(packet)
-        writer = ByteWriter()
-        writer.write_string(packet_data.type)
-        writer.write_byte_array(packet_data.data)
-        await self._socket.send_bytes(writer.finish())
+    @property
+    def closed(self) -> bool:
+        return not self._socket or self._socket.closed
 
     def __del__(self) -> None:
         if self._session:

@@ -3,11 +3,12 @@ from __future__ import annotations
 from aiohttp import web
 from loguru import logger
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.connection import PacketMapper
 from omu.network.packet import Packet, PacketData
+from omu.network.packet_mapper import PacketMapper
 
 from omuserver.security import Permission
-from omuserver.session.session import SessionConnection
+
+from .session import SessionConnection
 
 
 class WebsocketsConnection(SessionConnection):

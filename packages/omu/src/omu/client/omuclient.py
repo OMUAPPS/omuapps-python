@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from omu.client import Client
-from omu.client.client import ClientListeners
 from omu.extension.endpoint import (
     EndpointExtension,
     EndpointExtensionType,
@@ -23,14 +21,14 @@ from omu.extension.registry.registry_extension import (
 from omu.extension.server import ServerExtension, ServerExtensionType
 from omu.extension.table import TableExtension, TableExtensionType
 from omu.network import Address, Network
-from omu.network.packet import PacketType
-from omu.network.packet.packet import Packet
+from omu.network.packet import Packet, PacketType
 from omu.network.websocket_connection import WebsocketsConnection
+
+from .client import Client, ClientListeners
 
 if TYPE_CHECKING:
     from omu.app import App
     from omu.extension import ExtensionManager
-    from omu.network import Network
 
 
 class OmuClient(Client):

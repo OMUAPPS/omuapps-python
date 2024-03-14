@@ -1,7 +1,7 @@
 from omu.app import App
 from omu.client import Client
+from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
-from omu.extension.extension import Extension, ExtensionType
 from omu.extension.table import TableExtensionType, TableType
 
 ServerExtensionType = ExtensionType(

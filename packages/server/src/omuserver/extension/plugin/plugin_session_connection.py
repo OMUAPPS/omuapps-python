@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from loguru import logger
 from omu.network import Packet
-from omu.network.connection import PacketMapper
+from omu.network.packet_mapper import PacketMapper
 
 from omuserver.session import SessionConnection
 

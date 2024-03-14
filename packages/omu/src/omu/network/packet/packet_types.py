@@ -5,8 +5,9 @@ from typing import Dict
 from omu.app import App
 from omu.identifier import Identifier
 from omu.model import Model
-from omu.network.packet import PacketType
 from omu.serializer import Serializer
+
+from .packet import PacketType
 
 
 class ConnectPacket(Model):

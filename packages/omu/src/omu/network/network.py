@@ -4,13 +4,15 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Dict, Final, List, Literal
 
-from omu.client.client import Client
+from omu.client import Client
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.identifier import Identifier
-from omu.network.connection import Connection, PacketMapper
-from omu.network.packet.packet import Packet, PacketType
-from omu.network.packet.packet_types import PACKET_TYPES, ConnectPacket
+
+from .connection import Connection
+from .packet import Packet, PacketType
+from .packet.packet_types import PACKET_TYPES, ConnectPacket
+from .packet_mapper import PacketMapper
 
 
 @dataclass

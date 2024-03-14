@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
-from omu.network.connection import Connection, PacketMapper
-from omu.network.packet.packet import Packet
+from omu.network.connection import Connection
+from omu.network.packet import Packet
+from omu.network.packet_mapper import PacketMapper
 
 
 class PluginConnection(Connection):
