@@ -1,8 +1,9 @@
-class Address:
-    def __init__(self, host: str, port: int, secure: bool = False) -> None:
-        self.host = host
-        self.port = port
-        self.secure = secure
+from dataclasses import dataclass
+from typing import Final
 
-    def __str__(self) -> str:
-        return f"{self.host}:{self.port}"
+
+@dataclass
+class Address:
+    host: Final[str]
+    port: Final[int]
+    secure: Final[bool] = False
