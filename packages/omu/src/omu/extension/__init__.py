@@ -1,5 +1,5 @@
 from .extension import Extension, ExtensionType
-from .extension_registry import ExtensionManager
+from .extension_manager import ExtensionManager
 
 __all__ = [
     "Extension",

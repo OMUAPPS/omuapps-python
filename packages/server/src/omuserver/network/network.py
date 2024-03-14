@@ -36,7 +36,7 @@ class Network:
         self._sessions: Dict[str, Session] = {}
         self._app = web.Application()
         self.add_websocket_route("/ws")
-        self.register_packet(PACKET_TYPES.Connect, PACKET_TYPES.Ready)
+        self.register_packet(PACKET_TYPES.CONNECT, PACKET_TYPES.READY)
         self.listeners.connected += self._packet_dispatcher.process_connection
 
     def register_packet(self, *packet_types: PacketType) -> None:
@@ -70,7 +70,7 @@ class Network:
         self._sessions[session.app.key()] = session
         session.listeners.disconnected += self.handle_disconnection
         await self._listeners.connected.emit(session)
-        await session.send(PACKET_TYPES.Connect, ConnectPacket(app=session.app))
+        await session.send(PACKET_TYPES.CONNECT, ConnectPacket(app=session.app))
         await session.listen()
 
     def is_connected(self, app: App) -> bool:
