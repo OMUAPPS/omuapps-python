@@ -9,16 +9,15 @@ from omu.network import Address
 
 from omuserver import __version__
 from omuserver.directories import Directories, get_directories
-from omuserver.extension.asset.asset_extension import AssetExtension
+from omuserver.extension.asset import AssetExtension
 from omuserver.extension.endpoint import EndpointExtension
-from omuserver.extension.message.message_extension import MessageExtension
-from omuserver.extension.plugin.plugin_extension import PluginExtension
-from omuserver.extension.registry.registry_extension import RegistryExtension
+from omuserver.extension.message import MessageExtension
+from omuserver.extension.plugin import PluginExtension
+from omuserver.extension.registry import RegistryExtension
 from omuserver.extension.server import ServerExtension
 from omuserver.extension.table import TableExtension
 from omuserver.helper import safe_path_join
 from omuserver.network import Network
-from omuserver.network.network import NetworkListeners
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.security.security import ServerSecurity
 
@@ -39,7 +38,7 @@ client = aiohttp.ClientSession(
 )
 
 
-class OmuServer(Server, NetworkListeners):
+class OmuServer(Server):
     def __init__(
         self,
         address: Address,
