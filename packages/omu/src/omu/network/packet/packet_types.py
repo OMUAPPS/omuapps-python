@@ -44,22 +44,22 @@ class DisconnectPacket(Model):
 
 class PACKET_TYPES:
     IDENTIFIER = Identifier("core", "packet")
-    Connect = PacketType.create_json(
+    CONNECT = PacketType.create_json(
         IDENTIFIER,
         "connect",
         Serializer.model(ConnectPacket),
     )
-    Disconnect = PacketType.create_json(
+    DISCONNECT = PacketType.create_json(
         IDENTIFIER,
         "disconnect",
         Serializer.model(DisconnectPacket),
     )
-    Token = PacketType[str].create_json(
+    TOKEN = PacketType[str].create_json(
         IDENTIFIER,
         "token",
         Serializer.noop(),
     )
-    Ready = PacketType[None].create_json(
+    READY = PacketType[None].create_json(
         IDENTIFIER,
         "ready",
         Serializer.noop(),

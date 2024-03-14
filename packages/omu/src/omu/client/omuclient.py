@@ -11,7 +11,7 @@ from omu.extension.endpoint import (
     EndpointExtension,
     EndpointExtensionType,
 )
-from omu.extension.extension_registry import ExtensionRegistryImpl
+from omu.extension.extension_manager import ExtensionManager
 from omu.extension.message import (
     MessageExtension,
     MessageExtensionType,
@@ -29,7 +29,7 @@ from omu.network.websocket_connection import WebsocketsConnection
 
 if TYPE_CHECKING:
     from omu.app import App
-    from omu.extension import ExtensionRegistry
+    from omu.extension import ExtensionManager
     from omu.network import Network
 
 
@@ -38,22 +38,22 @@ class OmuClient(Client):
         self,
         app: App,
         address: Address,
-        extension_registry: ExtensionRegistry | None = None,
+        connection: WebsocketsConnection | None = None,
+        extension_registry: ExtensionManager | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
     ):
         self._loop = loop or asyncio.get_event_loop()
         self._running = False
         self._listeners = ClientListeners()
         self._app = app
-        connection = WebsocketsConnection(self, address)
-        self._network = Network(self, connection)
-        self._extensions = extension_registry or ExtensionRegistryImpl(self)
+        self._network = Network(self, connection or WebsocketsConnection(self, address))
+        self._extensions = extension_registry or ExtensionManager(self)
 
-        self._tables = self.extensions.register(TableExtensionType)
-        self._server = self.extensions.register(ServerExtensionType)
         self._endpoints = self.extensions.register(EndpointExtensionType)
+        self._tables = self.extensions.register(TableExtensionType)
         self._registry = self.extensions.register(RegistryExtensionType)
         self._message = self.extensions.register(MessageExtensionType)
+        self._server = self.extensions.register(ServerExtensionType)
 
         self._loop.create_task(self._listeners.initialized.emit())
 
@@ -70,7 +70,7 @@ class OmuClient(Client):
         return self._network
 
     @property
-    def extensions(self) -> ExtensionRegistry:
+    def extensions(self) -> ExtensionManager:
         return self._extensions
 
     @property

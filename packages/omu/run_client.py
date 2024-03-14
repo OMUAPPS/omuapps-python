@@ -34,7 +34,7 @@ async def on_event(event: Packet) -> None:
     print(event)
 
 
-@client.network.add_packet_handler(PACKET_TYPES.Ready)
+@client.network.add_packet_handler(PACKET_TYPES.READY)
 async def on_ready(_) -> None:
     print("Ready")
 

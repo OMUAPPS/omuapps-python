@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 from typing import TYPE_CHECKING, Dict
 
 if TYPE_CHECKING:
@@ -8,21 +7,7 @@ if TYPE_CHECKING:
     from omu.extension import Extension, ExtensionType
 
 
-class ExtensionRegistry(abc.ABC):
-    @abc.abstractmethod
-    def register[T: Extension](self, type: ExtensionType[T]) -> T: ...
-
-    @abc.abstractmethod
-    def register_all(self, *types: ExtensionType) -> None: ...
-
-    @abc.abstractmethod
-    def get[Ext: Extension](self, extension_type: ExtensionType[Ext]) -> Ext: ...
-
-    @abc.abstractmethod
-    def has[Ext: Extension](self, extension_type: ExtensionType[Ext]) -> bool: ...
-
-
-class ExtensionRegistryImpl(ExtensionRegistry):
+class ExtensionManager:
     def __init__(self, client: Client) -> None:
         self._client = client
         self._extensions: Dict[str, Extension] = {}

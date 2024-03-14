@@ -31,15 +31,15 @@ class Network:
         self._packet_mapper = PacketMapper()
         self._packet_handlers: Dict[Identifier, PacketListeners] = {}
         self._packet_mapper.register(
-            PACKET_TYPES.Connect,
-            PACKET_TYPES.Disconnect,
-            PACKET_TYPES.Token,
-            PACKET_TYPES.Ready,
+            PACKET_TYPES.CONNECT,
+            PACKET_TYPES.DISCONNECT,
+            PACKET_TYPES.TOKEN,
+            PACKET_TYPES.READY,
         )
 
     def set_connection(self, connection: Connection) -> None:
         if self._connected:
-            raise RuntimeError("Already connected")
+            raise RuntimeError("Cannot change connection while connected")
         if self._connection:
             del self._connection
         self._connection = connection
@@ -86,7 +86,7 @@ class Network:
         self._connected = True
         await self.send(
             Packet(
-                PACKET_TYPES.Connect,
+                PACKET_TYPES.CONNECT,
                 ConnectPacket(
                     app=self._client.app,
                     token=self._token,
@@ -96,14 +96,28 @@ class Network:
         self._closed_event.clear()
         self._client.loop.create_task(self._listen())
 
-        await self._listeners.status_changed.emit("connected")
+        await self._listeners.status.emit("connected")
         await self._listeners.connected.emit()
         self._client.loop.create_task(self._dispatch_tasks())
 
         await self._closed_event.wait()
 
         if reconnect:
-            await self.connect()
+            await self.connect(token=self._token, reconnect=True)
+
+    async def disconnect(self) -> None:
+        if self._connection.closed:
+            return
+        self._connected = False
+        await self._connection.close()
+        self._closed_event.set()
+        await self._listeners.status.emit("disconnected")
+        await self._listeners.disconnected.emit()
+
+    async def send(self, packet: Packet) -> None:
+        if not self._connected:
+            raise RuntimeError("Not connected")
+        await self._connection.send(packet, self._packet_mapper)
 
     async def _listen(self) -> None:
         try:
@@ -119,20 +133,6 @@ class Network:
         if not packet_handler:
             return
         await packet_handler.listeners.emit(packet.data)
-
-    async def disconnect(self) -> None:
-        if self._connection.closed:
-            return
-        await self._connection.close()
-        self._connected = False
-        self._closed_event.set()
-        await self._listeners.status_changed.emit("disconnected")
-        await self._listeners.disconnected.emit()
-
-    async def send[T](self, packet: Packet[T]) -> None:
-        if not self._connected:
-            raise RuntimeError("Not connected")
-        await self._connection.send(packet, self._packet_mapper)
 
     @property
     def listeners(self) -> NetworkListeners:
@@ -157,4 +157,4 @@ class NetworkListeners:
         self.connected = EventEmitter()
         self.disconnected = EventEmitter()
         self.packet = EventEmitter[Packet]()
-        self.status_changed = EventEmitter[NetworkStatus]()
+        self.status = EventEmitter[NetworkStatus]()

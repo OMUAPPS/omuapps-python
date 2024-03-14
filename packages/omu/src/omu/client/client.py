@@ -8,7 +8,7 @@ from omu.event_emitter import EventEmitter
 
 if TYPE_CHECKING:
     from omu.app import App
-    from omu.extension import ExtensionRegistry
+    from omu.extension import ExtensionManager
     from omu.extension.endpoint import EndpointExtension
     from omu.extension.message import MessageExtension
     from omu.extension.registry import RegistryExtension
@@ -40,7 +40,7 @@ class Client(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def extensions(self) -> ExtensionRegistry: ...
+    def extensions(self) -> ExtensionManager: ...
 
     @property
     @abc.abstractmethod
