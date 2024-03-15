@@ -119,6 +119,15 @@ class OmuServer(Server):
         if exception:
             raise exception
 
+    async def _handle_network_start(self) -> None:
+        logger.info(f"Listening on {self.address}")
+        try:
+            await self._listeners.start()
+        except Exception as e:
+            await self.shutdown()
+            self.loop.stop()
+            raise e
+
     async def start(self) -> None:
         self._running = True
         await self._network.start()
@@ -126,10 +135,6 @@ class OmuServer(Server):
     async def shutdown(self) -> None:
         self._running = False
         await self._listeners.stop()
-
-    async def _handle_network_start(self) -> None:
-        logger.info(f"Listening on {self.address}")
-        await self._listeners.start()
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
