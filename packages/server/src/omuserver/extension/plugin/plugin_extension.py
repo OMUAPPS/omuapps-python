@@ -50,6 +50,11 @@ class PluginExtension:
         await self._load_plugins()
 
     async def _load_plugins(self) -> None:
+        self.register_plugins()
+        await self.install_dependencies()
+        await self.run_plugins()
+
+    def register_plugins(self):
         for plugin in self._server.directories.plugins.iterdir():
             if not plugin.is_file():
                 continue
@@ -58,8 +63,6 @@ class PluginExtension:
             logger.info(f"Loading plugin: {plugin.name}")
             metadata = self._load_plugin(plugin)
             self.plugins[metadata["module"]] = metadata
-        await self.install_dependencies()
-        await self.run_plugins()
 
     def _load_plugin(self, path: Path) -> PluginMetadata:
         metadata = PluginMetadata(**json.loads(path.read_text()))
@@ -99,7 +102,10 @@ class PluginExtension:
 
     async def run_plugins(self) -> None:
         for metadata in self.plugins.values():
-            await self.run_plugin(metadata)
+            try:
+                await self.run_plugin(metadata)
+            except Exception as e:
+                logger.error(f"Error running plugin {metadata['module']}: {e}")
 
     async def run_plugin(self, metadata: PluginMetadata):
         if metadata.get("isolated"):
