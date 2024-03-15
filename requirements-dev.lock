@@ -11,6 +11,12 @@
     # via omuchat
     # via omuserver
 -e file:packages/chat
+    # via omuchatprovider
+    # via omuplugin-chat
+    # via omuplugin-emoji
+    # via omuplugin-nyanya
+    # via omuplugin-onecomme
+    # via omuplugin-translator
 -e file:packages/plugin-provider
 -e file:packages/plugin-chat
 -e file:packages/plugin-emoji
