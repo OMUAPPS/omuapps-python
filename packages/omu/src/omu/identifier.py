@@ -8,7 +8,7 @@ from omu.helper import generate_md5_hash, sanitize_filename
 from .interface import Keyable
 
 NAMESPACE_REGEX = re.compile(r"^(\.[^.]|[\w-])+$")
-NAME_REGEX = re.compile(r"^[\w-]+$")
+NAME_REGEX = re.compile(r"^[^/.]+$")
 
 
 class Identifier(Keyable):
