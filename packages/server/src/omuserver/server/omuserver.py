@@ -5,6 +5,7 @@ from typing import Optional
 import aiohttp
 from aiohttp import web
 from loguru import logger
+from omu import Identifier
 from omu.network import Address
 
 from omuserver import __version__
@@ -54,7 +55,7 @@ class OmuServer(Server):
         self._network = Network(self, self._packet_dispatcher)
         self._network.listeners.start += self._handle_network_start
         self._network.add_http_route("/proxy", self._handle_proxy)
-        self._network.add_http_route("/assets", self._handle_assets)
+        self._network.add_http_route("/asset", self._handle_assets)
         self._security = ServerSecurity(self)
         self._running = False
         self._endpoint = EndpointExtension(self)
@@ -89,9 +90,11 @@ class OmuServer(Server):
             return web.Response(status=500)
 
     async def _handle_assets(self, request: web.Request) -> web.StreamResponse:
-        path = request.query.get("path")
-        if not path:
+        id = request.query.get("id")
+        if not id:
             return web.Response(status=400)
+        identifier = Identifier.from_key(id)
+        path = identifier.to_path()
         try:
             path = safe_path_join(self._directories.assets, path)
 

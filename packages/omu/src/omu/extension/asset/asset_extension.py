@@ -37,7 +37,9 @@ class FILES_SERIALIZER(Serializable[Files, bytes]):
         return files
 
 
-IDENTIFIERS_SERIALIZER = Serializer(Identifier.key, Identifier.from_key).array().json()
+IDENTIFIERS_SERIALIZER = (
+    Serializer(Identifier.key, Identifier.from_key).array().pipe(Serializer.json())
+)
 
 
 AssetUploadEndpoint = EndpointType[Files, List[Identifier]].create_serialized(
