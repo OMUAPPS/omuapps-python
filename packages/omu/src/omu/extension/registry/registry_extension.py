@@ -32,14 +32,14 @@ class RegistryDataSerializer(Serializable[RegistryData, bytes]):
     def serialize(self, item: RegistryData) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.key)
-        writer.write_bool(item.existing)
+        writer.write_boolean(item.existing)
         writer.write_byte_array(item.value)
         return writer.finish()
 
     def deserialize(self, item: bytes) -> RegistryData:
         with ByteReader(item) as reader:
             key = reader.read_string()
-            existing = reader.read_bool()
+            existing = reader.read_boolean()
             value = reader.read_byte_array()
             return RegistryData(key, existing, value)
 

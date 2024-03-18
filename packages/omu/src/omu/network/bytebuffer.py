@@ -14,7 +14,7 @@ class ByteWriter:
         self.stream.write(data)
         return self
 
-    def write_bool(self, value: bool) -> ByteWriter:
+    def write_boolean(self, value: bool) -> ByteWriter:
         self.write(value.to_bytes(1, "big"))
         return self
 
@@ -81,7 +81,7 @@ class ByteReader:
             raise ValueError("Size must be positive")
         return self.stream.read(size)
 
-    def read_bool(self) -> bool:
+    def read_boolean(self) -> bool:
         return bool(int.from_bytes(self.read(1), "big"))
 
     def read_big_int(self) -> int:
