@@ -3,9 +3,7 @@ import json
 from typing import Optional
 
 import aiohttp
-from aiohttp import web
 from loguru import logger
-from omu import Identifier
 from omu.network import Address
 
 from omuserver import __version__
@@ -17,7 +15,6 @@ from omuserver.extension.plugin import PluginExtension
 from omuserver.extension.registry import RegistryExtension
 from omuserver.extension.server import ServerExtension
 from omuserver.extension.table import TableExtension
-from omuserver.helper import safe_path_join
 from omuserver.network import Network
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.security.security import ServerSecurity
@@ -54,8 +51,6 @@ class OmuServer(Server):
         self._packet_dispatcher = ServerPacketDispatcher()
         self._network = Network(self, self._packet_dispatcher)
         self._network.listeners.start += self._handle_network_start
-        self._network.add_http_route("/proxy", self._handle_proxy)
-        self._network.add_http_route("/asset", self._handle_assets)
         self._security = ServerSecurity(self)
         self._running = False
         self._endpoint = EndpointExtension(self)
@@ -65,45 +60,6 @@ class OmuServer(Server):
         self._message = MessageExtension(self)
         self._plugin = PluginExtension(self)
         self._assets = AssetExtension(self)
-
-    async def _handle_proxy(self, request: web.Request) -> web.StreamResponse:
-        url = request.query.get("url")
-        no_cache = bool(request.query.get("no_cache"))
-        if not url:
-            return web.Response(status=400)
-        try:
-            async with client.get(url) as resp:
-                headers = {
-                    "Cache-Control": "no-cache" if no_cache else "max-age=3600",
-                    "Content-Type": resp.content_type,
-                }
-                resp.raise_for_status()
-                return web.Response(
-                    status=resp.status,
-                    headers=headers,
-                    body=await resp.read(),
-                )
-        except aiohttp.ClientResponseError as e:
-            return web.Response(status=e.status, text=e.message)
-        except Exception as e:
-            logger.error(e)
-            return web.Response(status=500)
-
-    async def _handle_assets(self, request: web.Request) -> web.StreamResponse:
-        id = request.query.get("id")
-        if not id:
-            return web.Response(status=400)
-        identifier = Identifier.from_key(id)
-        path = identifier.to_path()
-        try:
-            path = safe_path_join(self._directories.assets, path)
-
-            if not path.exists():
-                return web.Response(status=404)
-            return web.FileResponse(path)
-        except Exception as e:
-            logger.error(e)
-            return web.Response(status=500)
 
     def run(self) -> None:
         loop = self.loop

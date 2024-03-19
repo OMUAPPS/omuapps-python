@@ -85,13 +85,12 @@ class RegistryImpl[T](Registry[T]):
         serializer: Serializable[T, bytes],
     ) -> None:
         self.client = client
-        self.identifier = identifier
         self.default_value = default_value
         self.serializer = serializer
         self.key = identifier.key()
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
-        client.network.add_packet_handler(RegistryUpdateEvent, self._on_update)
+        client.network.add_packet_handler(RegistryUpdateEvent, self.handle_update)
 
     async def get(self) -> T:
         result = await self.client.endpoints.call(RegistryGetEndpoint, self.key)
@@ -117,11 +116,10 @@ class RegistryImpl[T](Registry[T]):
                 lambda: self.client.send(RegistryListenEvent, self.key)
             )
             self.listening = True
-
         self.listeners.append(handler)
         return lambda: self.listeners.remove(handler)
 
-    async def _on_update(self, event: RegistryData) -> None:
+    async def handle_update(self, event: RegistryData) -> None:
         if event.key != self.key:
             return
         if event.existing:

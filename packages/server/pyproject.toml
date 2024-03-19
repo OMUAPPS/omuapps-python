@@ -13,6 +13,9 @@ dependencies = [
     "omu>=0.1.4",
     "pip>=24.0",
     "aiohttp>=3.9.3",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.28.0",
+    "websockets>=12.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"

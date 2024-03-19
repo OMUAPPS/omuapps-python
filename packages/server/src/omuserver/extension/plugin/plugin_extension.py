@@ -22,9 +22,10 @@ from omu import Address
 from omu.network.websocket_connection import WebsocketsConnection
 from omu.plugin import Plugin
 
-from omuserver.extension.plugin.plugin_connection import PluginConnection
-from omuserver.extension.plugin.plugin_session_connection import PluginSessionConnection
-from omuserver.session.session import Session
+from omuserver.session import Session
+
+from .plugin_connection import PluginConnection
+from .plugin_session_connection import PluginSessionConnection
 
 if TYPE_CHECKING:
     from omuserver.server import Server

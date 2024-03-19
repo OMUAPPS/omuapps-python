@@ -33,6 +33,11 @@ aiosignal==1.3.1
     # via aiohttp
 aiosqlite==0.20.0
     # via omuserver
+annotated-types==0.6.0
+    # via pydantic
+anyio==4.3.0
+    # via starlette
+    # via watchfiles
 attrs==23.2.0
     # via aiohttp
 beautifulsoup4==4.12.3
@@ -43,19 +48,28 @@ bs4==0.0.2
 click==8.1.7
     # via iwashi
     # via omuserver
+    # via uvicorn
 colorama==0.4.6
     # via click
     # via loguru
     # via pytest
+    # via uvicorn
 coverage==7.4.3
     # via coverage
     # via pytest-cov
 edgetrans==0.2.3
     # via omuplugin-translator
+fastapi==0.110.0
+    # via omuserver
 frozenlist==1.4.1
     # via aiohttp
     # via aiosignal
+h11==0.14.0
+    # via uvicorn
+httptools==0.6.1
+    # via uvicorn
 idna==3.6
+    # via anyio
     # via yarl
 iniconfig==2.0.0
     # via pytest
@@ -76,18 +90,41 @@ packaging==24.0
     # via pytest
 pluggy==1.4.0
     # via pytest
+pydantic==2.6.4
+    # via fastapi
+pydantic-core==2.16.3
+    # via pydantic
 pytest==8.1.1
     # via pytest-asyncio
     # via pytest-cov
 pytest-asyncio==0.23.5.post1
 pytest-cov==4.1.0
+python-dotenv==1.0.1
+    # via uvicorn
+pyyaml==6.0.1
+    # via uvicorn
 ruff==0.3.2
+sniffio==1.3.1
+    # via anyio
 soupsieve==2.5
     # via beautifulsoup4
 sqlitedict==2.1.0
     # via omuserver
+starlette==0.36.3
+    # via fastapi
 typing-extensions==4.10.0
     # via aiosqlite
+    # via fastapi
+    # via pydantic
+    # via pydantic-core
+uvicorn==0.28.0
+    # via omuserver
+    # via uvicorn
+watchfiles==0.21.0
+    # via uvicorn
+websockets==12.0
+    # via omuserver
+    # via uvicorn
 win32-setctime==1.1.0
     # via loguru
 yarl==1.9.4

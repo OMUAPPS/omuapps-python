@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import socket
+import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict
 
-from aiohttp import web
+import aiohttp
+import uvicorn
+from aiohttp import ClientSession
+from fastapi import FastAPI, WebSocket, responses
 from loguru import logger
-from omu import App
+from omu import App, Identifier
 from omu.event_emitter import EventEmitter
-from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES, PacketType
 from omu.network.packet.packet_types import ConnectPacket
 
+from omuserver.helper import safe_path_join
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.session import Session
 from omuserver.session.aiohttp_connection import WebsocketsConnection
@@ -34,33 +38,70 @@ class Network:
         self._packet_dispatcher = packet_dispatcher
         self._listeners = NetworkListeners()
         self._sessions: Dict[str, Session] = {}
-        self._app = web.Application()
-        self.add_websocket_route("/ws")
         self.register_packet(PACKET_TYPES.CONNECT, PACKET_TYPES.READY)
         self.listeners.connected += self._packet_dispatcher.process_connection
+        self.api = FastAPI(on_startup=[self._handle_start])
+        self.api.add_websocket_route("/ws", self.websocket_handler)
+        self.api.add_api_route("/proxy", self._handle_proxy)
+        self.api.add_api_route("/asset", self._handle_assets)
+        self.client = ClientSession(
+            headers={
+                "User-Agent": "omuserver",
+            }
+        )
 
     def register_packet(self, *packet_types: PacketType) -> None:
         self._packet_dispatcher.register(*packet_types)
 
-    def add_http_route(
-        self, path: str, handle: Coro[[web.Request], web.StreamResponse]
-    ) -> None:
-        self._app.router.add_get(path, handle)
-
-    def add_websocket_route(self, path: str) -> None:
-        async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
-            ws = web.WebSocketResponse()
-            await ws.prepare(request)
-            connection = WebsocketsConnection(ws)
-            session = await Session.from_connection(
-                self._server,
-                self._packet_dispatcher.packet_mapper,
-                connection,
+    async def _handle_proxy(self, url: str, no_cache: bool = False):
+        if not url:
+            return responses.JSONResponse(status_code=400, content={"error": "No URL"})
+        try:
+            async with self.client.get(url) as resp:
+                headers = {
+                    "Cache-Control": "no-cache" if no_cache else "max-age=3600",
+                    "Content-Type": resp.content_type,
+                }
+                resp.raise_for_status()
+                return responses.Response(
+                    status_code=resp.status,
+                    content=await resp.read(),
+                    headers=headers,
+                )
+        except aiohttp.ClientResponseError as e:
+            return responses.JSONResponse(
+                status_code=e.status, content={"error": str(e)}
             )
-            await self.process_session(session)
-            return ws
+        except Exception as e:
+            logger.error(e)
+            return responses.JSONResponse(status_code=500, content={"error": str(e)})
 
-        self._app.router.add_get(path, websocket_handler)
+    async def _handle_assets(self, id: str):
+        if not id:
+            return responses.JSONResponse(status_code=400, content={"error": "No ID"})
+        identifier = Identifier.from_key(id)
+        path = identifier.to_path()
+        try:
+            path = safe_path_join(self._server.directories.assets, path)
+
+            if not path.exists():
+                return responses.JSONResponse(
+                    status_code=404, content={"error": "Asset not found"}
+                )
+            return responses.FileResponse(path)
+        except Exception as e:
+            logger.error(e)
+            return responses.JSONResponse(status_code=500, content={"error": str(e)})
+
+    async def websocket_handler(self, ws: WebSocket) -> None:
+        await ws.accept()
+        connection = WebsocketsConnection(ws)
+        session = await Session.from_connection(
+            self._server,
+            self._packet_dispatcher.packet_mapper,
+            connection,
+        )
+        await self.process_session(session)
 
     async def process_session(self, session: Session) -> None:
         if self.is_connected(session.app):
@@ -82,7 +123,7 @@ class Network:
         self._sessions.pop(session.app.key())
         await self._listeners.disconnected.emit(session)
 
-    async def _handle_start(self, app: web.Application) -> None:
+    async def _handle_start(self) -> None:
         await self._listeners.start.emit()
 
     def is_port_available(self) -> bool:
@@ -97,13 +138,23 @@ class Network:
     async def start(self) -> None:
         if not self.is_port_available():
             raise OSError(f"Port {self._server.address.port} already in use")
-        self._app.on_startup.append(self._handle_start)
-        runner = web.AppRunner(self._app)
-        await runner.setup()
-        site = web.TCPSite(
-            runner, host=self._server.address.host, port=self._server.address.port
-        )
-        await site.start()
+
+        # config = uvicorn.Config(
+        #     self.api,
+        #     host=self._server.address.host,
+        #     port=self._server.address.port,
+        # )
+        # server = uvicorn.Server(config)
+        # await server.serve()
+        def run():
+            uvicorn.run(
+                self.api,
+                host=self._server.address.host,
+                port=self._server.address.port,
+            )
+
+        thread = threading.Thread(target=run)
+        thread.start()
 
     @property
     def listeners(self) -> NetworkListeners:
