@@ -45,6 +45,7 @@ class OmuClient(Client):
         self._listeners = ClientListeners()
         self._app = app
         self._network = Network(self, connection or WebsocketsConnection(self, address))
+        self._network.listeners.connected += self._listeners.ready.emit
         self._extensions = extension_registry or ExtensionManager(self)
 
         self._endpoints = self.extensions.register(EndpointExtensionType)
