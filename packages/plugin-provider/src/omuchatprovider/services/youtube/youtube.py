@@ -52,7 +52,7 @@ class ReactionEvent(TypedDict):
     reactions: Dict[str, int]
 
 
-REACTION_MESSAGE = client.omu.message.create("youtube-reaction", ReactionEvent)
+REACTION_MESSAGE = client.message.create("youtube-reaction", ReactionEvent)
 
 HEADERS = {
     "User-Agent": (

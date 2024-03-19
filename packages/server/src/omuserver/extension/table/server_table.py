@@ -3,6 +3,8 @@ from __future__ import annotations
 import abc
 from typing import TYPE_CHECKING, AsyncIterator, Dict, List, Union
 
+from omu.event_emitter import EventEmitter
+
 if TYPE_CHECKING:
     from omu.extension.table import TableConfig
 
@@ -80,20 +82,15 @@ class ServerTable(abc.ABC):
     @abc.abstractmethod
     async def size(self) -> int: ...
 
+    @property
     @abc.abstractmethod
-    def add_listener(self, listener: ServerTableListener) -> None: ...
-
-    @abc.abstractmethod
-    def remove_listener(self, listener: ServerTableListener) -> None: ...
+    def listeners(self) -> ServerTableListeners: ...
 
 
-class ServerTableListener:
-    async def on_add(self, items: Dict[str, bytes]) -> None: ...
-
-    async def on_update(self, items: Dict[str, bytes]) -> None: ...
-
-    async def on_remove(self, items: Dict[str, bytes]) -> None: ...
-
-    async def on_clear(self) -> None: ...
-
-    async def on_cache_update(self, cache: Dict[str, bytes]) -> None: ...
+class ServerTableListeners:
+    def __init__(self) -> None:
+        self.add: EventEmitter[Dict[str, bytes]] = EventEmitter()
+        self.update: EventEmitter[Dict[str, bytes]] = EventEmitter()
+        self.remove: EventEmitter[Dict[str, bytes]] = EventEmitter()
+        self.clear: EventEmitter[[]] = EventEmitter()
+        self.cache_update: EventEmitter[Dict[str, bytes]] = EventEmitter()

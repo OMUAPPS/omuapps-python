@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, TypedDict
 
-from omu import Identifier
+from omu import Client, Identifier
 from omu.extension.endpoint import EndpointType
 from omu.extension.table import TableType
 from omu.model import Model
@@ -77,3 +77,15 @@ MessageEvent = EndpointType[MessageEventData, str].create_serialized(
     Serializer.model(MessageEventData).json(),
     Serializer.noop(),
 )
+
+
+class Chat:
+    def __init__(
+        self,
+        client: Client,
+    ):
+        self.messages = client.tables.get(MessagesTableKey)
+        self.authors = client.tables.get(AuthorsTableKey)
+        self.channels = client.tables.get(ChannelsTableKey)
+        self.providers = client.tables.get(ProviderTableKey)
+        self.rooms = client.tables.get(RoomTableKey)

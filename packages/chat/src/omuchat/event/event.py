@@ -24,6 +24,11 @@ class EventKey[**P]:
         return hash(self.name)
 
 
+class TableEventKey[**P](EventKey[P]):
+    def __init__(self, name: str):
+        super().__init__(name)
+
+
 class events:
     Ready = EventKey[[]]("ready")
     Disconnect = EventKey[[]]("disconnect")

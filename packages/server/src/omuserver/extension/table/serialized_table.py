@@ -1,11 +1,11 @@
 from typing import AsyncGenerator, Callable, Dict, List, Mapping
 
-from omu.extension.table import Table, TableConfig, TableListener, TableType
+from omu.extension.table import Table, TableConfig, TableListeners, TableType
 from omu.helper import AsyncCallback, Coro
 from omu.interface import Keyable
 from omu.serializer import Serializable
 
-from .server_table import ServerTable, ServerTableListener
+from .server_table import ServerTable
 
 
 class SerializeAdapter[T: Keyable](Mapping[str, T]):
@@ -17,15 +17,19 @@ class SerializeAdapter[T: Keyable](Mapping[str, T]):
         return self._serializer.deserialize(self._cache[key])
 
 
-class SerializedTable[T: Keyable](Table[T], ServerTableListener):
+class SerializedTable[T: Keyable](Table[T]):
     def __init__(self, table: ServerTable, type: TableType[T]):
         self._table = table
         self._type = type
-        self._listeners: List[TableListener[T]] = []
+        self._listeners = TableListeners[T]()
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self.key = type.identifier.key()
-        table.add_listener(self)
+        table.listeners.cache_update += self.on_cache_update
+        table.listeners.add += self.on_add
+        table.listeners.update += self.on_update
+        table.listeners.remove += self.on_remove
+        table.listeners.clear += self.on_clear
 
     @property
     def cache(self) -> Mapping[str, T]:
@@ -94,43 +98,36 @@ class SerializedTable[T: Keyable](Table[T], ServerTableListener):
     async def size(self) -> int:
         return await self._table.size()
 
-    def add_listener(self, listener: TableListener[T]) -> None:
-        self._listeners.append(listener)
-        self._listening = True
-
-    def remove_listener(self, listener: TableListener[T]) -> None:
-        self._listeners.remove(listener)
+    @property
+    def listeners(self) -> TableListeners[T]:
+        return self._listeners
 
     def listen(
         self, callback: AsyncCallback[Mapping[str, T]] | None = None
     ) -> Callable[[], None]:
         self._listening = True
-        listener = TableListener(on_cache_update=callback)
-        self._listeners.append(listener)
-        return lambda: self._listeners.remove(listener)
+        if callback:
+            self._listeners.cache_update += callback
+            return lambda: self._listeners.cache_update.unsubscribe(callback)
+        return lambda: None
 
     async def on_add(self, items: Dict[str, bytes]) -> None:
         _items = self._parse_items(items)
-        for listener in self._listeners:
-            await listener.on_add(_items)
+        await self._listeners.add(_items)
 
     async def on_update(self, items: Dict[str, bytes]) -> None:
         _items = self._parse_items(items)
-        for listener in self._listeners:
-            await listener.on_update(_items)
+        await self._listeners.update(_items)
 
     async def on_remove(self, items: Dict[str, bytes]) -> None:
         _items = self._parse_items(items)
-        for listener in self._listeners:
-            await listener.on_remove(_items)
+        await self._listeners.remove(_items)
 
     async def on_clear(self) -> None:
-        for listener in self._listeners:
-            await listener.on_clear()
+        await self._listeners.clear()
 
     async def on_cache_update(self, cache: Dict[str, bytes]) -> None:
-        for listener in self._listeners:
-            await listener.on_cache_update(self._parse_items(cache))
+        await self._listeners.cache_update(self._parse_items(cache))
 
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
         raise NotImplementedError

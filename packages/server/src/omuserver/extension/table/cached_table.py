@@ -8,7 +8,7 @@ from omu.extension.table.table_extension import TableProxyData, TableProxyEvent
 from omu.identifier import Identifier
 
 from .adapters.tableadapter import TableAdapter
-from .server_table import ServerTable, ServerTableListener
+from .server_table import ServerTable, ServerTableListeners
 from .session_table_handler import SessionTableListener
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ class CachedTable(ServerTable):
     ):
         self._server = server
         self._identifier = identifier
-        self._listeners: List[ServerTableListener] = []
+        self._listeners = ServerTableListeners()
         self._sessions: Dict[Session, SessionTableListener] = {}
         self._proxy_sessions: Dict[str, Session] = {}
         self._changed = False
@@ -62,9 +62,8 @@ class CachedTable(ServerTable):
     def attach_session(self, session: Session) -> None:
         if session in self._sessions:
             return
-        handler = SessionTableListener(self._identifier.key(), session)
+        handler = SessionTableListener(self._identifier.key(), session, self)
         self._sessions[session] = handler
-        self.add_listener(handler)
         session.listeners.disconnected += self.handle_disconnection
 
     def detach_session(self, session: Session) -> None:
@@ -72,7 +71,7 @@ class CachedTable(ServerTable):
             del self._proxy_sessions[session.app.key()]
         if session in self._sessions:
             handler = self._sessions.pop(session)
-            self.remove_listener(handler)
+            handler.close()
 
     async def handle_disconnection(self, session: Session) -> None:
         self.detach_session(session)
@@ -114,8 +113,7 @@ class CachedTable(ServerTable):
             await self.send_proxy_event(items)
             return
         await self._adapter.set_all(items)
-        for listener in self._listeners:
-            await listener.on_add(items)
+        await self._listeners.add(items)
         await self.update_cache(items)
         self.mark_changed()
 
@@ -144,8 +142,7 @@ class CachedTable(ServerTable):
             if adapter is None:
                 raise Exception("Table not set")
             await adapter.set_all(items)
-            for listener in self._listeners:
-                await listener.on_add(items)
+            await self._listeners.add(items)
             await self.update_cache(items)
             self.mark_changed()
             return 0
@@ -164,8 +161,7 @@ class CachedTable(ServerTable):
         if self._adapter is None:
             raise Exception("Table not set")
         await self._adapter.set_all(items)
-        for listener in self._listeners:
-            await listener.on_update(items)
+        await self._listeners.update(items)
         await self.update_cache(items)
         self.mark_changed()
 
@@ -177,16 +173,14 @@ class CachedTable(ServerTable):
         for key in items:
             if key in self._cache:
                 del self._cache[key]
-        for listener in self._listeners:
-            await listener.on_remove(removed)
+        await self._listeners.remove(removed)
         self.mark_changed()
 
     async def clear(self) -> None:
         if self._adapter is None:
             raise Exception("Table not set")
         await self._adapter.clear()
-        for listener in self._listeners:
-            await listener.on_clear()
+        await self._listeners.clear()
         self._cache.clear()
         self.mark_changed()
 
@@ -213,11 +207,9 @@ class CachedTable(ServerTable):
     async def size(self) -> int:
         return len(self._cache)
 
-    def add_listener(self, listener: ServerTableListener) -> None:
-        self._listeners.append(listener)
-
-    def remove_listener(self, listener: ServerTableListener) -> None:
-        self._listeners.remove(listener)
+    @property
+    def listeners(self) -> ServerTableListeners:
+        return self._listeners
 
     async def save_task(self) -> None:
         while self._changed:
@@ -239,5 +231,4 @@ class CachedTable(ServerTable):
             self._cache[key] = item
             if len(self._cache) > self._cache_size:
                 del self._cache[next(iter(self._cache))]
-        for listener in self._listeners:
-            await listener.on_cache_update(self._cache)
+        await self._listeners.cache_update(self._cache)

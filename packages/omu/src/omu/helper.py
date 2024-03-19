@@ -4,8 +4,8 @@ import hashlib
 import re
 import typing
 
-type AsyncCallback[**P] = typing.Callable[P, typing.Awaitable]
-type Coro[**P, T] = typing.Callable[P, typing.Awaitable[T]]
+type AsyncCallback[**P] = typing.Callable[P, typing.Coroutine[None, None, None]]
+type Coro[**P, T] = typing.Callable[P, typing.Coroutine[T, None, None]]
 
 
 def instance[T](cls: typing.Type[T]) -> T:

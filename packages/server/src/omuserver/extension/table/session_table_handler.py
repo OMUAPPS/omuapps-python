@@ -11,16 +11,27 @@ from omu.extension.table.table_extension import (
     TableItemUpdateEvent,
 )
 
-from .server_table import ServerTableListener
+from omuserver.extension.table.server_table import ServerTable
 
 if TYPE_CHECKING:
     from omuserver.session import Session
 
 
-class SessionTableListener(ServerTableListener):
-    def __init__(self, id: str, session: Session) -> None:
+class SessionTableListener:
+    def __init__(self, id: str, session: Session, table: ServerTable) -> None:
         self._id = id
         self._session = session
+        self.table = table
+        table.listeners.add += self.on_add
+        table.listeners.update += self.on_update
+        table.listeners.remove += self.on_remove
+        table.listeners.clear += self.on_clear
+
+    def close(self) -> None:
+        self.table.listeners.add -= self.on_add
+        self.table.listeners.update -= self.on_update
+        self.table.listeners.remove -= self.on_remove
+        self.table.listeners.clear -= self.on_clear
 
     async def on_add(self, items: Dict[str, Any]) -> None:
         if self._session.closed:

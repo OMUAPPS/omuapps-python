@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 import sys
+import traceback
 from importlib.util import find_spec
 from multiprocessing import Process
 from pathlib import Path
@@ -105,6 +106,7 @@ class PluginExtension:
             try:
                 await self.run_plugin(metadata)
             except Exception as e:
+                traceback.print_exc()
                 logger.error(f"Error running plugin {metadata['module']}: {e}")
 
     async def run_plugin(self, metadata: PluginMetadata):

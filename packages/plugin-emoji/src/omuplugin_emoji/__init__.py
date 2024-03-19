@@ -5,7 +5,7 @@ def get_plugin():
     from .plugin import client
 
     return Plugin(
-        client.omu,
+        client,
     )
 
 

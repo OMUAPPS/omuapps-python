@@ -12,6 +12,7 @@ from typing import (
     TypedDict,
 )
 
+from omu.event_emitter import EventEmitter
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.serializer import Serializer
@@ -75,53 +76,20 @@ class Table[T](abc.ABC):
     @abc.abstractmethod
     def set_config(self, config: TableConfig) -> None: ...
 
+    @property
     @abc.abstractmethod
-    def add_listener(self, listener: TableListener[T]) -> None: ...
-
-    @abc.abstractmethod
-    def remove_listener(self, listener: TableListener[T]) -> None: ...
+    def listeners(self) -> TableListeners[T]: ...
 
 
-class TableListener[T]:
-    _on_add = None
-    _on_update = None
-    _on_remove = None
-    _on_clear = None
-    _on_cache_update = None
-
+class TableListeners[T]:
     def __init__(
         self,
-        on_add: AsyncCallback[Mapping[str, T]] | None = None,
-        on_update: AsyncCallback[Mapping[str, T]] | None = None,
-        on_remove: AsyncCallback[Mapping[str, T]] | None = None,
-        on_clear: AsyncCallback[[]] | None = None,
-        on_cache_update: AsyncCallback[Mapping[str, T]] | None = None,
-    ):
-        self._on_add = on_add
-        self._on_update = on_update
-        self._on_remove = on_remove
-        self._on_clear = on_clear
-        self._on_cache_update = on_cache_update
-
-    async def on_add(self, items: Mapping[str, T]) -> None:
-        if self._on_add:
-            await self._on_add(items)
-
-    async def on_update(self, items: Mapping[str, T]) -> None:
-        if self._on_update:
-            await self._on_update(items)
-
-    async def on_remove(self, items: Mapping[str, T]) -> None:
-        if self._on_remove:
-            await self._on_remove(items)
-
-    async def on_clear(self) -> None:
-        if self._on_clear:
-            await self._on_clear()
-
-    async def on_cache_update(self, cache: Mapping[str, T]) -> None:
-        if self._on_cache_update:
-            await self._on_cache_update(cache)
+    ) -> None:
+        self.add: EventEmitter[Mapping[str, T]] = EventEmitter()
+        self.update: EventEmitter[Mapping[str, T]] = EventEmitter()
+        self.remove: EventEmitter[Mapping[str, T]] = EventEmitter()
+        self.clear: EventEmitter[[]] = EventEmitter()
+        self.cache_update: EventEmitter[Mapping[str, T]] = EventEmitter()
 
 
 type ModelEntry[T: Keyable, D] = JsonSerializable[T, D]

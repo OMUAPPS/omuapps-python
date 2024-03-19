@@ -21,7 +21,7 @@ from omu.serializer import JsonSerializable, Serializable, Serializer
 from .table import (
     Table,
     TableConfig,
-    TableListener,
+    TableListeners,
     TableType,
 )
 
@@ -224,7 +224,7 @@ class TableImpl[T](Table[T]):
         self._serializer = serializer
         self._key_function = key_function
         self._cache: Dict[str, T] = {}
-        self._listeners: List[TableListener[T]] = []
+        self._listeners = TableListeners[T]()
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self._cache_size = 1000
@@ -288,8 +288,7 @@ class TableImpl[T](Table[T]):
         )
         items = self._parse_items(items_response["items"])
         self._cache.update(items)
-        for listener in self._listeners:
-            await listener.on_cache_update(self._cache)
+        await self._listeners.cache_update(self._cache)
         return items
 
     async def iterate(
@@ -325,9 +324,10 @@ class TableImpl[T](Table[T]):
         self, callback: AsyncCallback[Mapping[str, T]] | None = None
     ) -> Callable[[], None]:
         self._listening = True
-        listener = TableListener(on_cache_update=callback)
-        self._listeners.append(listener)
-        return lambda: self._listeners.remove(listener)
+        if callback is not None:
+            self._listeners.cache_update += callback
+            return lambda: self._listeners.cache_update.unsubscribe(callback)
+        return lambda: None
 
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
         self._proxies.append(callback)
@@ -372,18 +372,14 @@ class TableImpl[T](Table[T]):
             return
         items = self._parse_items(event["items"])
         self._cache.update(items)
-        for listener in self._listeners:
-            await listener.on_add(items)
-            await listener.on_cache_update(self._cache)
+        await self._listeners.add(items)
 
     async def _on_item_update(self, event: TableItemsData) -> None:
         if event["type"] != self.key:
             return
         items = self._parse_items(event["items"])
         self._cache.update(items)
-        for listener in self._listeners:
-            await listener.on_update(items)
-            await listener.on_cache_update(self._cache)
+        await self._listeners.update(items)
 
     async def _on_item_remove(self, event: TableItemsData) -> None:
         if event["type"] != self.key:
@@ -393,17 +389,13 @@ class TableImpl[T](Table[T]):
             if key not in self._cache:
                 continue
             del self._cache[key]
-        for listener in self._listeners:
-            await listener.on_remove(items)
-            await listener.on_cache_update(self._cache)
+        await self._listeners.remove(items)
 
     async def _on_item_clear(self, event: TableEventData) -> None:
         if event["type"] != self.key:
             return
         self._cache.clear()
-        for listener in self._listeners:
-            await listener.on_clear()
-            await listener.on_cache_update(self._cache)
+        await self._listeners.clear()
 
     def _parse_items(self, items: Dict[str, bytes]) -> Dict[str, T]:
         parsed_items: Dict[str, T] = {}
@@ -424,9 +416,6 @@ class TableImpl[T](Table[T]):
     def set_cache_size(self, size: int) -> None:
         self._cache_size = size
 
-    def add_listener(self, listener: TableListener[T]) -> None:
-        self._listeners.append(listener)
-        self._listening = True
-
-    def remove_listener(self, listener: TableListener[T]) -> None:
-        self._listeners.remove(listener)
+    @property
+    def listeners(self) -> TableListeners[T]:
+        return self._listeners
