@@ -16,6 +16,10 @@ class EventEmitter[**P]:
         self.on_empty = on_empty
         self._listeners: List[Coro[P, None]] = []
 
+    @property
+    def empty(self) -> bool:
+        return len(self._listeners) == 0
+
     def subscribe(self, listener: Coro[P, None]) -> None:
         if listener in self._listeners:
             raise ValueError("Listener already subscribed")

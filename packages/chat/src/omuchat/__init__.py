@@ -1,6 +1,7 @@
 from omu import App
 
 from .client import Client
+from .event.event_types import events
 from .model import (
     Author,
     Channel,
@@ -19,6 +20,7 @@ __all__ = [
     "Author",
     "Channel",
     "content",
+    "events",
     "Gift",
     "Message",
     "Paid",

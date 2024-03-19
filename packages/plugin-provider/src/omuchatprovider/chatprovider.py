@@ -47,21 +47,21 @@ async def update_channel(channel: Channel, service: ProviderService):
         logger.error(f"Failed to update channel {channel.id}: {e}")
 
 
-@client.on(events.ChannelCreate)
+@client.on(events.channel.add)
 async def on_channel_create(channel: Channel):
     provider = get_provider(channel)
     if provider is not None:
         await update_channel(channel, provider)
 
 
-@client.on(events.ChannelDelete)
-async def on_channel_delete(channel: Channel):
+@client.on(events.channel.remove)
+async def on_channel_remove(channel: Channel):
     provider = get_provider(channel)
     if provider is not None:
         await update_channel(channel, provider)
 
 
-@client.on(events.ChannelUpdate)
+@client.on(events.channel.update)
 async def on_channel_update(channel: Channel):
     provider = get_provider(channel)
     if provider is not None:
@@ -126,7 +126,7 @@ async def recheck_channels():
         await update_channel(channel, provider)
 
 
-@client.on(events.Ready)
+@client.on(events.ready)
 async def on_ready():
     await register_services()
     await recheck_channels()
@@ -134,7 +134,7 @@ async def on_ready():
     logger.info("Chat provider is ready")
 
 
-@client.on(events.MessageCreate)
+@client.on(events.message.add)
 async def on_message_create(message: Message):
     print(f"Message created: {message.text}")
     for gift in message.gifts or []:

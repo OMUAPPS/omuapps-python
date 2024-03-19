@@ -180,7 +180,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
     return ws
 
 
-@client.on(events.MessageCreate)
+@client.on(events.message.add)
 async def on_message_add(message: model.Message) -> None:
     comment = await to_comment(message)
     if not comment:
@@ -196,7 +196,7 @@ async def on_message_add(message: model.Message) -> None:
         )
 
 
-@client.on(events.MessageUpdate)
+@client.on(events.message.update)
 async def on_message_update(message: model.Message) -> None:
     comment = await to_comment(message)
     if comment is None:
@@ -212,7 +212,7 @@ async def on_message_update(message: model.Message) -> None:
         )
 
 
-@client.on(events.MessageDelete)
+@client.on(events.message.remove)
 async def on_message_delete(message: model.Message) -> None:
     for ws in sessions:
         await ws.send_json({"type": "deleted", "data": [message.key()]})

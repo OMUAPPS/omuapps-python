@@ -2,6 +2,9 @@ from typing import Callable
 
 from omu import Address, App, OmuClient
 
+from omuchat.event import EventRegistry, EventSource
+from omuchat.event.event import EventHandler
+
 from .chat import (
     AuthorsTableKey,
     ChannelsTableKey,
@@ -10,7 +13,6 @@ from .chat import (
     ProviderTableKey,
     RoomTableKey,
 )
-from .event import EventHandler, EventKey, EventRegistry, events
 
 
 class Client(OmuClient):
@@ -24,21 +26,28 @@ class Client(OmuClient):
             app=app,
             address=self.address,
         )
-        self.event_registry = EventRegistry()
         self.chat = Chat(self)
         self.messages = self.tables.get(MessagesTableKey)
         self.authors = self.tables.get(AuthorsTableKey)
         self.channels = self.tables.get(ChannelsTableKey)
         self.providers = self.tables.get(ProviderTableKey)
         self.rooms = self.tables.get(RoomTableKey)
-        self.network.listeners.connected += self.on_connected
+        self.event_registry = EventRegistry(self)
 
-    async def on_connected(self) -> None:
-        await self.event_registry.dispatch(events.Ready)
+    def on[**P](
+        self, event: EventSource[P]
+    ) -> Callable[[EventHandler[P]], EventHandler[P]]:
+        def decorator(listener: EventHandler[P]) -> EventHandler[P]:
+            self.event_registry.register(event, listener)
+            return listener
 
-    def on[**P](self, key: EventKey[P]) -> Callable[[EventHandler[P]], EventHandler[P]]:
-        def decorator(func: EventHandler[P]) -> EventHandler[P]:
-            self.event_registry.add(key, func)
-            return func
+        return decorator
+
+    def off[**P](
+        self, event: EventSource[P]
+    ) -> Callable[[EventHandler[P]], EventHandler[P]]:
+        def decorator(listener: EventHandler[P]) -> EventHandler[P]:
+            self.event_registry.unregister(event, listener)
+            return listener
 
         return decorator
