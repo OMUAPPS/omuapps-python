@@ -14,7 +14,7 @@ from omuchat.chat import (
 )
 from omuchat.model.channel import Channel, ChannelJson
 
-app = App.from_identifier(
+app = App(
     IDENTIFIER,
     description="",
     version="0.1.0",

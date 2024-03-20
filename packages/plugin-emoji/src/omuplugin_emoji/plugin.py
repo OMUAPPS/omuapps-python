@@ -8,8 +8,7 @@ from omuchat import App, Client
 
 IDENTIFIER = Identifier("cc.omuchat", "emoji")
 APP = App(
-    name="plugin-emoji",
-    group="cc.omuchat",
+    IDENTIFIER,
     version="0.1.0",
 )
 client = Client(APP)

@@ -1,5 +1,6 @@
 from omu.app import App
 from omu.client import OmuClient
+from omu.identifier import Identifier
 from omu.network import Address
 from omu.network.packet import PACKET_TYPES, Packet
 
@@ -8,10 +9,13 @@ address = Address(
     port=26423,
     secure=False,
 )
+IDENTIFIER = Identifier(
+    "test",
+    "test",
+)
 client = OmuClient(
     app=App(
-        name="test",
-        group="test",
+        IDENTIFIER,
         version="0.0.1",
     ),
     address=address,

@@ -2,15 +2,16 @@ import asyncio
 import time
 
 from loguru import logger
+from omu.identifier import Identifier
 from omuchat import App, Channel, Client, Message, Room, events
 
 from omuchatprovider.errors import ProviderError
 
 from .services import ChatService, ProviderService, get_services
 
+IDENTIFIER = Identifier("cc.omuchat", "chatprovider")
 APP = App(
-    name="chatprovider",
-    group="cc.omuchat",
+    identifier=IDENTIFIER,
     description="Chat provider for Omu",
     version="0.1.0",
     authors=["omu"],

@@ -21,31 +21,6 @@ class AppJson(TypedDict):
 class App(Keyable, Model[AppJson]):
     def __init__(
         self,
-        *,
-        name: str,
-        group: str,
-        version: str | None = None,
-        license: str | None = None,
-        description: str | None = None,
-        authors: List[str] | None = None,
-        site_url: str | None = None,
-        repository_url: str | None = None,
-        image_url: str | None = None,
-    ) -> None:
-        self.identifier = Identifier(group, name)
-        self.name: Final[str] = name
-        self.group: Final[str] = group
-        self.version = version
-        self.license = license
-        self.description = description
-        self.authors = authors
-        self.site_url = site_url
-        self.repository_url = repository_url
-        self.image_url = image_url
-
-    @classmethod
-    def from_identifier(
-        cls,
         identifier: Identifier,
         *,
         version: str | None = None,
@@ -55,25 +30,23 @@ class App(Keyable, Model[AppJson]):
         site_url: str | None = None,
         repository_url: str | None = None,
         image_url: str | None = None,
-    ) -> App:
-        return cls(
-            name="/".join(identifier.path),
-            group=identifier.namespace,
-            version=version,
-            license=license,
-            description=description,
-            authors=authors,
-            site_url=site_url,
-            repository_url=repository_url,
-            image_url=image_url,
-        )
+    ) -> None:
+        self.identifier: Final[Identifier] = identifier
+        self.name: Final[str] = "/".join(identifier.path)
+        self.group: Final[str] = identifier.namespace
+        self.version = version
+        self.license = license
+        self.description = description
+        self.authors = authors
+        self.site_url = site_url
+        self.repository_url = repository_url
+        self.image_url = image_url
 
     @classmethod
     def from_json(cls, json: AppJson) -> App:
         identifier = Identifier.from_key(json["identifier"])
         return cls(
-            name="/".join(identifier.path),
-            group=identifier.namespace,
+            identifier,
             version=json.get("version"),
             license=json.get("license"),
             description=json.get("description"),
