@@ -16,7 +16,6 @@ class Identifier(Keyable):
         self.validate(namespace, *path)
         self.namespace = namespace
         self.path = path
-        self.name = path[-1]
 
     @classmethod
     def validate(cls, namespace: str, *path: str) -> None:

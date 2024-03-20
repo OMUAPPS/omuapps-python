@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, NotRequired, TypedDict
+from typing import Final, List, NotRequired, TypedDict
 
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -33,8 +33,8 @@ class App(Keyable, Model[AppJson]):
         image_url: str | None = None,
     ) -> None:
         self.identifier = Identifier(group, name)
-        self.name = name
-        self.group = group
+        self.name: Final[str] = name
+        self.group: Final[str] = group
         self.version = version
         self.license = license
         self.description = description
@@ -56,10 +56,8 @@ class App(Keyable, Model[AppJson]):
         repository_url: str | None = None,
         image_url: str | None = None,
     ) -> App:
-        if len(identifier.path) != 1:
-            raise Exception(f"Invalid identifier {identifier}")
         return cls(
-            name=identifier.name,
+            name="/".join(identifier.path),
             group=identifier.namespace,
             version=version,
             license=license,
@@ -73,10 +71,8 @@ class App(Keyable, Model[AppJson]):
     @classmethod
     def from_json(cls, json: AppJson) -> App:
         identifier = Identifier.from_key(json["identifier"])
-        if len(identifier.path) != 1:
-            raise Exception(f"Invalid identifier {identifier}")
         return cls(
-            name=identifier.name,
+            name="/".join(identifier.path),
             group=identifier.namespace,
             version=json.get("version"),
             license=json.get("license"),
