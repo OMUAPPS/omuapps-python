@@ -7,8 +7,8 @@ from omu.helper import generate_md5_hash, sanitize_filename
 
 from .interface import Keyable
 
-NAMESPACE_REGEX = re.compile(r"^(\.[^.]|[\w-])+$")
-NAME_REGEX = re.compile(r"^[^/.]+$")
+NAMESPACE_REGEX = re.compile(r"^(\.[^/:.]|[\w-])+$")
+NAME_REGEX = re.compile(r"^[^/:.]+$")
 
 
 class Identifier(Keyable):
@@ -19,11 +19,17 @@ class Identifier(Keyable):
 
     @classmethod
     def validate(cls, namespace: str, *path: str) -> None:
+        if not namespace:
+            raise Exception("Invalid namespace: Namespace cannot be empty")
+        if len(path) == 0:
+            raise Exception("Invalid path: Path must have at least one name")
         if not NAMESPACE_REGEX.match(namespace):
-            raise Exception(f"Invalid namespace {namespace}")
+            raise Exception(
+                f"Invalid namespace: Namespace must match {NAMESPACE_REGEX.pattern}"
+            )
         for name in path:
             if not NAME_REGEX.match(name):
-                raise Exception(f"Invalid name {name}")
+                raise Exception(f"Invalid name: Name must match {NAME_REGEX.pattern}")
 
     @classmethod
     def format(cls, namespace: str, *path: str) -> str:
@@ -32,12 +38,14 @@ class Identifier(Keyable):
 
     @classmethod
     def from_key(cls, key: str) -> Identifier:
-        separator = key.rfind(":")
+        separator = key.find(":")
         if separator == -1:
-            raise Exception(f"Invalid key {key}")
+            raise Exception(f"Invalid key: No separator found in {key}")
+        if key.find(":", separator + 1) != -1:
+            raise Exception(f"Invalid key: Multiple separators found in {key}")
         namespace, path = key[:separator], key[separator + 1 :]
         if not namespace or not path:
-            raise Exception(f"Invalid key {key}")
+            raise Exception("Invalid key: Namespace and path cannot be empty")
         return cls(namespace, *path.split("/"))
 
     def key(self) -> str:
