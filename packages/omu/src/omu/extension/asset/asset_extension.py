@@ -65,3 +65,13 @@ class AssetExtension(Extension):
 
     async def download(self, identifiers: List[Identifier]) -> Files:
         return await self.client.endpoints.call(AssetDownloadEndpoint, identifiers)
+
+    def url(self, identifier: Identifier) -> str:
+        address = self.client.network.address
+        protocol = "https" if address.secure else "http"
+        return f"{protocol}://{address.host}:{address.port}/asset?id={identifier.key()}"
+
+    def proxy(self, url: str) -> str:
+        address = self.client.network.address
+        protocol = "https" if address.secure else "http"
+        return f"{protocol}://{address.host}:{address.port}/proxy?url={url}"

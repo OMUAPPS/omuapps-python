@@ -21,7 +21,7 @@ class AppJson(TypedDict):
 class App(Keyable, Model[AppJson]):
     def __init__(
         self,
-        identifier: Identifier,
+        identifier: Identifier | str,
         *,
         version: str | None = None,
         license: str | None = None,
@@ -31,6 +31,8 @@ class App(Keyable, Model[AppJson]):
         repository_url: str | None = None,
         image_url: str | None = None,
     ) -> None:
+        if isinstance(identifier, str):
+            identifier = Identifier.from_key(identifier)
         self.identifier: Final[Identifier] = identifier
         self.name: Final[str] = "/".join(identifier.path)
         self.group: Final[str] = identifier.namespace
@@ -69,7 +71,7 @@ class App(Keyable, Model[AppJson]):
         )
 
     def key(self) -> str:
-        return Identifier.format(self.group, self.name)
+        return self.identifier.key()
 
     def __hash__(self) -> int:
         return hash(self.key())

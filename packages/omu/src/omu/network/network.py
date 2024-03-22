@@ -9,6 +9,7 @@ from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.identifier import Identifier
 
+from .address import Address
 from .connection import Connection
 from .packet import Packet, PacketType
 from .packet.packet_types import PACKET_TYPES, ConnectPacket
@@ -22,8 +23,9 @@ class PacketListeners[T]:
 
 
 class Network:
-    def __init__(self, client: Client, connection: Connection):
+    def __init__(self, client: Client, address: Address, connection: Connection):
         self._client = client
+        self._address = address
         self._connection = connection
         self._connected = False
         self._listeners = NetworkListeners()
@@ -38,6 +40,10 @@ class Network:
             PACKET_TYPES.TOKEN,
             PACKET_TYPES.READY,
         )
+
+    @property
+    def address(self) -> Address:
+        return self._address
 
     def set_connection(self, connection: Connection) -> None:
         if self._connected:

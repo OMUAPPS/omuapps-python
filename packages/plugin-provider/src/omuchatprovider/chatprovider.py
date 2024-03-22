@@ -29,7 +29,7 @@ async def register_services():
     for service_class in get_services():
         service = service_class(client)
         services[service.info.key()] = service
-        await client.providers.add(service.info)
+        await client.chat.providers.add(service.info)
 
 
 async def update_channel(channel: Channel, service: ProviderService):
