@@ -156,11 +156,22 @@ def transform_text_content(
 def find_matching_emoji(text: str) -> EmojiMatch | None:
     match: EmojiMatch | None = None
     for pettern, asset in petterns.text:
-        start = text.find(pettern["text"])
+        if match:
+            search_end = match.end + len(pettern["text"])
+            start = text.find(pettern["text"], None, search_end)
+        else:
+            start = text.find(pettern["text"])
         if start == -1:
             continue
         if not match or start < match.start:
-            match = EmojiMatch(start, start + len(pettern["text"]), asset)
+            end = start + len(pettern["text"])
+            match = EmojiMatch(start, end, asset)
+        if match.start == 0:
+            break
+    if match:
+        if match.start == 0:
+            return match
+        text = text[: match.start]
     for pettern, asset in petterns.regex:
         if len(pettern["regex"]) == 0:
             continue
@@ -169,6 +180,8 @@ def find_matching_emoji(text: str) -> EmojiMatch | None:
             continue
         if not match or result.start() < match.start:
             match = EmojiMatch(result.start(), result.end(), asset)
+        if match.start == 0:
+            break
     return match
 
 
