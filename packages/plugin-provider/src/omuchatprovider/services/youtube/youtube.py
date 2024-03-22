@@ -258,7 +258,7 @@ class YoutubeChat:
         )
         if response.status // 100 != 2:
             logger.warning(
-                f"Could not fetch chat: {response.status=}: {response.text()}"
+                f"Could not fetch chat: {response.status=}: {await response.text()}"
             )
             if retry <= 0:
                 raise ProviderFailed("Could not fetch chat: too many retries")
