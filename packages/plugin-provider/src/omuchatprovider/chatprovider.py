@@ -90,7 +90,7 @@ async def recheck_rooms():
     for chat in tuple(chats.values()):
         if chat.closed:
             del chats[chat.room.key()]
-    rooms = await client.rooms.fetch_items()
+    rooms = await client.chat.rooms.fetch_items()
     for room in filter(lambda r: r.connected, rooms.values()):
         if room.provider_id not in services:
             continue
@@ -102,7 +102,7 @@ async def recheck_rooms():
 async def stop_room(room: Room):
     room.status = "offline"
     room.connected = False
-    await client.rooms.update(room)
+    await client.chat.rooms.update(room)
     for key, chat in tuple(chats.items()):
         if chat.room.key() == room.key():
             await chat.stop()
@@ -112,14 +112,14 @@ async def stop_room(room: Room):
 async def should_remove(room: Room, provider_service: ProviderService):
     if room.channel_id is None:
         return False
-    channel = await client.channels.get(room.channel_id)
+    channel = await client.chat.channels.get(room.channel_id)
     if channel and not channel.active:
         return True
     return not await provider_service.is_online(room)
 
 
 async def recheck_channels():
-    all_channels = await client.channels.fetch_items()
+    all_channels = await client.chat.channels.fetch_items()
     for channel in all_channels.values():
         provider = get_provider(channel)
         if provider is None:

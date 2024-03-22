@@ -403,17 +403,17 @@ class YoutubeChatService(ChatService):
     @classmethod
     async def create(cls, client: Client, room: Room):
         room.metadata = await cls.get_metadata(room.id)
-        await client.rooms.update(room)
+        await client.chat.rooms.update(room)
         chat = await YoutubeChat.from_url(room.id)
         instance = cls(client, room, chat)
-        await client.rooms.add(room)
+        await client.chat.rooms.add(room)
         return instance
 
     async def start(self):
         count = 0
         try:
             self._room.connected = True
-            await self.client.rooms.update(self._room)
+            await self.client.chat.rooms.update(self._room)
             while True:
                 chat_data = await self.chat.next()
                 if chat_data is None:
@@ -426,7 +426,7 @@ class YoutubeChatService(ChatService):
                         metadata |= self.room.metadata
                     metadata |= await self.chat.fetch_metadata()
                     self.room.metadata = metadata
-                    await self.client.rooms.update(self.room)
+                    await self.client.chat.rooms.update(self.room)
                 count += 1
         finally:
             await self.stop()
@@ -443,7 +443,7 @@ class YoutubeChatService(ChatService):
             if "markChatItemAsDeletedAction" in action:
                 await self.process_deleted_item(action["markChatItemAsDeletedAction"])
         if len(messages) > 0:
-            await self.client.messages.add(*messages)
+            await self.client.chat.messages.add(*messages)
         await self.process_reactions(data)
 
     async def process_message_item(self, item: api.MessageItemData) -> List[Message]:
@@ -452,7 +452,7 @@ class YoutubeChatService(ChatService):
             author = self._parse_author(data)
             message = _parse_runs(data["message"])
             created_at = self._parse_created_at(data)
-            await self.client.authors.add(author)
+            await self.client.chat.authors.add(author)
             return [
                 Message(
                     id=data["id"],
@@ -468,7 +468,7 @@ class YoutubeChatService(ChatService):
             message = map_optional(data.get("message"), _parse_runs)
             paid = self._parse_paid(data)
             created_at = self._parse_created_at(data)
-            await self.client.authors.add(author)
+            await self.client.chat.authors.add(author)
             return [
                 Message(
                     id=data["id"],
@@ -485,7 +485,7 @@ class YoutubeChatService(ChatService):
             created_at = self._parse_created_at(data)
             logger.info
             component = content.System.of(_parse_runs(data["headerSubtext"]))
-            await self.client.authors.add(author)
+            await self.client.chat.authors.add(author)
             return [
                 Message(
                     id=data["id"],
@@ -504,7 +504,7 @@ class YoutubeChatService(ChatService):
             author = self._parse_author(data)
             created_at = self._parse_created_at(data)
             component = content.System.of(_parse_runs(data["message"]))
-            await self.client.authors.add(author)
+            await self.client.chat.authors.add(author)
             return [
                 Message(
                     id=data["id"],
@@ -532,11 +532,11 @@ class YoutubeChatService(ChatService):
         return []
 
     async def process_deleted_item(self, item: api.MarkChatItemAsDeletedActionData):
-        message = await self.client.messages.get(
+        message = await self.client.chat.messages.get(
             f"{self._room.key()}#{item["targetItemId"]}"
         )
         if message:
-            await self.client.messages.remove(message)
+            await self.client.chat.messages.remove(message)
 
     async def process_reactions(self, data: api.Response):
         if "frameworkUpdates" not in data:
@@ -641,7 +641,7 @@ class YoutubeChatService(ChatService):
         self._closed = True
         self.tasks.terminate()
         self._room.connected = False
-        await self.client.rooms.update(self._room)
+        await self.client.chat.rooms.update(self._room)
 
 
 def _parse_runs(runs: api.Runs) -> content.Component:

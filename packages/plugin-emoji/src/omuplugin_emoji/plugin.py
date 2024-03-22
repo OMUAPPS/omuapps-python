@@ -1,12 +1,17 @@
-from typing import List, Literal, TypedDict
+import re
+from dataclasses import dataclass
+from typing import List, Literal, Mapping, Tuple, TypedDict
 
 from omu.extension.table.table import TableType
 from omu.identifier import Identifier
 from omu.interface.keyable import Keyable
 from omu.model import Model
 from omuchat import App, Client
+from omuchat.event.event_types import events
+from omuchat.model import content
+from omuchat.model.message import Message
 
-IDENTIFIER = Identifier("cc.omuchat", "emoji")
+IDENTIFIER = Identifier("cc.omuchat", "emoji", "plugin")
 APP = App(
     IDENTIFIER,
     version="0.1.0",
@@ -68,73 +73,107 @@ class Emoji(Model[EmojiData], Keyable):
         }
 
 
-EMOJI_TABLE = TableType.create_model(
+EMOJI_TABLE_TYPE = TableType.create_model(
     IDENTIFIER,
     name="emoji",
     model=Emoji,
 )
-
-emojis = client.tables.get(EMOJI_TABLE)
-
-
-# @dataclass
-# class EmojiMatch:
-#     emoji: Emoji
-#     match: re.Match
-#     start: int
-#     end: int
+emoji_table = client.tables.get(EMOJI_TABLE_TYPE)
 
 
-# def transform(component: content.Component) -> content.Component:
-#     if isinstance(component, content.Text):
-#         parts = transform_text_content(component)
-#         if len(parts) == 1:
-#             return parts[0]
-#         return content.Root(parts)
-#     if isinstance(component, content.Parent):
-#         component.set_children(
-#             [transform(sibling) for sibling in component.get_children()]
-#         )
-#     return component
+class petterns:
+    text: List[Tuple[TextPettern, Emoji]]
+    image: List[Tuple[ImagePettern, Emoji]]
+    regex: List[Tuple[RegexPettern, Emoji]]
 
 
-# def transform_text_content(
-#     component: content.Text,
-# ) -> list[content.Component]:
-#     text = component.text
-#     parts = []
-#     while text:
-#         match: EmojiMatch | None = None
-#         for emoji in emojis.cache.values():
-#             if not emoji.["regex"]:
-#                 continue
-#             result = re.search(emoji["regex"], text)
-#             if not result:
-#                 continue
-#             if not match or result.start() < match.start:
-#                 match = EmojiMatch(emoji, result, result.start(), result.end())
-#         if not match:
-#             parts.append(content.Text.of(text))
-#             break
-#         if match.start > 0:
-#             parts.append(content.Text.of(text[: match.start]))
-#         parts.append(
-#             content.Image.of(
-#                 url=match.emoji["image_url"],
-#                 id=match.emoji["id"],
-#                 name=match.emoji["name"],
-#             )
-#         )
-#         text = text[match.end :]
-#     return parts
+@emoji_table.listen
+async def update_emoji_table(items: Mapping[str, Emoji]):
+    petterns.text = []
+    petterns.image = []
+    petterns.regex = []
+    for emoji in items.values():
+        for pettern in emoji.petterns:
+            if pettern["type"] == "text":
+                petterns.text.append((pettern, emoji))
+            elif pettern["type"] == "image":
+                petterns.image.append((pettern, emoji))
+            elif pettern["type"] == "regex":
+                petterns.regex.append((pettern, emoji))
 
 
-# @client.messages.proxy
-# async def on_message(message: Message):
-#     if not message.content:
-#         return message
-#     message.content = transform(message.content)
-#     return message
+@dataclass
+class EmojiMatch:
+    start: int
+    end: int
+    emoji: Emoji
+
+
+def transform(component: content.Component) -> content.Component:
+    if isinstance(component, content.Text):
+        parts = transform_text_content(component)
+        if len(parts) == 1:
+            return parts[0]
+        return content.Root(parts)
+    if isinstance(component, content.Parent):
+        component.set_children(
+            [transform(sibling) for sibling in component.get_children()]
+        )
+    return component
+
+
+def transform_text_content(
+    component: content.Text,
+) -> list[content.Component]:
+    text = component.text
+    parts = []
+    while text:
+        match = find_matching_emoji(text)
+        if not match:
+            parts.append(content.Text.of(text))
+            break
+        if match.start > 0:
+            parts.append(content.Text.of(text[: match.start]))
+        parts.append(
+            content.Image.of(
+                url=client.assets.url(match.emoji.asset),
+                id=match.emoji.id,
+            )
+        )
+        text = text[match.end :]
+    return parts
+
+
+def find_matching_emoji(text: str) -> EmojiMatch | None:
+    match: EmojiMatch | None = None
+    for pettern, asset in petterns.text:
+        result = re.search(pettern["text"], text)
+        if not result:
+            continue
+        if not match or result.start() < match.start:
+            match = EmojiMatch(result.start(), result.end(), asset)
+    for pettern, asset in petterns.regex:
+        if len(pettern["regex"]) == 0:
+            continue
+        result = re.search(pettern["regex"], text)
+        if not result:
+            continue
+        if not match or result.start() < match.start:
+            match = EmojiMatch(result.start(), result.end(), asset)
+    return match
+
+
+@client.chat.messages.proxy
+async def on_message(message: Message):
+    if not message.content:
+        return message
+    message.content = transform(message.content)
+    return message
+
+
+@client.on(events.ready)
+async def ready():
+    await emoji_table.fetch_items()
 
 
 async def main():

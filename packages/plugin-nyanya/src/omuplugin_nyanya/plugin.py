@@ -23,7 +23,7 @@ async def translate(component: content.Component) -> content.Component:
     return component
 
 
-@client.messages.proxy
+@client.chat.messages.proxy
 async def on_message_add(message: model.Message) -> model.Message:
     if not message.content:
         return message
