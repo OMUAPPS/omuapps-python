@@ -5,14 +5,7 @@ from omu import Address, App, OmuClient
 from omuchat.event import EventRegistry, EventSource
 from omuchat.event.event import EventHandler
 
-from .chat import (
-    AuthorsTableKey,
-    ChannelsTableKey,
-    Chat,
-    MessagesTableKey,
-    ProviderTableKey,
-    RoomTableKey,
-)
+from .chat import Chat
 
 
 class Client(OmuClient):
@@ -27,11 +20,6 @@ class Client(OmuClient):
             address=self.address,
         )
         self.chat = Chat(self)
-        self.messages = self.tables.get(MessagesTableKey)
-        self.authors = self.tables.get(AuthorsTableKey)
-        self.channels = self.tables.get(ChannelsTableKey)
-        self.providers = self.tables.get(ProviderTableKey)
-        self.rooms = self.tables.get(RoomTableKey)
         self.event_registry = EventRegistry(self)
 
     def on[**P](
