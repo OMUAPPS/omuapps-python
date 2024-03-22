@@ -185,9 +185,5 @@ async def ready():
     await emoji_table.fetch_all()
 
 
-async def main():
-    await client.start()
-
-
 if __name__ == "__main__":
     client.run()

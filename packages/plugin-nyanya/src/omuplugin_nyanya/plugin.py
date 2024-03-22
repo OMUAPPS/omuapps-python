@@ -31,9 +31,5 @@ async def on_message_add(message: model.Message) -> model.Message:
     return message
 
 
-async def main():
-    await client.start()
-
-
 if __name__ == "__main__":
     client.run()

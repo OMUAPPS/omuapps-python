@@ -96,8 +96,8 @@ def format_content(*components: model.content.Component | None) -> str:
 
 
 async def to_comment(message: model.Message) -> Comment | None:
-    room = await client.rooms.get(message.room_id)
-    author = message.author_id and await client.authors.get(message.author_id)
+    room = await client.chat.rooms.get(message.room_id)
+    author = message.author_id and await client.chat.authors.get(message.author_id)
     if not room or not room.metadata or not author:
         return None
     badges = []
@@ -160,7 +160,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
     await ws.prepare(request)
     messages = [
         await to_comment(message)
-        for message in (await client.messages.fetch_items(before=35)).values()
+        for message in (await client.chat.messages.fetch_items(before=35)).values()
     ]
 
     await ws.send_json(
@@ -219,13 +219,13 @@ async def on_message_delete(message: model.Message) -> None:
         await ws.send_json({"type": "deleted", "data": [message.key()]})
 
 
-async def main():
+@client.on(events.ready)
+async def on_ready():
     app.add_routes([web.get("/sub", handle)])
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "localhost", 11180)
     asyncio.create_task(site.start())
-    await client.start()
 
 
 if __name__ == "__main__":
