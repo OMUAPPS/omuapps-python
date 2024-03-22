@@ -79,19 +79,21 @@ EMOJI_TABLE_TYPE = TableType.create_model(
     model=Emoji,
 )
 emoji_table = client.tables.get(EMOJI_TABLE_TYPE)
+emoji_table.set_cache_size(1000)
 
 
 class petterns:
-    text: List[Tuple[TextPettern, Emoji]]
-    image: List[Tuple[ImagePettern, Emoji]]
-    regex: List[Tuple[RegexPettern, Emoji]]
+    text: List[Tuple[TextPettern, Emoji]] = []
+    image: List[Tuple[ImagePettern, Emoji]] = []
+    regex: List[Tuple[RegexPettern, Emoji]] = []
 
 
 @emoji_table.listen
 async def update_emoji_table(items: Mapping[str, Emoji]):
-    petterns.text = []
-    petterns.image = []
-    petterns.regex = []
+    petterns.text.clear()
+    petterns.image.clear()
+    petterns.regex.clear()
+
     for emoji in items.values():
         for pettern in emoji.petterns:
             if pettern["type"] == "text":
@@ -115,6 +117,13 @@ def transform(component: content.Component) -> content.Component:
         if len(parts) == 1:
             return parts[0]
         return content.Root(parts)
+    if isinstance(component, content.Image):
+        for pettern, emoji in petterns.image:
+            if component.id == pettern["id"]:
+                return content.Image.of(
+                    url=client.assets.url(emoji.asset),
+                    id=emoji.id,
+                )
     if isinstance(component, content.Parent):
         component.set_children(
             [transform(sibling) for sibling in component.get_children()]
@@ -147,11 +156,11 @@ def transform_text_content(
 def find_matching_emoji(text: str) -> EmojiMatch | None:
     match: EmojiMatch | None = None
     for pettern, asset in petterns.text:
-        result = re.search(pettern["text"], text)
-        if not result:
+        start = text.find(pettern["text"])
+        if start == -1:
             continue
-        if not match or result.start() < match.start:
-            match = EmojiMatch(result.start(), result.end(), asset)
+        if not match or start < match.start:
+            match = EmojiMatch(start, start + len(pettern["text"]), asset)
     for pettern, asset in petterns.regex:
         if len(pettern["regex"]) == 0:
             continue
@@ -173,7 +182,7 @@ async def on_message(message: Message):
 
 @client.on(events.ready)
 async def ready():
-    await emoji_table.fetch_items()
+    await emoji_table.fetch_all()
 
 
 async def main():
