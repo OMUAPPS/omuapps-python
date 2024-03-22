@@ -98,8 +98,9 @@ def format_content(*components: model.content.Component | None) -> str:
 async def to_comment(message: model.Message) -> Comment | None:
     room = await client.chat.rooms.get(message.room_id)
     author = message.author_id and await client.chat.authors.get(message.author_id)
-    if not room or not room.metadata or not author:
+    if not room or not author:
         return None
+    metadata = room.metadata or {}
     badges = []
     for badge in author.roles:
         if badge.icon_url:
@@ -112,8 +113,8 @@ async def to_comment(message: model.Message) -> Comment | None:
     return Comment(
         id=room.key(),
         service=room.provider_id,
-        name=room.metadata.get("title", ""),
-        url=room.metadata.get("url", ""),
+        name=metadata.get("title", ""),
+        url=metadata.get("url", ""),
         color={"r": 190, "g": 44, "b": 255},
         data=CommentData(
             id=message.key(),
@@ -135,8 +136,8 @@ async def to_comment(message: model.Message) -> Comment | None:
         meta={"no": 1, "tc": 1},
         serviceData=CommentServiceData(
             id=room.key(),
-            name=room.metadata.get("title", ""),
-            url=room.metadata.get("url", ""),
+            name=metadata.get("title", ""),
+            url=metadata.get("url", ""),
             write=True,
             speech=False,
             options={},
