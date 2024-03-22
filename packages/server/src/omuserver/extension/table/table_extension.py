@@ -11,6 +11,7 @@ from omu.extension.table.table_extension import (
     TableFetchReq,
     TableItemAddEvent,
     TableItemClearEvent,
+    TableItemFetchAllEndpoint,
     TableItemFetchEndpoint,
     TableItemGetEndpoint,
     TableItemRemoveEvent,
@@ -77,6 +78,9 @@ class TableExtension:
         server.endpoints.bind_endpoint(
             TableItemFetchEndpoint, self._on_table_item_fetch
         )
+        server.endpoints.bind_endpoint(
+            TableItemFetchAllEndpoint, self._on_table_item_fetch_all
+        )
         server.endpoints.bind_endpoint(TableItemSizeEndpoint, self._on_table_item_size)
         server.endpoints.bind_endpoint(TableProxyEndpoint, self._on_table_proxy)
         server.listeners.stop += self.on_server_stop
@@ -100,6 +104,16 @@ class TableExtension:
             after=req.get("after"),
             cursor=req.get("cursor"),
         )
+        return TableItemsData(
+            type=req["type"],
+            items=items,
+        )
+
+    async def _on_table_item_fetch_all(
+        self, session: Session, req: TableEventData
+    ) -> TableItemsData:
+        table = await self.get_table(req["type"])
+        items = await table.fetch_all()
         return TableItemsData(
             type=req["type"],
             items=items,

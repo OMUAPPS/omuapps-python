@@ -77,6 +77,9 @@ class ServerTable(abc.ABC):
     ) -> Dict[str, bytes]: ...
 
     @abc.abstractmethod
+    async def fetch_all(self) -> Dict[str, bytes]: ...
+
+    @abc.abstractmethod
     async def iterate(self) -> AsyncIterator[bytes]: ...
 
     @abc.abstractmethod

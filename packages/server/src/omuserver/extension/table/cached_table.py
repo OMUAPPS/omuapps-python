@@ -194,6 +194,11 @@ class CachedTable(ServerTable):
             raise Exception("Table not set")
         return await self._adapter.fetch_items(before, after, cursor)
 
+    async def fetch_all(self) -> Dict[str, bytes]:
+        if self._adapter is None:
+            raise Exception("Table not set")
+        return await self._adapter.fetch_all()
+
     async def iterate(self) -> AsyncIterator[bytes]:
         cursor: str | None = None
         while True:

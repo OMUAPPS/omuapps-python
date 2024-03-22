@@ -8,59 +8,48 @@ from typing import Dict, List
 class TableAdapter(abc.ABC):
     @classmethod
     @abc.abstractmethod
-    def create(cls, path: Path) -> TableAdapter:
-        pass
+    def create(cls, path: Path) -> TableAdapter: ...
 
     @abc.abstractmethod
-    async def store(self):
-        pass
+    async def store(self): ...
 
     @abc.abstractmethod
-    async def load(self):
-        pass
+    async def load(self): ...
 
     @abc.abstractmethod
-    async def get(self, key: str) -> bytes | None:
-        pass
+    async def get(self, key: str) -> bytes | None: ...
 
     @abc.abstractmethod
-    async def get_all(self, keys: List[str]) -> Dict[str, bytes]:
-        pass
+    async def get_all(self, keys: List[str]) -> Dict[str, bytes]: ...
 
     @abc.abstractmethod
-    async def set(self, key: str, value: bytes) -> None:
-        pass
+    async def set(self, key: str, value: bytes) -> None: ...
 
     @abc.abstractmethod
-    async def set_all(self, items: Dict[str, bytes]) -> None:
-        pass
+    async def set_all(self, items: Dict[str, bytes]) -> None: ...
 
     @abc.abstractmethod
-    async def remove(self, key: str) -> None:
-        pass
+    async def remove(self, key: str) -> None: ...
 
     @abc.abstractmethod
-    async def remove_all(self, keys: List[str]) -> None:
-        pass
+    async def remove_all(self, keys: List[str]) -> None: ...
 
     @abc.abstractmethod
     async def fetch_items(
         self, before: int | None, after: str | None, cursor: str | None
-    ) -> Dict[str, bytes]:
-        pass
+    ) -> Dict[str, bytes]: ...
 
     @abc.abstractmethod
-    async def first(self) -> str | None:
-        pass
+    async def fetch_all(self) -> Dict[str, bytes]: ...
 
     @abc.abstractmethod
-    async def last(self) -> str | None:
-        pass
+    async def first(self) -> str | None: ...
 
     @abc.abstractmethod
-    async def clear(self) -> None:
-        pass
+    async def last(self) -> str | None: ...
 
     @abc.abstractmethod
-    async def size(self) -> int:
-        pass
+    async def clear(self) -> None: ...
+
+    @abc.abstractmethod
+    async def size(self) -> int: ...

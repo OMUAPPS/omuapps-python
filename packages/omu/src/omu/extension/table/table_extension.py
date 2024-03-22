@@ -206,6 +206,14 @@ TableItemFetchEndpoint = EndpointType[TableFetchReq, TableItemsData].create_seri
     request_serializer=Serializer.json(),
     response_serializer=TableItemsSerielizer(),
 )
+TableItemFetchAllEndpoint = EndpointType[
+    TableEventData, TableItemsData
+].create_serialized(
+    TableExtensionType,
+    "item_fetch_all",
+    request_serializer=Serializer.json(),
+    response_serializer=TableItemsSerielizer(),
+)
 TableItemSizeEndpoint = EndpointType[TableEventData, int].create_json(
     TableExtensionType, "item_size"
 )
@@ -285,6 +293,15 @@ class TableImpl[T](Table[T]):
         items_response = await self._client.endpoints.call(
             TableItemFetchEndpoint,
             TableFetchReq(type=self.key, before=before, after=after, cursor=cursor),
+        )
+        items = self._parse_items(items_response["items"])
+        self._cache.update(items)
+        await self._listeners.cache_update(self._cache)
+        return items
+
+    async def fetch_all(self) -> Dict[str, T]:
+        items_response = await self._client.endpoints.call(
+            TableItemFetchAllEndpoint, TableEventData(type=self.key)
         )
         items = self._parse_items(items_response["items"])
         self._cache.update(items)

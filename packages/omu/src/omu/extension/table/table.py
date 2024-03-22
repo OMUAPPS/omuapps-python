@@ -58,6 +58,9 @@ class Table[T](abc.ABC):
     ) -> Mapping[str, T]: ...
 
     @abc.abstractmethod
+    async def fetch_all(self) -> Mapping[str, T]: ...
+
+    @abc.abstractmethod
     async def iterate(
         self,
         backward: bool = False,

@@ -110,6 +110,10 @@ class SqliteTableAdapter(TableAdapter):
             items.update({row[0]: (row[1], (row[2])) for row in _cursor.fetchall()})
         return {key: value for _, (key, value) in sorted(items.items(), reverse=True)}
 
+    async def fetch_all(self) -> Dict[str, bytes]:
+        _cursor = self._conn.execute("SELECT key, value FROM data")
+        return {row[0]: (row[1]) for row in _cursor.fetchall()}
+
     async def first(self) -> str | None:
         _cursor = self._conn.execute("SELECT key FROM data ORDER BY id LIMIT 1")
         row = _cursor.fetchone()
