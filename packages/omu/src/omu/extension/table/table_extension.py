@@ -418,8 +418,8 @@ class TableImpl[T](Table[T]):
         if self._cache_size is None:
             self._cache = items
         else:
-            merged_cache = dict(**self._cache, **items).items()
-            cache_array = tuple(merged_cache)
+            merged_cache = {**self._cache, **items}
+            cache_array = tuple(merged_cache.items())
             self._cache = dict(cache_array[: self._cache_size])
         await self._listeners.cache_update(self._cache)
 
