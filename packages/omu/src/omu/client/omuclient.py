@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
+from omu.extension.asset import AssetExtension, AssetExtensionType
 from omu.extension.endpoint import (
     EndpointExtension,
     EndpointExtensionType,
@@ -14,7 +15,7 @@ from omu.extension.message import (
     MessageExtension,
     MessageExtensionType,
 )
-from omu.extension.registry.registry_extension import (
+from omu.extension.registry import (
     RegistryExtension,
     RegistryExtensionType,
 )
@@ -44,7 +45,11 @@ class OmuClient(Client):
         self._running = False
         self._listeners = ClientListeners()
         self._app = app
-        self._network = Network(self, connection or WebsocketsConnection(self, address))
+        self._network = Network(
+            self,
+            address,
+            connection or WebsocketsConnection(self, address),
+        )
         self._network.listeners.connected += self._listeners.ready.emit
         self._extensions = extension_registry or ExtensionManager(self)
 
@@ -52,6 +57,7 @@ class OmuClient(Client):
         self._tables = self.extensions.register(TableExtensionType)
         self._registry = self.extensions.register(RegistryExtensionType)
         self._message = self.extensions.register(MessageExtensionType)
+        self._assets = self.extensions.register(AssetExtensionType)
         self._server = self.extensions.register(ServerExtensionType)
 
         self._loop.create_task(self._listeners.initialized.emit())
@@ -87,6 +93,10 @@ class OmuClient(Client):
     @property
     def message(self) -> MessageExtension:
         return self._message
+
+    @property
+    def assets(self) -> AssetExtension:
+        return self._assets
 
     @property
     def server(self) -> ServerExtension:
