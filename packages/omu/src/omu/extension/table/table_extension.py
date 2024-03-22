@@ -235,7 +235,7 @@ class TableImpl[T](Table[T]):
         self._listeners = TableListeners[T]()
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
-        self._cache_size = 1000
+        self._cache_size: int | None = None
         self._listening = False
         self._config: TableConfig | None = None
         self.key = identifier.key()
@@ -245,7 +245,7 @@ class TableImpl[T](Table[T]):
         client.network.add_packet_handler(TableItemUpdateEvent, self._on_item_update)
         client.network.add_packet_handler(TableItemRemoveEvent, self._on_item_remove)
         client.network.add_packet_handler(TableItemClearEvent, self._on_item_clear)
-        client.network.listeners.connected += self.on_connected
+        client.network.add_task(self.on_connected)
 
     @property
     def cache(self) -> Dict[str, T]:
@@ -295,8 +295,7 @@ class TableImpl[T](Table[T]):
             TableFetchReq(type=self.key, before=before, after=after, cursor=cursor),
         )
         items = self._parse_items(items_response["items"])
-        self._cache.update(items)
-        await self._listeners.cache_update(self._cache)
+        await self.update_cache(items)
         return items
 
     async def fetch_all(self) -> Dict[str, T]:
@@ -304,8 +303,7 @@ class TableImpl[T](Table[T]):
             TableItemFetchAllEndpoint, TableEventData(type=self.key)
         )
         items = self._parse_items(items_response["items"])
-        self._cache.update(items)
-        await self._listeners.cache_update(self._cache)
+        await self.update_cache(items)
         return items
 
     async def iterate(
@@ -388,31 +386,42 @@ class TableImpl[T](Table[T]):
         if event["type"] != self.key:
             return
         items = self._parse_items(event["items"])
-        self._cache.update(items)
         await self._listeners.add(items)
+        await self.update_cache(items)
 
     async def _on_item_update(self, event: TableItemsData) -> None:
         if event["type"] != self.key:
             return
         items = self._parse_items(event["items"])
-        self._cache.update(items)
         await self._listeners.update(items)
+        await self.update_cache(items)
 
     async def _on_item_remove(self, event: TableItemsData) -> None:
         if event["type"] != self.key:
             return
         items = self._parse_items(event["items"])
+        await self._listeners.remove(items)
         for key in items.keys():
             if key not in self._cache:
                 continue
             del self._cache[key]
-        await self._listeners.remove(items)
+        await self._listeners.cache_update(self._cache)
 
     async def _on_item_clear(self, event: TableEventData) -> None:
         if event["type"] != self.key:
             return
-        self._cache.clear()
         await self._listeners.clear()
+        self._cache.clear()
+        await self._listeners.cache_update(self._cache)
+
+    async def update_cache(self, items: Dict[str, T]) -> None:
+        if self._cache_size is None:
+            self._cache = items
+        else:
+            merged_cache = dict(**self._cache, **items).items()
+            cache_array = tuple(merged_cache)
+            self._cache = dict(cache_array[: self._cache_size])
+        await self._listeners.cache_update(self._cache)
 
     def _parse_items(self, items: Dict[str, bytes]) -> Dict[str, T]:
         parsed_items: Dict[str, T] = {}
@@ -430,7 +439,7 @@ class TableImpl[T](Table[T]):
             serialized_items[key] = self._serializer.serialize(item)
         return serialized_items
 
-    def set_cache_size(self, size: int) -> None:
+    def set_cache_size(self, size: int | None) -> None:
         self._cache_size = size
 
     @property
