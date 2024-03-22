@@ -120,6 +120,7 @@ class PluginExtension:
                         self._server.address.port,
                     ),
                 ),
+                daemon=True,
             )
             process.start()
         else:
