@@ -87,12 +87,32 @@ class Table[T](abc.ABC):
 class TableListeners[T]:
     def __init__(
         self,
+        table: Table[T],
     ) -> None:
-        self.add: EventEmitter[Mapping[str, T]] = EventEmitter()
-        self.update: EventEmitter[Mapping[str, T]] = EventEmitter()
-        self.remove: EventEmitter[Mapping[str, T]] = EventEmitter()
-        self.clear: EventEmitter[[]] = EventEmitter()
-        self.cache_update: EventEmitter[Mapping[str, T]] = EventEmitter()
+        self.unlisten: Callable[[], None] | None = None
+
+        def listen():
+            self.unlisten = table.listen()
+
+        def unlisten():
+            if self.unlisten:
+                self.unlisten()
+
+        self.add: EventEmitter[Mapping[str, T]] = EventEmitter(
+            on_subscribe=listen, on_empty=unlisten
+        )
+        self.update: EventEmitter[Mapping[str, T]] = EventEmitter(
+            on_subscribe=listen, on_empty=unlisten
+        )
+        self.remove: EventEmitter[Mapping[str, T]] = EventEmitter(
+            on_subscribe=listen, on_empty=unlisten
+        )
+        self.clear: EventEmitter[[]] = EventEmitter(
+            on_subscribe=listen, on_empty=unlisten
+        )
+        self.cache_update: EventEmitter[Mapping[str, T]] = EventEmitter(
+            on_subscribe=listen, on_empty=unlisten
+        )
 
 
 type ModelEntry[T: Keyable, D] = JsonSerializable[T, D]

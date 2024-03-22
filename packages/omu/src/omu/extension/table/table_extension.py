@@ -232,7 +232,7 @@ class TableImpl[T](Table[T]):
         self._serializer = serializer
         self._key_function = key_function
         self._cache: Dict[str, T] = {}
-        self._listeners = TableListeners[T]()
+        self._listeners = TableListeners[T](self)
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self._cache_size: int | None = None

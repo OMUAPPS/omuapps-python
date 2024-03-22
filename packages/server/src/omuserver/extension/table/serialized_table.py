@@ -21,7 +21,7 @@ class SerializedTable[T: Keyable](Table[T]):
     def __init__(self, table: ServerTable, type: TableType[T]):
         self._table = table
         self._type = type
-        self._listeners = TableListeners[T]()
+        self._listeners = TableListeners[T](self)
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self.key = type.identifier.key()
