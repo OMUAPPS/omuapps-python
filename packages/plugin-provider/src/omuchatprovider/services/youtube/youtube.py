@@ -644,8 +644,10 @@ class YoutubeChatService(ChatService):
         await self.client.chat.rooms.update(self._room)
 
 
-def _parse_runs(runs: api.Runs) -> content.Component:
+def _parse_runs(runs: api.Runs | None) -> content.Component:
     root = content.Root()
+    if runs is None:
+        return root
     for run in runs.get("runs", []):
         if "text" in run:
             if "navigationEndpoint" in run:
