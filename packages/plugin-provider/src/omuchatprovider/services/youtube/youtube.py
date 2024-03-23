@@ -324,7 +324,7 @@ class YoutubeChat:
                 title = _parse_runs(action["updateTitleAction"]["title"])
             if "updateDescriptionAction" in action:
                 description = _parse_runs(
-                    action["updateDescriptionAction"]["description"]
+                    action["updateDescriptionAction"].get("description")
                 )
         metadata = RoomMetadata()
         if viewer_count:
