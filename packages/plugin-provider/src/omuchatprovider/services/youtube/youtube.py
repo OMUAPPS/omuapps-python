@@ -182,6 +182,8 @@ class YoutubeChat:
         )
         soup = bs4.BeautifulSoup(await response.text(), "html.parser")
         data = cls.extract_script(soup, "ytcfg.set")
+        if data is None:
+            raise ProviderFailed("Could not find ytcfg data")
         api_key = data["INNERTUBE_API_KEY"]
         continuation = cls.extract_continuation(soup)
         if continuation is None:
@@ -191,6 +193,8 @@ class YoutubeChat:
     @classmethod
     def extract_continuation(cls, soup: bs4.BeautifulSoup) -> str | None:
         initial_data = cls.extract_script(soup, 'window["ytInitialData"]')
+        if initial_data is None:
+            return None
         contents = initial_data["contents"]
         if "liveChatRenderer" not in contents:
             return None
@@ -199,13 +203,15 @@ class YoutubeChat:
         ]["continuation"]
 
     @classmethod
-    def extract_script(cls, soup: bs4.BeautifulSoup, startswith: str) -> Dict:
+    def extract_script(cls, soup: bs4.BeautifulSoup, startswith: str) -> Dict | None:
         for script in soup.select("script"):
             script_text = script.text.strip()
             if script_text.startswith(startswith):
                 break
         else:
-            raise ProviderFailed(f"Could not find {startswith}")
+            return None
+        if "{" not in script_text or "}" not in script_text:
+            return None
         data_text = script_text[script_text.index("{") : script_text.rindex("}") + 1]
         data = json.loads(data_text)
         return data
@@ -222,6 +228,8 @@ class YoutubeChat:
             return False
         soup = bs4.BeautifulSoup(await live_chat_response.text(), "html.parser")
         ytcfg_data = YoutubeChat.extract_script(soup, "ytcfg.set")
+        if ytcfg_data is None:
+            raise ProviderFailed("Could not find ytcfg data")
         api_key = ytcfg_data["INNERTUBE_API_KEY"]
         continuation = YoutubeChat.extract_continuation(soup)
         if continuation is None:
