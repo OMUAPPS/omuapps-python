@@ -2,7 +2,7 @@
     "configurations": [
         {
             "name": "Run Server",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "omuserver",
             "args": [
