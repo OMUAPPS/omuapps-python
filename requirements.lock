@@ -66,6 +66,10 @@ lxml==5.1.0
 multidict==6.0.5
     # via aiohttp
     # via yarl
+packaging==24.0
+    # via omuserver
+psutil==5.9.8
+    # via omuserver
 soupsieve==2.5
     # via beautifulsoup4
 sqlitedict==2.1.0

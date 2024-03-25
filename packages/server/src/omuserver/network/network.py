@@ -4,6 +4,7 @@ import socket
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict
 
+import psutil
 from aiohttp import web
 from loguru import logger
 from omu import App
@@ -87,16 +88,28 @@ class Network:
 
     def is_port_available(self) -> bool:
         try:
-            socket_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = socket_connection.connect_ex(("127.0.0.1", 80))
-            socket_connection.close()
-            return result != 0
+            socket.create_connection(
+                (self._server.address.host, self._server.address.port)
+            ).close()
+            return True
         except OSError:
             return False
 
+    def get_process_by_port(self, port: int) -> psutil.Process | None:
+        for connection in psutil.net_connections():
+            if connection.laddr and connection.laddr.port == port:
+                return psutil.Process(connection.pid)
+        return None
+
     async def start(self) -> None:
         if not self.is_port_available():
-            raise OSError(f"Port {self._server.address.port} already in use")
+            process = self.get_process_by_port(self._server.address.port)
+            if process is None:
+                raise OSError(f"Port {self._server.address.port} already in use")
+            port = self._server.address.port
+            name = process.name()
+            pid = process.pid
+            raise OSError(f"Port {port} already in use by {name} ({pid=})")
         self._app.on_startup.append(self._handle_start)
         runner = web.AppRunner(self._app)
         await runner.setup()
