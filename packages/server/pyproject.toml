@@ -13,6 +13,8 @@ dependencies = [
     "omu>=0.1.4",
     "pip>=24.0",
     "aiohttp>=3.9.3",
+    "packaging>=24.0",
+    "psutil>=5.9.8",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
