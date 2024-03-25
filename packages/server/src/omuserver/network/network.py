@@ -88,10 +88,9 @@ class Network:
 
     def is_port_available(self) -> bool:
         try:
-            socket.create_connection(
-                (self._server.address.host, self._server.address.port)
-            ).close()
-            return True
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((self._server.address.host, self._server.address.port))
+                return True
         except OSError:
             return False
 
