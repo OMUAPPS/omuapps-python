@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, AsyncIterator, Dict, List
+from typing import TYPE_CHECKING, AsyncGenerator, Dict, List
 
 from omu.extension.table import TableConfig
 from omu.extension.table.table_extension import TableProxyData, TableProxyEvent
@@ -165,12 +165,12 @@ class CachedTable(ServerTable):
         await self.update_cache(items)
         self.mark_changed()
 
-    async def remove(self, items: list[str]) -> None:
+    async def remove(self, keys: List[str]) -> None:
         if self._adapter is None:
             raise Exception("Table not set")
-        removed = await self._adapter.get_all(items)
-        await self._adapter.remove_all(items)
-        for key in items:
+        removed = await self._adapter.get_all(keys)
+        await self._adapter.remove_all(keys)
+        for key in keys:
             if key in self._cache:
                 del self._cache[key]
         await self._listeners.remove(removed)
@@ -187,7 +187,7 @@ class CachedTable(ServerTable):
     async def fetch_items(
         self,
         before: int | None = None,
-        after: str | None = None,
+        after: int | None = None,
         cursor: str | None = None,
     ) -> Dict[str, bytes]:
         if self._adapter is None:
@@ -199,10 +199,13 @@ class CachedTable(ServerTable):
             raise Exception("Table not set")
         return await self._adapter.fetch_all()
 
-    async def iterate(self) -> AsyncIterator[bytes]:
+    async def iterate(self) -> AsyncGenerator[bytes, None]:
         cursor: str | None = None
         while True:
-            items = await self.fetch_items(self._cache_size, cursor)
+            items = await self.fetch_items(
+                before=self._config.get("chunk_size", 100),
+                cursor=cursor,
+            )
             if len(items) == 0:
                 break
             for item in items.values():

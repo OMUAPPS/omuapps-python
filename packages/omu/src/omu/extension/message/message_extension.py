@@ -27,14 +27,14 @@ class MessageData:
 
 
 class MessageSerializer(Serializable[MessageData, bytes]):
-    def serialize(self, data: MessageData) -> bytes:
+    def serialize(self, item: MessageData) -> bytes:
         writer = ByteWriter()
-        writer.write_string(data.key)
-        writer.write_byte_array(data.body)
+        writer.write_string(item.key)
+        writer.write_byte_array(item.body)
         return writer.finish()
 
-    def deserialize(self, data: bytes) -> MessageData:
-        with ByteReader(data) as reader:
+    def deserialize(self, item: bytes) -> MessageData:
+        with ByteReader(item) as reader:
             key = reader.read_string()
             body = reader.read_byte_array()
         return MessageData(key=key, body=body)

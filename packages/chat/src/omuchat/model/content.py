@@ -247,14 +247,17 @@ class System(Component[Literal["system"], RootData], Parent):
         self.children = children
 
 
+type LogLevel = Literal["info", "warning", "error"]
+
+
 class LogData(TypedDict):
-    level: Literal["info", "warning", "error"]
+    level: LogLevel
     message: str
 
 
 class Log(Component[Literal["log"], LogData]):
-    def __init__(self, level: Literal["info", "warning", "error"], message: str):
-        self.level = level
+    def __init__(self, level: LogLevel, message: str):
+        self.level: LogLevel = level
         self.message = message
 
     @classmethod

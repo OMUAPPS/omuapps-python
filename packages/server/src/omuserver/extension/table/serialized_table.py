@@ -107,12 +107,12 @@ class SerializedTable[T: Keyable](Table[T]):
         return self._listeners
 
     def listen(
-        self, callback: AsyncCallback[Mapping[str, T]] | None = None
+        self, listener: AsyncCallback[Mapping[str, T]] | None = None
     ) -> Callable[[], None]:
         self._listening = True
-        if callback:
-            self._listeners.cache_update += callback
-            return lambda: self._listeners.cache_update.unsubscribe(callback)
+        if listener:
+            self._listeners.cache_update += listener
+            return lambda: self._listeners.cache_update.unsubscribe(listener)
         return lambda: None
 
     async def on_add(self, items: Dict[str, bytes]) -> None:

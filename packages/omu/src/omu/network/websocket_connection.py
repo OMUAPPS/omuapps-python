@@ -32,19 +32,17 @@ class WebsocketsConnection(Connection):
         self._connected = True
 
     async def send(
-        self, packet: Packet, serializer: Serializable[Packet, PacketData]
+        self, packet: Packet, packet_mapper: Serializable[Packet, PacketData]
     ) -> None:
         if not self._socket or self._socket.closed or not self._connected:
             raise RuntimeError("Not connected")
-        packet_data = serializer.serialize(packet)
+        packet_data = packet_mapper.serialize(packet)
         writer = ByteWriter()
         writer.write_string(packet_data.type)
         writer.write_byte_array(packet_data.data)
         await self._socket.send_bytes(writer.finish())
 
-    async def receive(
-        self, packet_serializer: Serializable[Packet, PacketData]
-    ) -> Packet:
+    async def receive(self, packet_mapper: Serializable[Packet, PacketData]) -> Packet:
         if not self._socket or self._socket.closed:
             raise RuntimeError("Not connected")
         msg = await self._socket.receive()
@@ -64,7 +62,7 @@ class WebsocketsConnection(Connection):
                 event_type = reader.read_string()
                 event_data = reader.read_byte_array()
             packet_data = PacketData(event_type, event_data)
-            return packet_serializer.deserialize(packet_data)
+            return packet_mapper.deserialize(packet_data)
         else:
             raise RuntimeError(f"Unknown message type {msg.type}")
 

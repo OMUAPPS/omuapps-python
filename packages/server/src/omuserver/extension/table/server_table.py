@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, AsyncIterator, Dict, List, Union
+from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Union
 
 from omu.event_emitter import EventEmitter
 
@@ -80,7 +80,7 @@ class ServerTable(abc.ABC):
     async def fetch_all(self) -> Dict[str, bytes]: ...
 
     @abc.abstractmethod
-    async def iterate(self) -> AsyncIterator[bytes]: ...
+    async def iterate(self) -> AsyncGenerator[bytes, None]: ...
 
     @abc.abstractmethod
     async def size(self) -> int: ...

@@ -72,6 +72,8 @@ lxml==5.1.0
 multidict==6.0.5
     # via aiohttp
     # via yarl
+nodeenv==1.8.0
+    # via pyright
 packaging==24.0
     # via omuserver
     # via pytest
@@ -79,6 +81,7 @@ pluggy==1.4.0
     # via pytest
 psutil==5.9.8
     # via omuserver
+pyright==1.1.355
 pytest==8.1.1
     # via pytest-asyncio
     # via pytest-cov
@@ -97,3 +100,5 @@ yarl==1.9.4
     # via aiohttp
 pip==24.0
     # via omuserver
+setuptools==69.2.0
+    # via nodeenv

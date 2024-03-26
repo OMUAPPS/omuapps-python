@@ -52,8 +52,8 @@ class Room(Keyable, Model[RoomJson], Hashable):
         self.channel_id = channel_id
         self.created_at = created_at
 
-    @staticmethod
-    def from_json(json: RoomJson) -> Room:
+    @classmethod
+    def from_json(cls, json: RoomJson) -> Room:
         return Room(
             id=json["id"],
             provider_id=json["provider_id"],

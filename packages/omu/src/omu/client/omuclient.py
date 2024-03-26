@@ -106,8 +106,8 @@ class OmuClient(Client):
     def running(self) -> bool:
         return self._running
 
-    async def send[T](self, event: PacketType[T], data: T) -> None:
-        await self._network.send(Packet(event, data))
+    async def send[T](self, type: PacketType[T], data: T) -> None:
+        await self._network.send(Packet(type, data))
 
     def run(self, *, token: str | None = None, reconnect: bool = True) -> None:
         try:

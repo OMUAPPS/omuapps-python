@@ -523,10 +523,94 @@ class YoutubeChatService(ChatService):
                 )
             ]
         elif "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer" in item:
-            """
-            {'liveChatSponsorshipsGiftPurchaseAnnouncementRenderer': {'id': 'ChwKGkNPWEU1OERlcW9RREZhekV3Z1FkVGdNS013', 'timestampUsec': '1707910568302677', 'authorExternalChannelId': 'UCJcRzyF_5IqKwuezuzid5eQ', 'header': {'liveChatSponsorshipsHeaderRenderer': {'authorName': {'simpleText': '♾️野うさぎ'}, 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'primaryText': {'runs': [{'text': 'Gifted ', 'bold': True}, {'text': '5', 'bold': True}, {'text': ' ', 'bold': True}, {'text': 'Pekora Ch. 兎田ぺこら', 'bold': True}, {'text': ' memberships', 'bold': True}]}, 'authorBadges': [{'liveChatAuthorBadgeRenderer': {'customThumbnail': {'thumbnails': [{'url': 'https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s16-c-k', 'width': 16, 'height': 16}, {'url': 'https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s32-c-k', 'width': 32, 'height': 32}]}, 'tooltip': 'Member (2 months)', 'accessibility': {'accessibilityData': {'label': 'Member (2 months)'}}}}], 'contextMenuEndpoint': {'clickTrackingParams': 'CAUQ3MMKIhMIgbSe1t6qhAMVVkP1BR04yA_O', 'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMDlZUlRVNFJHVnhiMUZFUm1GNlJYZG5VV1JVWjAxTFRYY2FLU29uQ2hoVlF6RkVRMlZrVW1kSFNFSmtiVGd4UlRGc2JFeG9UMUVTQ3pOa2FIRlFWRXhzTkRoQklBSW9CRElhQ2hoVlEwcGpVbnA1Umw4MVNYRkxkM1ZsZW5WNmFXUTFaVkU0QWtnQVVDUSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}, 'image': {'thumbnails': [{'url': 'https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png'}]}}}}}
-            """
-            data = item["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"]
+            return []
+            # {
+            #     "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": {
+            #         "id": "ChwKGkNPWEU1OERlcW9RREZhekV3Z1FkVGdNS013",
+            #         "timestampUsec": "1707910568302677",
+            #         "authorExternalChannelId": "UCJcRzyF_5IqKwuezuzid5eQ",
+            #         "header": {
+            #             "liveChatSponsorshipsHeaderRenderer": {
+            #                 "authorName": {"simpleText": "♾️野うさぎ"},
+            #                 "authorPhoto": {
+            #                     "thumbnails": [
+            #                         {
+            #                             "url": "https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s32-c-k-c0x00ffffff-no-rj",
+            #                             "width": 32,
+            #                             "height": 32,
+            #                         },
+            #                         {
+            #                             "url": "https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s64-c-k-c0x00ffffff-no-rj",
+            #                             "width": 64,
+            #                             "height": 64,
+            #                         },
+            #                     ]
+            #                 },
+            #                 "primaryText": {
+            #                     "runs": [
+            #                         {"text": "Gifted ", "bold": True},
+            #                         {"text": "5", "bold": True},
+            #                         {"text": " ", "bold": True},
+            #                         {"text": "Pekora Ch. 兎田ぺこら", "bold": True},
+            #                         {"text": " memberships", "bold": True},
+            #                     ]
+            #                 },
+            #                 "authorBadges": [
+            #                     {
+            #                         "liveChatAuthorBadgeRenderer": {
+            #                             "customThumbnail": {
+            #                                 "thumbnails": [
+            #                                     {
+            #                                         "url": "https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s16-c-k",
+            #                                         "width": 16,
+            #                                         "height": 16,
+            #                                     },
+            #                                     {
+            #                                         "url": "https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s32-c-k",
+            #                                         "width": 32,
+            #                                         "height": 32,
+            #                                     },
+            #                                 ]
+            #                             },
+            #                             "tooltip": "Member (2 months)",
+            #                             "accessibility": {
+            #                                 "accessibilityData": {
+            #                                     "label": "Member (2 months)"
+            #                                 }
+            #                             },
+            #                         }
+            #                     }
+            #                 ],
+            #                 "contextMenuEndpoint": {
+            #                     "clickTrackingParams": "CAUQ3MMKIhMIgbSe1t6qhAMVVkP1BR04yA_O",
+            #                     "commandMetadata": {
+            #                         "webCommandMetadata": {"ignoreNavigation": True}
+            #                     },
+            #                     "liveChatItemContextMenuEndpoint": {
+            #                         "params": "Q2g0S0hBb2FRMDlZUlRVNFJHVnhiMUZFUm1GNlJYZG5VV1JVWjAxTFRYY2FLU29uQ2hoVlF6RkVRMlZrVW1kSFNFSmtiVGd4UlRGc2JFeG9UMUVTQ3pOa2FIRlFWRXhzTkRoQklBSW9CRElhQ2hoVlEwcGpVbnA1Umw4MVNYRkxkM1ZsZW5WNmFXUTFaVkU0QWtnQVVDUSUzRA=="
+            #                     },
+            #                 },
+            #                 "contextMenuAccessibility": {
+            #                     "accessibilityData": {"label": "Chat actions"}
+            #                 },
+            #                 "image": {
+            #                     "thumbnails": [
+            #                         {
+            #                             "url": "https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png"
+            #                         }
+            #                     ]
+            #                 },
+            #             }
+            #         },
+            #     }
+            # }
+            # data = item["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"]
+            # author = self._parse_author(
+            #     data["header"]["liveChatSponsorshipsHeaderRenderer"]
+            # )
+            # created_at = self._parse_created_at(data)
+            # component = content.System.of(_parse_runs(data["header"]["primaryText"]))
+            # await self.client.chat.authors.add(author)
         elif "liveChatPlaceholderItemRenderer" in item:
             """
             item["liveChatPlaceholderItemRenderer"] = {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}

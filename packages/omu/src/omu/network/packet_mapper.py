@@ -18,18 +18,18 @@ class PacketMapper(Serializable[Packet, PacketData]):
                 )
             self._map[packet_type.identifier] = packet_type
 
-    def serialize(self, packet: Packet) -> PacketData:
+    def serialize(self, item: Packet) -> PacketData:
         return PacketData(
-            type=packet.type.identifier.key(),
-            data=packet.type.serializer.serialize(packet.data),
+            type=item.type.identifier.key(),
+            data=item.type.serializer.serialize(item.data),
         )
 
-    def deserialize(self, data: PacketData) -> Packet:
-        identifier = Identifier.from_key(data.type)
+    def deserialize(self, item: PacketData) -> Packet:
+        identifier = Identifier.from_key(item.type)
         packet_type = self._map.get(identifier)
         if not packet_type:
             raise ValueError(f"Packet type {identifier} not registered")
         return Packet(
             type=packet_type,
-            data=packet_type.serializer.deserialize(data.data),
+            data=packet_type.serializer.deserialize(item.data),
         )

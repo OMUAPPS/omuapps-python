@@ -18,16 +18,16 @@ type Files = Mapping[Identifier, bytes]
 
 @instance
 class FILES_SERIALIZER(Serializable[Files, bytes]):
-    def serialize(self, data: Files) -> bytes:
+    def serialize(self, item: Files) -> bytes:
         writer = ByteWriter()
-        writer.write_int(len(data))
-        for identifier, value in data.items():
+        writer.write_int(len(item))
+        for identifier, value in item.items():
             writer.write_string(identifier.key())
             writer.write_byte_array(value)
         return writer.finish()
 
-    def deserialize(self, data: bytes) -> Files:
-        with ByteReader(data) as reader:
+    def deserialize(self, item: bytes) -> Files:
+        with ByteReader(item) as reader:
             count = reader.read_int()
             files: Files = {}
             for _ in range(count):

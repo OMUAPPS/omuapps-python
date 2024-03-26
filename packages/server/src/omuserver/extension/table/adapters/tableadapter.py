@@ -36,7 +36,7 @@ class TableAdapter(abc.ABC):
 
     @abc.abstractmethod
     async def fetch_items(
-        self, before: int | None, after: str | None, cursor: str | None
+        self, before: int | None, after: int | None, cursor: str | None
     ) -> Dict[str, bytes]: ...
 
     @abc.abstractmethod

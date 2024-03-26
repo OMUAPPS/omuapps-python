@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 
 from omu.network.connection import Connection
-from omu.network.packet import Packet
-from omu.network.packet_mapper import PacketMapper
+from omu.network.packet import Packet, PacketData
+from omu.serializer import Serializable
 
 
 class PluginConnection(Connection):
@@ -16,13 +16,15 @@ class PluginConnection(Connection):
     async def connect(self) -> None:
         self._connected = True
 
-    async def receive(self, packet_mapper: PacketMapper) -> Packet:
+    async def receive(self, packet_mapper: Serializable[Packet, PacketData]) -> Packet:
         return await self._to_client_queue.get()
 
     def add_receive(self, packet: Packet) -> None:
         self._to_client_queue.put_nowait(packet)
 
-    async def send(self, packet: Packet, packet_mapper: PacketMapper) -> None:
+    async def send(
+        self, packet: Packet, packet_mapper: Serializable[Packet, PacketData]
+    ) -> None:
         self._to_server_queue.put_nowait(packet)
 
     async def dequeue_to_server_packet(self) -> Packet:

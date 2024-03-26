@@ -99,9 +99,9 @@ class RegistryImpl[T](Registry[T]):
             return self.default_value
         return self.serializer.deserialize(result.value)
 
-    async def update(self, fn: Coro[[T], T]) -> None:
+    async def update(self, handler: Coro[[T], T]) -> None:
         value = await self.get()
-        new_value = await fn(value)
+        new_value = await handler(value)
         await self.client.send(
             RegistryUpdateEvent,
             RegistryData(

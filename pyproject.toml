@@ -20,6 +20,7 @@ dev-dependencies = [
     "ruff>=0.1.6",
     "pytest-asyncio>=0.23.5",
     "pytest-cov>=4.1.0",
+    "pyright>=1.1.355",
 ]
 
 [tool.rye.workspace]

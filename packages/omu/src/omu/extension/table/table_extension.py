@@ -112,8 +112,8 @@ class TableItemsSerielizer(Serializable[TableItemsData, bytes]):
             writer.write_byte_array(value)
         return writer.finish()
 
-    def deserialize(self, data: bytes) -> TableItemsData:
-        with ByteReader(data) as reader:
+    def deserialize(self, item: bytes) -> TableItemsData:
+        with ByteReader(item) as reader:
             type = reader.read_string()
             item_count = reader.read_int()
             items: Mapping[str, bytes] = {}
@@ -135,8 +135,8 @@ class TableProxySerielizer(Serializable[TableProxyData, bytes]):
             writer.write_byte_array(value)
         return writer.finish()
 
-    def deserialize(self, data: bytes) -> TableProxyData:
-        with ByteReader(data) as reader:
+    def deserialize(self, item: bytes) -> TableProxyData:
+        with ByteReader(item) as reader:
             type = reader.read_string()
             key = reader.read_int()
             item_count = reader.read_int()
@@ -298,7 +298,7 @@ class TableImpl[T](Table[T]):
         await self.update_cache(items)
         return items
 
-    async def fetch_all(self) -> Mapping[str, T]:
+    async def fetch_all(self) -> Dict[str, T]:
         items_response = await self._client.endpoints.call(
             TableItemFetchAllEndpoint, TableEventData(type=self.key)
         )
@@ -336,12 +336,12 @@ class TableImpl[T](Table[T]):
         return res
 
     def listen(
-        self, callback: AsyncCallback[Mapping[str, T]] | None = None
+        self, listener: AsyncCallback[Mapping[str, T]] | None = None
     ) -> Callable[[], None]:
         self._listening = True
-        if callback is not None:
-            self._listeners.cache_update += callback
-            return lambda: self._listeners.cache_update.unsubscribe(callback)
+        if listener is not None:
+            self._listeners.cache_update += listener
+            return lambda: self._listeners.cache_update.unsubscribe(listener)
         return lambda: None
 
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
