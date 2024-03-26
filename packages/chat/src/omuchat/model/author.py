@@ -9,13 +9,21 @@ from omu.model import Model
 from .role import Role, RoleJson
 
 
+class AuthorMetadata(TypedDict):
+    url: NotRequired[str | None]
+    screen_id: NotRequired[str | None]
+    avatar_url: NotRequired[str | None]
+    description: NotRequired[str | None]
+    links: NotRequired[List[str] | None]
+
+
 class AuthorJson(TypedDict):
     provider_id: str
     id: str
     name: str
-    screen_id: NotRequired[str] | None
     avatar_url: NotRequired[str] | None
     roles: NotRequired[List[RoleJson]] | None
+    metadata: NotRequired[AuthorMetadata] | None
 
 
 class Author(Keyable, Model[AuthorJson]):
@@ -25,25 +33,25 @@ class Author(Keyable, Model[AuthorJson]):
         provider_id: str,
         id: str,
         name: str,
-        screen_id: str | None = None,
         avatar_url: str | None = None,
         roles: List[Role] | None = None,
+        metadata: AuthorMetadata | None = None,
     ) -> None:
         self.provider_id = provider_id
         self.id = id
         self.name = name
-        self.screen_id = screen_id
         self.avatar_url = avatar_url
         self.roles = roles or []
+        self.metadata = metadata
 
     def to_json(self) -> AuthorJson:
         return {
             "provider_id": self.provider_id,
             "id": self.id,
             "name": self.name,
-            "screen_id": self.screen_id,
             "avatar_url": self.avatar_url,
             "roles": [role.to_json() for role in self.roles],
+            "metadata": self.metadata,
         }
 
     @classmethod
@@ -52,13 +60,13 @@ class Author(Keyable, Model[AuthorJson]):
             provider_id=json["provider_id"],
             id=json["id"],
             name=json["name"],
-            screen_id=json.get("screen_id"),
             avatar_url=json.get("avatar_url"),
             roles=map_optional(
                 json.get("roles"),
                 lambda roles: list(map(Role.from_json, roles)),
                 [],
             ),
+            metadata=json.get("metadata"),
         )
 
     def key(self) -> str:

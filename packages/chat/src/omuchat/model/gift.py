@@ -7,9 +7,9 @@ from omu.model import Model
 
 class GiftJson(TypedDict):
     id: str
-    name: str
-    amount: int
-    is_paid: bool
+    name: NotRequired[str] | None
+    amount: NotRequired[int] | None
+    is_paid: NotRequired[bool] | None
     image_url: NotRequired[str] | None
 
 
@@ -18,9 +18,9 @@ class Gift(Model[GiftJson]):
         self,
         *,
         id: str,
-        name: str,
-        amount: int,
-        is_paid: bool,
+        name: str | None = None,
+        amount: int | None = None,
+        is_paid: bool | None = None,
         image_url: str | None = None,
     ) -> None:
         self.id = id

@@ -1,3 +1,5 @@
-from .taskprofiler import Tasks, TasksListener
+from .taskprofiler import Tasks
 
-__all__ = ["Tasks", "TasksListener"]
+__all__ = [
+    "Tasks",
+]

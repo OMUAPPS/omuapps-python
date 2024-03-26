@@ -250,6 +250,20 @@ class LiveChatPaidMessageRenderer(LiveChatMessageRenderer):
     isV2Style: bool
 
 
+class LiveChatPaidStickerRenderer(LiveChatMessageRenderer):
+    id: str
+    timestampUsec: str
+    authorName: SimpleText
+    authorPhoto: Thumbnails
+    sticker: Image
+    authorExternalChannelId: str
+    authorBadges: NotRequired[List[AuthorBadge]]
+    purchaseAmountText: SimpleText
+    contextMenuEndpoint: ContextMenuEndpoint
+    contextMenuAccessibility: Accessibility
+    trackingParams: str
+
+
 class LiveChatMembershipItemRenderer(LiveChatMessageRenderer):
     headerSubtext: Runs
 
@@ -359,6 +373,10 @@ class LiveChatSponsorshipsHeaderRenderer(TypedDict):
     image: Image
 
 
+class LiveChatSponsorshipsGiftPurchaseAnnouncementRendererHeader(TypedDict):
+    liveChatSponsorshipsHeaderRenderer: LiveChatSponsorshipsHeaderRenderer
+
+
 class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRenderer):
     """
     {
@@ -376,18 +394,13 @@ class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRender
     id: str
     timestampUsec: str
     authorExternalChannelId: str
-    header: Runs
-    authorPhoto: Thumbnails
-    authorName: SimpleText
-    authorBadges: NotRequired[List[AuthorBadge]]
-    contextMenuEndpoint: ContextMenuEndpoint
-    contextMenuAccessibility: Accessibility
-    trackingParams: str
+    header: LiveChatSponsorshipsGiftPurchaseAnnouncementRendererHeader
 
 
 class MessageItemData(TypedDict):
     liveChatTextMessageRenderer: NotRequired[LiveChatTextMessageRenderer]
     liveChatPaidMessageRenderer: NotRequired[LiveChatPaidMessageRenderer]
+    liveChatPaidStickerRenderer: NotRequired[LiveChatPaidStickerRenderer]
     liveChatMembershipItemRenderer: NotRequired[LiveChatMembershipItemRenderer]
     liveChatSponsorshipsGiftRedemptionAnnouncementRenderer: NotRequired[
         LiveChatTextMessageRenderer

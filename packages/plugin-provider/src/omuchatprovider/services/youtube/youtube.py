@@ -5,9 +5,10 @@ import json
 import re
 from collections import Counter
 from datetime import datetime
-from typing import Dict, List, Mapping, TypedDict
+from typing import Dict, List, Mapping, Tuple, TypedDict
 
 import bs4
+from iwashi.visitors.youtube.youtube import Youtube
 from loguru import logger
 from omu.helper import map_optional
 from omuchat.client import Client
@@ -25,6 +26,8 @@ from omuchat.model import (
     RoomMetadata,
     content,
 )
+from omuchat.model.author import AuthorMetadata
+from omuchat.model.gift import Gift
 
 from ...chatprovider import client
 from ...errors import ProviderError, ProviderFailed
@@ -44,6 +47,9 @@ INFO = Provider(
     regex=HTTP_REGEX
     + r"(youtu\.be\/(?P<video_id_short>[\w-]+))|(m\.)?youtube\.com\/(watch\?v=(?P<video_id>[\w_-]+|)|@(?P<channel_id_vanity>[\w_-]+|)|channel\/(?P<channel_id>[\w_-]+|)|user\/(?P<channel_id_user>[\w_-]+|)|c\/(?P<channel_id_c>[\w_-]+|))",
 )
+
+
+YOUTUBE_VISITOR = Youtube()
 session = get_session(INFO)
 
 
@@ -441,187 +447,161 @@ class YoutubeChatService(ChatService):
 
     async def process_chat_data(self, data: api.Response):
         messages: List[Message] = []
+        authors: List[Author] = []
         for action in data["continuationContents"]["liveChatContinuation"].get(
             "actions", []
         ):
             if "addChatItemAction" in action:
-                messages.extend(
-                    await self.process_message_item(action["addChatItemAction"]["item"])
+                message, author = await self.process_message_item(
+                    action["addChatItemAction"]["item"]
                 )
+                if message:
+                    messages.append(message)
+                if author:
+                    authors.append(author)
             if "markChatItemAsDeletedAction" in action:
                 await self.process_deleted_item(action["markChatItemAsDeletedAction"])
+        if len(authors) > 0:
+            added_authors: List[Author] = []
+            for author in authors:
+                if author.key() in self.client.chat.authors.cache:
+                    continue
+                added_authors.append(author)
+            await self.client.chat.authors.add(*added_authors)
+            self.tasks.create_task(self.fetch_authors(added_authors))
         if len(messages) > 0:
             await self.client.chat.messages.add(*messages)
         await self.process_reactions(data)
 
-    async def process_message_item(self, item: api.MessageItemData) -> List[Message]:
+    async def fetch_authors(self, authors: List[Author]):
+        for author in authors:
+            author_channel = await YOUTUBE_VISITOR.visit_url(
+                f"{YOUTUBE_URL}/channel/{author.id}", session
+            )
+            if author_channel is None:
+                continue
+            metadata: AuthorMetadata = author.metadata or {}
+            metadata["avatar_url"] = author_channel.profile_picture
+            metadata["url"] = author_channel.url
+            metadata["links"] = list(author_channel.links)
+            if "@" in author_channel.url:
+                metadata["screen_id"] = author_channel.url.split("@")[-1]
+            author.metadata = metadata
+            await self.client.chat.authors.update(author)
+
+    async def process_message_item(
+        self, item: api.MessageItemData
+    ) -> Tuple[Message | None, Author | None]:
         if "liveChatTextMessageRenderer" in item:
             data = item["liveChatTextMessageRenderer"]
             author = self._parse_author(data)
             message = _parse_runs(data["message"])
             created_at = self._parse_created_at(data)
-            await self.client.chat.authors.add(author)
-            return [
-                Message(
-                    id=data["id"],
-                    room_id=self._room.key(),
-                    author_id=author.key(),
-                    content=message,
-                    created_at=created_at,
-                )
-            ]
+            message = Message(
+                id=data["id"],
+                room_id=self._room.key(),
+                author_id=author.key(),
+                content=message,
+                created_at=created_at,
+            )
+            return (message, author)
         elif "liveChatPaidMessageRenderer" in item:
             data = item["liveChatPaidMessageRenderer"]
             author = self._parse_author(data)
             message = map_optional(data.get("message"), _parse_runs)
             paid = self._parse_paid(data)
             created_at = self._parse_created_at(data)
-            await self.client.chat.authors.add(author)
-            return [
-                Message(
-                    id=data["id"],
-                    room_id=self._room.key(),
-                    author_id=author.key(),
-                    content=message,
-                    paid=paid,
-                    created_at=created_at,
-                )
-            ]
+            message = Message(
+                id=data["id"],
+                room_id=self._room.key(),
+                author_id=author.key(),
+                content=message,
+                paid=paid,
+                created_at=created_at,
+            )
+            return (message, author)
         elif "liveChatMembershipItemRenderer" in item:
             data = item["liveChatMembershipItemRenderer"]
             author = self._parse_author(data)
             created_at = self._parse_created_at(data)
             logger.info
             component = content.System.of(_parse_runs(data["headerSubtext"]))
-            await self.client.chat.authors.add(author)
-            return [
-                Message(
-                    id=data["id"],
-                    room_id=self._room.key(),
-                    author_id=author.key(),
-                    content=component,
-                    created_at=created_at,
-                )
-            ]
-        # TODO: これらのメッセージを処理する
+            message = Message(
+                id=data["id"],
+                room_id=self._room.key(),
+                author_id=author.key(),
+                content=component,
+                created_at=created_at,
+            )
+            return (message, author)
         elif "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer" in item:
-            """
-            {'liveChatSponsorshipsGiftRedemptionAnnouncementRenderer': {'id': 'ChwKGkNLbkE1XzZkbzRRREZSWUcxZ0FkdkhnQWlR', 'timestampUsec': '1707652687762701', 'authorExternalChannelId': 'UCbk8N1Ne5l7VtjjT89MILNg', 'authorName': {'simpleText': 'ユキ'}, 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/Bgfw4MWOSHMycMd0Sp9NGd5zj0dmjE_9OyORhxjn3Y8XIuAb8tl5xlCQE-hXqCTlDiTN3iFH1w=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'message': {'runs': [{'text': 'was gifted a membership by ', 'italics': True}, {'text': 'みりんぼし', 'bold': True, 'italics': True}]}, 'contextMenuEndpoint': {'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMHR1UVRWZk5tUnZORkZFUmxKWlJ6Rm5RV1IyU0dkQmFWRWFLU29uQ2hoVlF5MW9UVFpaU25WT1dWWkJiVlZYZUdWSmNqbEdaVUVTQzJaQ1QyeGpSMkpDUzAxdklBSW9CRElhQ2hoVlEySnJPRTR4VG1VMWJEZFdkR3BxVkRnNVRVbE1UbWM0QWtnQVVDTSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}}}
-            """
             data = item["liveChatSponsorshipsGiftRedemptionAnnouncementRenderer"]
             author = self._parse_author(data)
             created_at = self._parse_created_at(data)
             component = content.System.of(_parse_runs(data["message"]))
-            await self.client.chat.authors.add(author)
-            return [
-                Message(
-                    id=data["id"],
-                    room_id=self._room.key(),
-                    author_id=author.key(),
-                    content=component,
-                    created_at=created_at,
-                )
-            ]
+            message = Message(
+                id=data["id"],
+                room_id=self._room.key(),
+                author_id=author.key(),
+                content=component,
+                created_at=created_at,
+            )
+            return (message, author)
         elif "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer" in item:
-            return []
-            # {
-            #     "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": {
-            #         "id": "ChwKGkNPWEU1OERlcW9RREZhekV3Z1FkVGdNS013",
-            #         "timestampUsec": "1707910568302677",
-            #         "authorExternalChannelId": "UCJcRzyF_5IqKwuezuzid5eQ",
-            #         "header": {
-            #             "liveChatSponsorshipsHeaderRenderer": {
-            #                 "authorName": {"simpleText": "♾️野うさぎ"},
-            #                 "authorPhoto": {
-            #                     "thumbnails": [
-            #                         {
-            #                             "url": "https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s32-c-k-c0x00ffffff-no-rj",
-            #                             "width": 32,
-            #                             "height": 32,
-            #                         },
-            #                         {
-            #                             "url": "https://yt4.ggpht.com/-Rp0B3c4BDQcB71RKqitQdCu2L7h3EqNqdoqPWvRC-TguuzDUztmy1hTSpqQeEC5RLqsgn3fyw=s64-c-k-c0x00ffffff-no-rj",
-            #                             "width": 64,
-            #                             "height": 64,
-            #                         },
-            #                     ]
-            #                 },
-            #                 "primaryText": {
-            #                     "runs": [
-            #                         {"text": "Gifted ", "bold": True},
-            #                         {"text": "5", "bold": True},
-            #                         {"text": " ", "bold": True},
-            #                         {"text": "Pekora Ch. 兎田ぺこら", "bold": True},
-            #                         {"text": " memberships", "bold": True},
-            #                     ]
-            #                 },
-            #                 "authorBadges": [
-            #                     {
-            #                         "liveChatAuthorBadgeRenderer": {
-            #                             "customThumbnail": {
-            #                                 "thumbnails": [
-            #                                     {
-            #                                         "url": "https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s16-c-k",
-            #                                         "width": 16,
-            #                                         "height": 16,
-            #                                     },
-            #                                     {
-            #                                         "url": "https://yt3.ggpht.com/ikjRH2-DarXi4D9rQptqzbl34YrHSkAs7Uyq41itvqRiYYcpq2zNYC2scrZ9gbXQEhBuFfOZuw=s32-c-k",
-            #                                         "width": 32,
-            #                                         "height": 32,
-            #                                     },
-            #                                 ]
-            #                             },
-            #                             "tooltip": "Member (2 months)",
-            #                             "accessibility": {
-            #                                 "accessibilityData": {
-            #                                     "label": "Member (2 months)"
-            #                                 }
-            #                             },
-            #                         }
-            #                     }
-            #                 ],
-            #                 "contextMenuEndpoint": {
-            #                     "clickTrackingParams": "CAUQ3MMKIhMIgbSe1t6qhAMVVkP1BR04yA_O",
-            #                     "commandMetadata": {
-            #                         "webCommandMetadata": {"ignoreNavigation": True}
-            #                     },
-            #                     "liveChatItemContextMenuEndpoint": {
-            #                         "params": "Q2g0S0hBb2FRMDlZUlRVNFJHVnhiMUZFUm1GNlJYZG5VV1JVWjAxTFRYY2FLU29uQ2hoVlF6RkVRMlZrVW1kSFNFSmtiVGd4UlRGc2JFeG9UMUVTQ3pOa2FIRlFWRXhzTkRoQklBSW9CRElhQ2hoVlEwcGpVbnA1Umw4MVNYRkxkM1ZsZW5WNmFXUTFaVkU0QWtnQVVDUSUzRA=="
-            #                     },
-            #                 },
-            #                 "contextMenuAccessibility": {
-            #                     "accessibilityData": {"label": "Chat actions"}
-            #                 },
-            #                 "image": {
-            #                     "thumbnails": [
-            #                         {
-            #                             "url": "https://www.gstatic.com/youtube/img/sponsorships/sponsorships_gift_purchase_announcement_artwork.png"
-            #                         }
-            #                     ]
-            #                 },
-            #             }
-            #         },
-            #     }
-            # }
-            # data = item["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"]
-            # author = self._parse_author(
-            #     data["header"]["liveChatSponsorshipsHeaderRenderer"]
-            # )
-            # created_at = self._parse_created_at(data)
-            # component = content.System.of(_parse_runs(data["header"]["primaryText"]))
-            # await self.client.chat.authors.add(author)
+            data = item["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"]
+            author = self._parse_author(data)
+            created_at = self._parse_created_at(data)
+            header = data["header"]["liveChatSponsorshipsHeaderRenderer"]
+            component = content.System.of(_parse_runs(header["primaryText"]))
+
+            gift_image = header["image"]
+            gift_name = _get_accessibility_label(gift_image.get("accessibility"))
+            image_url = _get_best_thumbnail(gift_image["thumbnails"])
+            gift = Gift(
+                id="liveChatSponsorshipsGiftPurchaseAnnouncement",
+                name=gift_name,
+                amount=1,
+                is_paid=True,
+                image_url=image_url,
+            )
+            message = Message(
+                id=data["id"],
+                room_id=self._room.key(),
+                author_id=author.key(),
+                content=component,
+                created_at=created_at,
+                gifts=[gift],
+            )
+            return (message, author)
         elif "liveChatPlaceholderItemRenderer" in item:
             """
             item["liveChatPlaceholderItemRenderer"] = {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
             """
         elif "liveChatPaidStickerRenderer" in item:
-            """
-            {'liveChatPaidStickerRenderer': {'id': 'ChwKGkNMWHQzNG1Dc29RREZUdmJsQWtkbDIwSWtn', 'contextMenuEndpoint': {'clickTrackingParams': 'CAIQ77sEIhMIjvfykIKyhAMV8W8PAh0tjA73', 'commandMetadata': {'webCommandMetadata': {'ignoreNavigation': True}}, 'liveChatItemContextMenuEndpoint': {'params': 'Q2g0S0hBb2FRMHhZZERNMGJVTnpiMUZFUmxSMllteEJhMlJzTWpCSmEyY2FLU29uQ2hoVlEweGZjV2huZEU5NU1HUjVNVUZuY0RoMmEzbFRVV2NTQzFkaFVWRlFlaTFKWmpoTklBSW9CRElhQ2hoVlEybEhhbEZZVDJKV1p6VjNRMG96VjNKRVZHSmhVbEU0QWtnQVVCUSUzRA=='}}, 'contextMenuAccessibility': {'accessibilityData': {'label': 'Chat actions'}}, 'timestampUsec': '1708160603335775', 'authorPhoto': {'thumbnails': [{'url': 'https://yt4.ggpht.com/6kb67OyfasuRvwameqsKtZidxDl6bU7PGVFL1M5i9yWX9r_gYDC3BDWzhD5C-1ImKrWYHsdaEg=s32-c-k-c0x00ffffff-no-rj', 'width': 32, 'height': 32}, {'url': 'https://yt4.ggpht.com/6kb67OyfasuRvwameqsKtZidxDl6bU7PGVFL1M5i9yWX9r_gYDC3BDWzhD5C-1ImKrWYHsdaEg=s64-c-k-c0x00ffffff-no-rj', 'width': 64, 'height': 64}]}, 'authorName': {'simpleText': 'UntitledOne'}, 'authorExternalChannelId': 'UCiGjQXObVg5wCJ3WrDTbaRQ', 'sticker': {'thumbnails': [{'url': '//lh3.googleusercontent.com/sE214N2V_KPOY00qwan1wn1xnI3Rf1OzEtA9T_iImdoS7toVw8PWMS_4YH7gS975SgCxiATt6jxgp-YJ830=s32-rp', 'width': 32, 'height': 32}, {'url': '//lh3.googleusercontent.com/sE214N2V_KPOY00qwan1wn1xnI3Rf1OzEtA9T_iImdoS7toVw8PWMS_4YH7gS975SgCxiATt6jxgp-YJ830=s64-rp', 'width': 64, 'height': 64}], 'accessibility': {'accessibilityData': {'label': '100 underlined twice'}}}, 'authorBadges': [{'liveChatAuthorBadgeRenderer': {'customThumbnail': {'thumbnails': [{'url': 'https://yt3.ggpht.com/F0YU4PUesWXUyOENvw51yhHC75hBmpbw0Xe0cJEn54xZeeVoeXTmvjNNa612Uz5BuF7Bd5DGZg=s16-c-k', 'width': 16, 'height': 16}, {'url': 'https://yt3.ggpht.com/F0YU4PUesWXUyOENvw51yhHC75hBmpbw0Xe0cJEn54xZeeVoeXTmvjNNa612Uz5BuF7Bd5DGZg=s32-c-k', 'width': 32, 'height': 32}]}, 'tooltip': 'Member (1 year)', 'accessibility': {'accessibilityData': {'label': 'Member (1 year)'}}}}], 'moneyChipBackgroundColor': 4280191205, 'moneyChipTextColor': 4294967295, 'purchaseAmountText': {'simpleText': '$0.99'}, 'stickerDisplayWidth': 32, 'stickerDisplayHeight': 32, 'backgroundColor': 4280191205, 'authorNameTextColor': 3019898879, 'trackingParams': 'CAIQ77sEIhMIjvfykIKyhAMV8W8PAh0tjA73', 'isV2Style': True}}
-            """
+            data = item["liveChatPaidStickerRenderer"]
+            author = self._parse_author(data)
+            created_at = self._parse_created_at(data)
+            sticker = data["sticker"]
+            sticker_image = _get_best_thumbnail(sticker["thumbnails"])
+            sticker_name = _get_accessibility_label(sticker.get("accessibility"))
+            sticker = Gift(
+                id="liveChatPaidSticker",
+                name=sticker_name,
+                amount=1,
+                is_paid=True,
+                image_url=sticker_image,
+            )
+            message = Message(
+                id=data["id"],
+                room_id=self._room.key(),
+                author_id=author.key(),
+                gifts=[sticker],
+                created_at=created_at,
+            )
+            return (message, author)
         else:
             raise ProviderError(f"Unknown message type: {list(item.keys())} {item=}")
-        return []
+        return (None, None)
 
     async def process_deleted_item(self, item: api.MarkChatItemAsDeletedActionData):
         message = await self.client.chat.messages.get(
@@ -736,6 +716,25 @@ class YoutubeChatService(ChatService):
         await self.client.chat.rooms.update(self._room)
 
 
+def _get_accessibility_label(data: api.Accessibility | None) -> str | None:
+    if data is None:
+        return None
+    return data.get("accessibilityData", {}).get("label", None)
+
+
+def _get_best_thumbnail(thumbnails: List[api.Thumbnail]) -> str:
+    best_size: int | None = None
+    url: str | None = None
+    for thumbnail in thumbnails:
+        size = thumbnail.get("width", 0) * thumbnail.get("height", 0)
+        if best_size is None or size > best_size:
+            best_size = size
+            url = thumbnail["url"]
+    if url is None:
+        raise ProviderFailed(f"Could not select thumbnail: {thumbnails=}")
+    return url
+
+
 def _parse_runs(runs: api.Runs | None) -> content.Component:
     root = content.Root()
     if runs is None:
@@ -753,7 +752,7 @@ def _parse_runs(runs: api.Runs | None) -> content.Component:
                 root.add(content.Text.of(run["text"]))
         elif "emoji" in run:
             emoji = run["emoji"]
-            image_url = emoji["image"]["thumbnails"][0]["url"]
+            image_url = _get_best_thumbnail(emoji["image"]["thumbnails"])
             emoji_id = emoji["emojiId"]
             name = emoji["shortcuts"][0] if emoji.get("shortcuts") else None
             root.add(
