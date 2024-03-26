@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Mapping, Tuple
 
 from .tableadapter import TableAdapter
 
@@ -52,7 +52,7 @@ class SqliteTableAdapter(TableAdapter):
             (key, (value)),
         )
 
-    async def set_all(self, items: Dict[str, bytes]) -> None:
+    async def set_all(self, items: Mapping[str, bytes]) -> None:
         query = [(key, value) for key, value in items.items()]
         self._conn.executemany(
             "INSERT OR REPLACE INTO data (key, value) VALUES (?, ?)",

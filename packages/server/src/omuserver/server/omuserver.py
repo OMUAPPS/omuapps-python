@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Optional
+from typing import Mapping, Optional
 
 import aiohttp
 from aiohttp import web
@@ -116,7 +116,9 @@ class OmuServer(Server):
             loop.close()
             asyncio.run(self.shutdown())
 
-    def handle_exception(self, loop: asyncio.AbstractEventLoop, context: dict) -> None:
+    def handle_exception(
+        self, loop: asyncio.AbstractEventLoop, context: Mapping
+    ) -> None:
         logger.error(context["message"])
         exception = context.get("exception")
         if exception:

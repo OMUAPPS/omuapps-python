@@ -5,7 +5,7 @@ import json
 import re
 from collections import Counter
 from datetime import datetime
-from typing import Dict, List, TypedDict
+from typing import Dict, List, Mapping, TypedDict
 
 import bs4
 from loguru import logger
@@ -81,7 +81,7 @@ class YoutubeService(ProviderService):
     def info(self) -> Provider:
         return INFO
 
-    async def fetch_rooms(self, channel: Channel) -> dict[Room, ChatSupplier]:
+    async def fetch_rooms(self, channel: Channel) -> Mapping[Room, ChatSupplier]:
         match = re.search(INFO.regex, channel.url)
         if match is None:
             raise ProviderFailed("Could not match url")
@@ -100,7 +100,7 @@ class YoutubeService(ProviderService):
                 raise ProviderFailed("Could not find channel id")
             video_id = await self.get_video_id_by_channel(channel_id)
             if video_id is None:
-                raise ProviderFailed("Could not find video id")
+                return {}
         if not await YoutubeChat.is_online(video_id):
             return {}
 

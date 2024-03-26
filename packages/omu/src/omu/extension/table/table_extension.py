@@ -116,7 +116,7 @@ class TableItemsSerielizer(Serializable[TableItemsData, bytes]):
         with ByteReader(data) as reader:
             type = reader.read_string()
             item_count = reader.read_int()
-            items: Dict[str, bytes] = {}
+            items: Mapping[str, bytes] = {}
             for _ in range(item_count):
                 key = reader.read_string()
                 value = reader.read_byte_array()
@@ -248,7 +248,7 @@ class TableImpl[T](Table[T]):
         client.network.add_task(self.on_connected)
 
     @property
-    def cache(self) -> Dict[str, T]:
+    def cache(self) -> Mapping[str, T]:
         return self._cache
 
     async def get(self, key: str) -> T | None:
@@ -298,7 +298,7 @@ class TableImpl[T](Table[T]):
         await self.update_cache(items)
         return items
 
-    async def fetch_all(self) -> Dict[str, T]:
+    async def fetch_all(self) -> Mapping[str, T]:
         items_response = await self._client.endpoints.call(
             TableItemFetchAllEndpoint, TableEventData(type=self.key)
         )
@@ -414,17 +414,17 @@ class TableImpl[T](Table[T]):
         self._cache.clear()
         await self._listeners.cache_update(self._cache)
 
-    async def update_cache(self, items: Dict[str, T]) -> None:
+    async def update_cache(self, items: Mapping[str, T]) -> None:
         if self._cache_size is None:
-            self._cache = items
+            self._cache = {**items}
         else:
             merged_cache = {**self._cache, **items}
             cache_array = tuple(merged_cache.items())
             self._cache = dict(cache_array[: self._cache_size])
         await self._listeners.cache_update(self._cache)
 
-    def _parse_items(self, items: Dict[str, bytes]) -> Dict[str, T]:
-        parsed_items: Dict[str, T] = {}
+    def _parse_items(self, items: Mapping[str, bytes]) -> Dict[str, T]:
+        parsed_items: Mapping[str, T] = {}
         for key, item_bytes in items.items():
             item = self._serializer.deserialize(item_bytes)
             if item is None:
@@ -433,7 +433,7 @@ class TableImpl[T](Table[T]):
         return parsed_items
 
     def _serialize_items(self, items: Iterable[T]) -> Dict[str, bytes]:
-        serialized_items: Dict[str, bytes] = {}
+        serialized_items: Mapping[str, bytes] = {}
         for item in items:
             key = self._key_function(item)
             serialized_items[key] = self._serializer.serialize(item)

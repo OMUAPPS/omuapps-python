@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List, Mapping
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -13,7 +13,7 @@ AssetExtensionType = ExtensionType(
     lambda client: AssetExtension(client),
     lambda: [],
 )
-type Files = Dict[Identifier, bytes]
+type Files = Mapping[Identifier, bytes]
 
 
 @instance

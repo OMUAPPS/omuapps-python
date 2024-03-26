@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import Callable, Protocol
+from typing import Callable, Mapping, Protocol
 
 
 class Serializable[T, D](abc.ABC):
@@ -50,7 +50,7 @@ class Serializer[T, D](Serializable[T, D]):
     def array(self) -> Serializer[list[T], list[D]]:
         return ArraySerializer(self)
 
-    def map(self) -> Serializer[dict[str, T], dict[str, D]]:
+    def map(self) -> Serializer[Mapping[str, T], Mapping[str, D]]:
         return MapSerializer(self)
 
     def pipe[E](self, other: Serializable[D, E]) -> Serializer[T, E]:
@@ -99,7 +99,7 @@ class ArraySerializer[T, D](Serializer[list[T], list[D]]):
         return f"ArraySerializer({self._serializer})"
 
 
-class MapSerializer[T, D](Serializer[dict[str, T], dict[str, D]]):
+class MapSerializer[T, D](Serializer[Mapping[str, T], Mapping[str, D]]):
     def __init__(self, serializer: Serializable[T, D]):
         self._serializer = serializer
         super().__init__(
@@ -107,10 +107,10 @@ class MapSerializer[T, D](Serializer[dict[str, T], dict[str, D]]):
             self._deserialize,
         )
 
-    def _serialize(self, items: dict[str, T]) -> dict[str, D]:
+    def _serialize(self, items: Mapping[str, T]) -> Mapping[str, D]:
         return {key: self._serializer.serialize(value) for key, value in items.items()}
 
-    def _deserialize(self, items: dict[str, D]) -> dict[str, T]:
+    def _deserialize(self, items: Mapping[str, D]) -> Mapping[str, T]:
         return {
             key: self._serializer.deserialize(value) for key, value in items.items()
         }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Mapping
 
 
 class TableAdapter(abc.ABC):
@@ -26,7 +26,7 @@ class TableAdapter(abc.ABC):
     async def set(self, key: str, value: bytes) -> None: ...
 
     @abc.abstractmethod
-    async def set_all(self, items: Dict[str, bytes]) -> None: ...
+    async def set_all(self, items: Mapping[str, bytes]) -> None: ...
 
     @abc.abstractmethod
     async def remove(self, key: str) -> None: ...

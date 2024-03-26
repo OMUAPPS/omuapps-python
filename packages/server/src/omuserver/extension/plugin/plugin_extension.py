@@ -42,7 +42,7 @@ class PluginModule(Protocol):
 
 @dataclass(frozen=True)
 class PluginMetadata:
-    dependencies: Dict[str, SpecifierSet | None]
+    dependencies: Mapping[str, SpecifierSet | None]
     module: str
     isolated: bool = False
 
@@ -125,7 +125,7 @@ class PluginExtension:
                     specifier_set &= specifier
                     continue
 
-        packages_distributions: Dict[str, importlib.metadata.Distribution] = {
+        packages_distributions: Mapping[str, importlib.metadata.Distribution] = {
             dist.name: dist for dist in importlib.metadata.distributions()
         }
 
