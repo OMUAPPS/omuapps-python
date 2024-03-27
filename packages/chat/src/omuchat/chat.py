@@ -45,7 +45,7 @@ CreateChannelTreeEndpoint = EndpointType[str, List[Channel]].create_serialized(
     IDENTIFIER,
     "create_channel_tree",
     Serializer.json(),
-    Serializer.model(Channel).array().json(),
+    Serializer.model(Channel).array().pipe(Serializer.json()),
 )
 
 
