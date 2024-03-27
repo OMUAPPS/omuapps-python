@@ -8,11 +8,12 @@ from omuchat.chat import (
     IDENTIFIER,
     AuthorsTableKey,
     ChannelsTableKey,
+    CreateChannelTreeEndpoint,
     MessagesTableKey,
     ProviderTableKey,
     RoomTableKey,
 )
-from omuchat.model.channel import Channel, ChannelJson
+from omuchat.model.channel import Channel
 
 app = App(
     IDENTIFIER,
@@ -35,8 +36,8 @@ providers = client.tables.get(ProviderTableKey)
 rooms = client.tables.get(RoomTableKey)
 
 
-@client.endpoints.listen(name="create_channel_tree")
-async def create_channel_tree(url: str) -> List[ChannelJson]:
+@client.endpoints.bind(endpoint_type=CreateChannelTreeEndpoint)
+async def create_channel_tree(url: str) -> List[Channel]:
     results = await iwashi.visit(url)
     if results is None:
         return []
@@ -59,4 +60,4 @@ async def create_channel_tree(url: str) -> List[ChannelJson]:
                     icon_url=result.profile_picture or "",
                 )
             )
-    return [channel.to_json() for channel in channels]
+    return channels

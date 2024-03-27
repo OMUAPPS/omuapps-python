@@ -79,8 +79,21 @@ class EndpointExtension(Extension):
             )
         self.endpoints[type.identifier.key()] = (type, func)
 
-    def bind[T, R](self, func: Coro[[T], R], endpoint_type: EndpointType[T, R]) -> None:
-        self.register(endpoint_type, func)
+    def bind[T, R](
+        self,
+        func: Coro[[T], R] | None = None,
+        endpoint_type: EndpointType[T, R] | None = None,
+    ):
+        if endpoint_type is None:
+            raise Exception("Endpoint type must be provided")
+
+        def decorator(func: Coro[[T], R]) -> Coro[[T], R]:
+            self.register(endpoint_type, func)
+            return func
+
+        if func:
+            decorator(func)
+        return decorator
 
     def listen(
         self, func: Coro | None = None, name: str | None = None
