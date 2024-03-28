@@ -9,6 +9,15 @@ class Directories:
     assets: pathlib.Path
     plugins: pathlib.Path
 
+    @classmethod
+    def default(cls):
+        cwd = pathlib.Path.cwd()
+        return Directories(
+            data=cwd / "data",
+            assets=cwd / "assets",
+            plugins=cwd / "plugins",
+        )
+
     def mkdir(self):
         self.data.mkdir(parents=True, exist_ok=True)
         self.assets.mkdir(parents=True, exist_ok=True)
@@ -36,12 +45,3 @@ class Directories:
 
     def __repr__(self):
         return str(self)
-
-
-def get_directories():
-    cwd = pathlib.Path.cwd()
-    return Directories(
-        data=cwd / "data",
-        assets=cwd / "assets",
-        plugins=cwd / "plugins",
-    )

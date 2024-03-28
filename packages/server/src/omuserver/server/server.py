@@ -9,6 +9,7 @@ from omu.event_emitter import EventEmitter
 if TYPE_CHECKING:
     from omu.network import Address
 
+    from omuserver.config import Config
     from omuserver.directories import Directories
     from omuserver.extension.asset.asset_extension import AssetExtension
     from omuserver.extension.endpoint import EndpointExtension
@@ -28,6 +29,10 @@ class ServerListeners:
 
 
 class Server(abc.ABC):
+    @property
+    @abc.abstractmethod
+    def config(self) -> Config: ...
+
     @property
     @abc.abstractmethod
     def loop(self) -> asyncio.AbstractEventLoop: ...

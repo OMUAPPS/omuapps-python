@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import urllib.parse
 from pathlib import Path
 
 from omu.helper import generate_md5_hash, sanitize_filename
@@ -48,6 +49,11 @@ class Identifier(Keyable):
             raise Exception("Invalid key: Namespace and path cannot be empty")
         return cls(namespace, *path.split("/"))
 
+    @classmethod
+    def from_url(cls, url: str) -> Identifier:
+        parsed = urllib.parse.urlparse(url)
+        return cls(parsed.netloc, *parsed.path.split("/")[1:])
+
     def key(self) -> str:
         return self.format(self.namespace, *self.path)
 
@@ -56,6 +62,12 @@ class Identifier(Keyable):
             f"{sanitize_filename(self.namespace)}-{generate_md5_hash(self.namespace)}"
         )
         return Path(namespace, *self.path)
+
+    def is_subpath_of(self, other: Identifier) -> bool:
+        return (
+            self.namespace == other.namespace
+            and self.path[: len(other.path)] == other.path
+        )
 
     def join(self, *path: str) -> Identifier:
         return Identifier(self.namespace, *self.path, *path)

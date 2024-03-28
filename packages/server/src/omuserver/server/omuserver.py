@@ -9,7 +9,8 @@ from omu import Identifier
 from omu.network import Address
 
 from omuserver import __version__
-from omuserver.directories import Directories, get_directories
+from omuserver.config import Config
+from omuserver.directories import Directories
 from omuserver.extension.asset import AssetExtension
 from omuserver.extension.endpoint import EndpointExtension
 from omuserver.extension.message import MessageExtension
@@ -42,14 +43,14 @@ client = aiohttp.ClientSession(
 class OmuServer(Server):
     def __init__(
         self,
-        address: Address,
-        directories: Optional[Directories] = None,
+        config: Config,
         loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
+        self._config = config
         self._loop = loop or asyncio.get_event_loop()
-        self._address = address
+        self._address = config.address
         self._listeners = ServerListeners()
-        self._directories = directories or get_directories()
+        self._directories = config.directories
         self._directories.mkdir()
         self._packet_dispatcher = ServerPacketDispatcher()
         self._network = Network(self, self._packet_dispatcher)
@@ -140,6 +141,10 @@ class OmuServer(Server):
     async def shutdown(self) -> None:
         self._running = False
         await self._listeners.stop()
+
+    @property
+    def config(self) -> Config:
+        return self._config
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:

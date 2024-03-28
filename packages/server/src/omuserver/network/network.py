@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import socket
+import urllib.parse
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict
 
@@ -48,6 +49,22 @@ class Network:
     ) -> None:
         self._app.router.add_get(path, handle)
 
+    def _validate_origin(self, request: web.Request, session: Session) -> None:
+        origin = request.headers.get("origin")
+        if origin is None:
+            return
+        parsed_origin = urllib.parse.urlparse(origin)
+        namespace = session.app.identifier.namespace
+        origin_netloc = parsed_origin.netloc
+        origin_namespace = ".".join(reversed(origin_netloc.split(".")))
+        if origin_namespace == namespace:
+            return
+
+        if self._server.config.strict_origin:
+            raise ValueError(f"Invalid origin: {origin_namespace} != {namespace}")
+        else:
+            logger.warning(f"Invalid origin: {origin_namespace} != {namespace}")
+
     def add_websocket_route(self, path: str) -> None:
         async def websocket_handler(request: web.Request) -> web.WebSocketResponse:
             ws = web.WebSocketResponse()
@@ -58,6 +75,7 @@ class Network:
                 self._packet_dispatcher.packet_mapper,
                 connection,
             )
+            self._validate_origin(request, session)
             await self.process_session(session)
             return ws
 

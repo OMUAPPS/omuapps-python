@@ -8,8 +8,7 @@ import click
 from loguru import logger
 from omu import Address
 
-from omuserver.directories import get_directories
-from omuserver.security.permission import AdminPermissions
+from omuserver.config import Config
 from omuserver.server.omuserver import OmuServer
 
 
@@ -31,8 +30,9 @@ def setup_logging():
 @click.option("--token", type=str, default=None)
 def main(debug: bool, token: str | None):
     loop = asyncio.get_event_loop()
-    directories = get_directories()
-    address = Address(
+
+    config = Config()
+    config.address = Address(
         host="0.0.0.0",
         port=26423,
         secure=False,
@@ -40,14 +40,12 @@ def main(debug: bool, token: str | None):
 
     if debug:
         logger.warning("Debug mode enabled")
-        directories.plugins = (Path.cwd() / ".." / "plugins").resolve()
+        config.directories.plugins = (Path.cwd() / ".." / "plugins").resolve()
+        config.dashboard_token = token
+        config.strict_origin = False
         tracemalloc.start()
 
-    server = OmuServer(address, directories=directories, loop=loop)
-    if token:
-        loop.run_until_complete(
-            server.security.add_permissions(token, AdminPermissions("admin"))
-        )
+    server = OmuServer(config=config, loop=loop)
 
     logger.info("Starting server...")
     server.run()
