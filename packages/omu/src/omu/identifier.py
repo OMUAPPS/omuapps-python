@@ -52,7 +52,14 @@ class Identifier(Keyable):
     @classmethod
     def from_url(cls, url: str) -> Identifier:
         parsed = urllib.parse.urlparse(url)
-        return cls(parsed.netloc, *parsed.path.split("/")[1:])
+        namespace = cls.namespace_from_url(url)
+        path = parsed.path.split("/")[1:]
+        return cls(namespace, *path)
+
+    @classmethod
+    def namespace_from_url(cls, url: str) -> str:
+        parsed = urllib.parse.urlparse(url)
+        return ".".join(reversed(parsed.netloc.split(".")))
 
     def key(self) -> str:
         return self.format(self.namespace, *self.path)

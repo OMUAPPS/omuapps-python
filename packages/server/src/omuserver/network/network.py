@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Dict
 import psutil
 from aiohttp import web
 from loguru import logger
-from omu import App
+from omu import App, Identifier
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES, PacketType
@@ -56,7 +56,7 @@ class Network:
         parsed_origin = urllib.parse.urlparse(origin)
         namespace = session.app.identifier.namespace
         origin_netloc = parsed_origin.netloc
-        origin_namespace = ".".join(reversed(origin_netloc.split(".")))
+        origin_namespace = Identifier.namespace_from_url(origin_netloc)
         if origin_namespace == namespace:
             return
 
