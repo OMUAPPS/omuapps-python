@@ -6,8 +6,6 @@ from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import Packet, PacketData
 from omu.network.packet_mapper import PacketMapper
 
-from omuserver.security import Permission
-
 from .session import SessionConnection
 
 
@@ -18,10 +16,6 @@ class WebsocketsConnection(SessionConnection):
     @property
     def closed(self) -> bool:
         return self.socket.closed
-
-    @property
-    def permissions(self) -> Permission:
-        return self.permissions
 
     async def receive(self, packet_mapper: PacketMapper) -> Packet:
         msg = await self.socket.receive()
