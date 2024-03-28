@@ -54,9 +54,9 @@ class Network:
         if origin is None:
             return
         parsed_origin = urllib.parse.urlparse(origin)
-        namespace = session.app.identifier.namespace
         origin_netloc = parsed_origin.netloc
         origin_namespace = Identifier.namespace_from_url(origin_netloc)
+        namespace = session.app.identifier.namespace
         if origin_namespace == namespace:
             return
 
