@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import socket
-import urllib.parse
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict
 
@@ -53,9 +52,7 @@ class Network:
         origin = request.headers.get("origin")
         if origin is None:
             return
-        parsed_origin = urllib.parse.urlparse(origin)
-        origin_netloc = parsed_origin.netloc
-        origin_namespace = Identifier.namespace_from_url(origin_netloc)
+        origin_namespace = Identifier.namespace_from_url(origin)
         namespace = session.app.identifier.namespace
         if origin_namespace == namespace:
             return
