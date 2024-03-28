@@ -1,6 +1,6 @@
 [project]
 name = "omuchat_python"
-version = "0.1.10"
+version = "0.1.11"
 description = "Add your description here"
 authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" },
@@ -22,6 +22,9 @@ dev-dependencies = [
     "pytest-cov>=4.1.0",
     "pyright>=1.1.355",
 ]
+
+[tool.rye.scripts]
+version = "python ./scripts/version.py"
 
 [tool.rye.workspace]
 members = ["packages/*"]
