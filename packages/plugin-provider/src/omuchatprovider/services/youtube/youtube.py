@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import urllib.parse
 from collections import Counter
 from datetime import datetime
 from typing import Dict, List, Mapping, Tuple, TypedDict
@@ -735,7 +736,7 @@ def _get_best_thumbnail(thumbnails: List[api.Thumbnail]) -> str:
             url = thumbnail["url"]
     if url is None:
         raise ProviderFailed(f"Could not select thumbnail: {thumbnails=}")
-    return url
+    return normalize_yt_url(url)
 
 
 def _parse_runs(runs: api.Runs | None) -> content.Component:
@@ -768,3 +769,14 @@ def _parse_runs(runs: api.Runs | None) -> content.Component:
         else:
             raise ProviderFailed(f"Unknown run: {run}")
     return root
+
+
+def normalize_yt_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    scheme = parsed.scheme or "https"
+    host = parsed.netloc or parsed.hostname or "youtube.com"
+    path = parsed.path or ""
+    query = parsed.query or ""
+    if query:
+        return f"{scheme}://{host}{path}?{query}"
+    return f"{scheme}://{host}{path}"
