@@ -361,6 +361,7 @@ class YoutubeChatService(ChatService):
         self._room = room
         self.chat = chat
         self.tasks = Tasks(client.loop)
+        self.author_fetch_queue: List[Author] = []
         self._closed = False
 
     @property
@@ -425,6 +426,7 @@ class YoutubeChatService(ChatService):
 
     async def start(self):
         count = 0
+        self.tasks.create_task(self.fetch_authors_task())
         try:
             self._room.connected = True
             await self.client.chat.rooms.update(self._room)
@@ -468,13 +470,14 @@ class YoutubeChatService(ChatService):
                     continue
                 added_authors.append(author)
             await self.client.chat.authors.add(*added_authors)
-            self.tasks.create_task(self.fetch_authors(added_authors))
+            self.author_fetch_queue.extend(added_authors)
         if len(messages) > 0:
             await self.client.chat.messages.add(*messages)
         await self.process_reactions(data)
 
-    async def fetch_authors(self, authors: List[Author]):
-        for author in authors:
+    async def fetch_authors_task(self):
+        for author in self.author_fetch_queue:
+            await asyncio.sleep(3)
             author_channel = await YOUTUBE_VISITOR.visit_url(
                 f"{YOUTUBE_URL}/channel/{author.id}", session
             )
