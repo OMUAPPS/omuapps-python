@@ -11,7 +11,8 @@
                 "dev-admin-token",
             ],
             "cwd": "${workspaceFolder}/appdata",
-            "justMyCode": true
+            "justMyCode": false,
+            "preLaunchTask": "pyright"
         }
     ]
 }
