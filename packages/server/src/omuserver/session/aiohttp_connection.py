@@ -17,15 +17,16 @@ class WebsocketsConnection(SessionConnection):
     def closed(self) -> bool:
         return self.socket.closed
 
-    async def receive(self, packet_mapper: PacketMapper) -> Packet:
+    async def receive(self, packet_mapper: PacketMapper) -> Packet | None:
         msg = await self.socket.receive()
         if msg.type in {
             web.WSMsgType.CLOSE,
-            web.WSMsgType.ERROR,
-            web.WSMsgType.CLOSED,
             web.WSMsgType.CLOSING,
+            web.WSMsgType.CLOSED,
         }:
-            raise RuntimeError(f"Socket {msg.type.name.lower()}")
+            return None
+        if msg.type != web.WSMsgType.BINARY:
+            raise RuntimeError(f"Unknown message type {msg.type}")
 
         if msg.data is None:
             raise RuntimeError("Received empty message")

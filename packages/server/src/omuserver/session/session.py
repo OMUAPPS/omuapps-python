@@ -20,7 +20,7 @@ class SessionConnection(abc.ABC):
     async def send(self, packet: Packet, packet_mapper: PacketMapper) -> None: ...
 
     @abc.abstractmethod
-    async def receive(self, packet_mapper: PacketMapper) -> Packet: ...
+    async def receive(self, packet_mapper: PacketMapper) -> Packet | None: ...
 
     @abc.abstractmethod
     async def close(self) -> None: ...
@@ -84,6 +84,8 @@ class Session:
         try:
             while not self._connection.closed:
                 packet = await self._connection.receive(self.serializer)
+                if packet is None:
+                    break
                 asyncio.create_task(self._dispatch_packet(packet))
         finally:
             await self.disconnect()
