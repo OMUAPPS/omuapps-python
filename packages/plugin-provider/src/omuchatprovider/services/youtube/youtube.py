@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import urllib.parse
 from collections import Counter
 from datetime import datetime
 from typing import Dict, List, Mapping, Tuple, TypedDict
@@ -361,6 +362,7 @@ class YoutubeChatService(ChatService):
         self._room = room
         self.chat = chat
         self.tasks = Tasks(client.loop)
+        self.author_fetch_queue: List[Author] = []
         self._closed = False
 
     @property
@@ -425,6 +427,7 @@ class YoutubeChatService(ChatService):
 
     async def start(self):
         count = 0
+        self.tasks.create_task(self.fetch_authors_task())
         try:
             self._room.connected = True
             await self.client.chat.rooms.update(self._room)
@@ -468,13 +471,14 @@ class YoutubeChatService(ChatService):
                     continue
                 added_authors.append(author)
             await self.client.chat.authors.add(*added_authors)
-            self.tasks.create_task(self.fetch_authors(added_authors))
+            self.author_fetch_queue.extend(added_authors)
         if len(messages) > 0:
             await self.client.chat.messages.add(*messages)
         await self.process_reactions(data)
 
-    async def fetch_authors(self, authors: List[Author]):
-        for author in authors:
+    async def fetch_authors_task(self):
+        for author in self.author_fetch_queue:
+            await asyncio.sleep(3)
             author_channel = await YOUTUBE_VISITOR.visit_url(
                 f"{YOUTUBE_URL}/channel/{author.id}", session
             )
@@ -732,7 +736,7 @@ def _get_best_thumbnail(thumbnails: List[api.Thumbnail]) -> str:
             url = thumbnail["url"]
     if url is None:
         raise ProviderFailed(f"Could not select thumbnail: {thumbnails=}")
-    return url
+    return normalize_yt_url(url)
 
 
 def _parse_runs(runs: api.Runs | None) -> content.Component:
@@ -765,3 +769,14 @@ def _parse_runs(runs: api.Runs | None) -> content.Component:
         else:
             raise ProviderFailed(f"Unknown run: {run}")
     return root
+
+
+def normalize_yt_url(url: str) -> str:
+    parsed = urllib.parse.urlparse(url)
+    scheme = parsed.scheme or "https"
+    host = parsed.netloc or parsed.hostname or "youtube.com"
+    path = parsed.path or ""
+    query = parsed.query or ""
+    if query:
+        return f"{scheme}://{host}{path}?{query}"
+    return f"{scheme}://{host}{path}"
