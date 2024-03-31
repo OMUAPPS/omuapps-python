@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Final, Tuple
 
 from omu.helper import generate_md5_hash, sanitize_filename
+from omu.model import Model
 
 from .interface import Keyable
 
@@ -13,7 +14,7 @@ NAMESPACE_REGEX = re.compile(r"^(\.[^/:.]|[\w-])+$")
 NAME_REGEX = re.compile(r"^[^/:.]+$")
 
 
-class Identifier(Keyable):
+class Identifier(Keyable, Model[str]):
     def __init__(self, namespace: str, *path: str) -> None:
         self.validate(namespace, *path)
         self.namespace: Final[str] = namespace
@@ -61,6 +62,13 @@ class Identifier(Keyable):
     def namespace_from_url(cls, url: str) -> str:
         parsed = urllib.parse.urlparse(url)
         return ".".join(reversed(parsed.netloc.split(".")))
+
+    def to_json(self) -> str:
+        return self.key()
+
+    @classmethod
+    def from_json(cls, json: str) -> Identifier:
+        return cls.from_key(json)
 
     def key(self) -> str:
         return self.format(self.namespace, *self.path)
