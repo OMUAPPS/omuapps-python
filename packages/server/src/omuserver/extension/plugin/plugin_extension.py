@@ -12,7 +12,6 @@ from multiprocessing import Process
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
-    Any,
     Dict,
     List,
     Mapping,
@@ -22,6 +21,7 @@ from typing import (
 
 from loguru import logger
 from omu import Address
+from omu.extension.plugin import PluginMetadata
 from omu.network.websocket_connection import WebsocketsConnection
 from omu.plugin import Plugin
 from packaging.specifiers import SpecifierSet
@@ -41,19 +41,19 @@ class PluginModule(Protocol):
 
 
 @dataclass(frozen=True)
-class PluginMetadata:
+class PluginEntry:
     dependencies: Mapping[str, SpecifierSet | None]
     module: str
     isolated: bool = False
 
     @classmethod
-    def validate(cls, metadata: Dict[str, Any]) -> PluginMetadata | None:
-        invalid_dependencies: Dict[str, str] = {}
-        dependencies: Dict[str, SpecifierSet | None] = metadata.get("dependencies", {})
+    def validate(cls, metadata: PluginMetadata) -> PluginEntry | None:
+        invalid_dependencies: Dict[str, str | None] = {}
+        dependencies: Dict[str, SpecifierSet | None] = {}
         for dependency, specifier in metadata.get("dependencies", []).items():
             if not re.match(r"^[a-zA-Z0-9_-]+$", dependency):
                 invalid_dependencies[dependency] = specifier
-            if specifier == "":
+            if specifier is None or specifier == "":
                 dependencies[dependency] = None
             else:
                 dependencies[dependency] = SpecifierSet(specifier)
@@ -73,7 +73,7 @@ class PluginMetadata:
 class PluginExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self.plugins: Dict[Path, PluginMetadata] = {}
+        self.plugins: Dict[Path, PluginEntry] = {}
         server.listeners.start += self.on_server_start
 
     async def on_server_start(self) -> None:
@@ -91,12 +91,12 @@ class PluginExtension:
             if plugin.name.startswith("_"):
                 continue
             logger.info(f"Loading plugin: {plugin.name}")
-            metadata = self._load_plugin(plugin)
+            metadata = self._parse_plugin(plugin)
             self.plugins[plugin] = metadata
 
-    def _load_plugin(self, path: Path) -> PluginMetadata:
+    def _parse_plugin(self, path: Path) -> PluginEntry:
         data = json.loads(path.read_text())
-        metadata = PluginMetadata.validate(data)
+        metadata = PluginEntry.validate(data)
         if metadata is None:
             raise ValueError(f"Invalid metadata in plugin {path}")
         return metadata
@@ -113,37 +113,9 @@ class PluginExtension:
         return args
 
     async def install_dependencies(self) -> None:
-        # https://stackoverflow.com/a/44210735
-        dependencies: Dict[str, SpecifierSet] = {}
-        for plugin in self.plugins.values():
-            for dependency, specifier in plugin.dependencies.items():
-                if dependency not in dependencies:
-                    dependencies[dependency] = SpecifierSet()
-                    continue
-                if specifier is not None:
-                    specifier_set = dependencies[dependency]
-                    specifier_set &= specifier
-                    continue
+        dependencies = self.get_plugin_dependencies()
 
-        packages_distributions: Mapping[str, importlib.metadata.Distribution] = {
-            dist.name: dist for dist in importlib.metadata.distributions()
-        }
-
-        to_install: Dict[str, SpecifierSet] = {}
-        to_update: Dict[str, SpecifierSet] = {}
-        skipped: Dict[str, SpecifierSet] = {}
-        for dependency, specifier in dependencies.items():
-            package = packages_distributions.get(dependency)
-            if package is None:
-                to_install[dependency] = specifier
-                continue
-            distribution = packages_distributions[package.name]
-            installed_version = Version(distribution.version)
-            specifier_set = dependencies[dependency]
-            if installed_version in specifier_set:
-                skipped[dependency] = specifier_set
-                continue
-            to_update[dependency] = specifier_set
+        to_install, to_update, skipped = self.resolve_dependencies(dependencies)
         if len(to_install) > 0:
             logger.info(
                 "Installing dependencies "
@@ -191,6 +163,44 @@ class PluginExtension:
             f"Skipped dependencies: {" ".join(self.generate_dependencies_str(skipped))}"
         )
 
+    def get_plugin_dependencies(self):
+        dependencies: Dict[str, SpecifierSet] = {}
+        for plugin in self.plugins.values():
+            for dependency, specifier in plugin.dependencies.items():
+                if dependency not in dependencies:
+                    dependencies[dependency] = SpecifierSet()
+                    continue
+                if specifier is not None:
+                    specifier_set = dependencies[dependency]
+                    specifier_set &= specifier
+                    continue
+        return dependencies
+
+    def resolve_dependencies(
+        self, dependencies: Mapping[str, SpecifierSet]
+    ) -> tuple[
+        Dict[str, SpecifierSet], Dict[str, SpecifierSet], Dict[str, SpecifierSet]
+    ]:
+        to_install: Dict[str, SpecifierSet] = {}
+        to_update: Dict[str, SpecifierSet] = {}
+        skipped: Dict[str, SpecifierSet] = {}
+        packages_distributions: Mapping[str, importlib.metadata.Distribution] = {
+            dist.name: dist for dist in importlib.metadata.distributions()
+        }
+        for dependency, specifier in dependencies.items():
+            package = packages_distributions.get(dependency)
+            if package is None:
+                to_install[dependency] = specifier
+                continue
+            distribution = packages_distributions[package.name]
+            installed_version = Version(distribution.version)
+            specifier_set = dependencies[dependency]
+            if installed_version in specifier_set:
+                skipped[dependency] = specifier_set
+                continue
+            to_update[dependency] = specifier_set
+        return to_install, to_update, skipped
+
     async def run_plugins(self) -> None:
         for metadata in self.plugins.values():
             try:
@@ -199,7 +209,7 @@ class PluginExtension:
                 traceback.print_exc()
                 logger.error(f"Error running plugin {metadata.module}: {e}")
 
-    async def run_plugin(self, metadata: PluginMetadata):
+    async def run_plugin(self, metadata: PluginEntry):
         if metadata.isolated:
             process = Process(
                 target=run_plugin_process,
@@ -246,12 +256,12 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: dict) -> None:
 
 
 def run_plugin_process(
-    metadata: PluginMetadata,
+    plugin_entry: PluginEntry,
     address: Address,
 ) -> None:
-    module = __import__(metadata.module)
+    module = __import__(plugin_entry.module)
     if not validate_plugin_module(module):
-        raise ValueError(f"Invalid plugin module {metadata.module}")
+        raise ValueError(f"Invalid plugin module {plugin_entry.module}")
     plugin = module.get_plugin()
     client = plugin.client
     connection = WebsocketsConnection(client, address)

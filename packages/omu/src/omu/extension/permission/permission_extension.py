@@ -2,6 +2,7 @@ from typing import Dict, List
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
+from omu.extension.endpoint.endpoint import EndpointType
 from omu.identifier import Identifier
 from omu.network.packet.packet import PacketType
 from omu.serializer import Serializer
@@ -23,7 +24,6 @@ class PermissionExtension(Extension):
         self.require_permissions: Dict[Identifier, PermissionType] = {}
         self.client.network.register_packet(
             PermissionRegisterPacket,
-            PermissionRequestPacket,
             PermissionGrantPacket,
         )
         self.client.network.add_packet_handler(
@@ -47,8 +47,8 @@ class PermissionExtension(Extension):
         return permission.identifier in self.permissions
 
     async def on_connected(self):
-        await self.client.send(
-            PermissionRequestPacket, [*self.require_permissions.keys()]
+        await self.client.endpoints.call(
+            PermissionRequestEndpoint, [*self.require_permissions.keys()]
         )
 
     async def handle_grant(self, permissions: List[Identifier]):
@@ -61,10 +61,11 @@ PermissionRegisterPacket = PacketType.create_serialized(
     Serializer.model(PermissionType).array().pipe(Serializer.json()),
 )
 
-PermissionRequestPacket = PacketType.create_json(
+PermissionRequestEndpoint = EndpointType[List[Identifier], None].create_serialized(
     PermissionExtensionType,
     "request",
-    Serializer.model(Identifier).array(),
+    request_serializer=Serializer.model(Identifier).array().pipe(Serializer.json()),
+    response_serializer=Serializer.json(),
 )
 
 PermissionGrantPacket = PacketType.create_json(
