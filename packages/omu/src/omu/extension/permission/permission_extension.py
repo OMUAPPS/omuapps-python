@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -9,7 +9,7 @@ from omu.serializer import Serializer
 from .permission import PermissionType
 
 PermissionExtensionType = ExtensionType(
-    "registry",
+    "permission",
     lambda client: PermissionExtension(client),
     lambda: [],
 )
@@ -18,11 +18,19 @@ PermissionExtensionType = ExtensionType(
 class PermissionExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
+        self.permissions: List[Identifier] = []
         self.registered_permissions: Dict[Identifier, PermissionType] = {}
         self.require_permissions: Dict[Identifier, PermissionType] = {}
         self.client.network.register_packet(
-            PermissionRegisterPacket, PermissionRequestPacket
+            PermissionRegisterPacket,
+            PermissionRequestPacket,
+            PermissionGrantPacket,
         )
+        self.client.network.add_packet_handler(
+            PermissionGrantPacket,
+            self.handle_grant,
+        )
+        self.client.network.listeners.connected += self.on_connected
 
     def register(self, permission: PermissionType):
         base_identifier = self.client.app.identifier
@@ -35,6 +43,17 @@ class PermissionExtension(Extension):
     def request(self, permission: PermissionType):
         self.require_permissions[permission.identifier] = permission
 
+    def has(self, permission: PermissionType):
+        return permission.identifier in self.permissions
+
+    async def on_connected(self):
+        await self.client.send(
+            PermissionRequestPacket, [*self.require_permissions.keys()]
+        )
+
+    async def handle_grant(self, permissions: List[Identifier]):
+        self.permissions = permissions
+
 
 PermissionRegisterPacket = PacketType.create_serialized(
     PermissionExtensionType,
@@ -42,20 +61,14 @@ PermissionRegisterPacket = PacketType.create_serialized(
     Serializer.model(PermissionType).array().pipe(Serializer.json()),
 )
 
-PermissionRequestPacket = PacketType.create_serialized(
+PermissionRequestPacket = PacketType.create_json(
     PermissionExtensionType,
     "request",
-    Serializer.noop().array().pipe(Serializer.json()),
+    Serializer.model(Identifier).array(),
 )
 
-PermissionGrantPacket = PacketType.create_serialized(
+PermissionGrantPacket = PacketType.create_json(
     PermissionExtensionType,
     "grant",
-    Serializer.noop().array().pipe(Serializer.json()),
-)
-
-PermissionDenyPacket = PacketType.create_serialized(
-    PermissionExtensionType,
-    "deny",
-    Serializer.noop().array().pipe(Serializer.json()),
+    Serializer.model(Identifier).array(),
 )

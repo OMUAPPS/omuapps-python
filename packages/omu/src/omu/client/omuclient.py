@@ -15,6 +15,7 @@ from omu.extension.message import (
     MessageExtension,
     MessageExtensionType,
 )
+from omu.extension.permission import PermissionExtension, PermissionExtensionType
 from omu.extension.registry import (
     RegistryExtension,
     RegistryExtensionType,
@@ -59,6 +60,7 @@ class OmuClient(Client):
         self._message = self.extensions.register(MessageExtensionType)
         self._assets = self.extensions.register(AssetExtensionType)
         self._server = self.extensions.register(ServerExtensionType)
+        self._permissions = self.extensions.register(PermissionExtensionType)
 
         self._loop.create_task(self._listeners.initialized.emit())
 
@@ -101,6 +103,10 @@ class OmuClient(Client):
     @property
     def server(self) -> ServerExtension:
         return self._server
+
+    @property
+    def permissions(self) -> PermissionExtension:
+        return self._permissions
 
     @property
     def running(self) -> bool:

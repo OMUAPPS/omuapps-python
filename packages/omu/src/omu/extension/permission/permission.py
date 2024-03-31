@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypedDict
 
-from omu import Identifier
+from omu.identifier import Identifier
 from omu.model import Model
 
 
+class PermissionJson(TypedDict):
+    identifier: str
+
+
 @dataclass(frozen=True)
-class PermissionType(Model[dict]):
+class PermissionType(Model[PermissionJson]):
     identifier: Identifier
 
     @classmethod
@@ -20,13 +25,13 @@ class PermissionType(Model[dict]):
             identifier=identifier / name,
         )
 
-    def to_json(self) -> dict:
+    def to_json(self) -> PermissionJson:
         return {
             "identifier": self.identifier.key(),
         }
 
     @classmethod
-    def from_json(cls, json: dict) -> PermissionType:
+    def from_json(cls, json: PermissionJson) -> PermissionType:
         return PermissionType(
             identifier=Identifier(json["identifier"]),
         )

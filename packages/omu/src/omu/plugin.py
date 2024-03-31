@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from omu import Client
+from .client import Client
 
 
 @dataclass(frozen=True)
