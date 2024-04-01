@@ -43,8 +43,12 @@ class DashboardExtension:
         self, session: Session, identifier: Identifier
     ) -> DashboardSetResponse:
         self.dashboard_session = session
+        session.listeners.disconnected += self._on_dashboard_disconnected
         await self.send_pending_permission_requests()
         return {"success": True}
+
+    async def _on_dashboard_disconnected(self, session: Session) -> None:
+        self.dashboard_session = None
 
     async def send_pending_permission_requests(self) -> None:
         if self.dashboard_session is None:
@@ -54,6 +58,7 @@ class DashboardExtension:
                 DASHBOARD_PERMISSION_REQUEST_PACKET,
                 request,
             )
+        self.pending_permission_requests.clear()
 
     async def handle_permission_accept(self, session: Session, request_id: int) -> None:
         future = self.permission_requests.pop(request_id)

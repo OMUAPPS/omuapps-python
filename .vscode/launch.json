@@ -8,7 +8,7 @@
             "args": [
                 "--debug",
                 "--token",
-                "dev-admin-token",
+                "dev-token",
             ],
             "cwd": "${workspaceFolder}/appdata",
             "justMyCode": true,
