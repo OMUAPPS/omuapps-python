@@ -9,6 +9,7 @@ from omu.event_emitter import EventEmitter
 if TYPE_CHECKING:
     from omu.app import App
     from omu.extension import ExtensionManager
+    from omu.extension.dashboard import DashboardExtension
     from omu.extension.endpoint import EndpointExtension
     from omu.extension.message import MessageExtension
     from omu.extension.permission import PermissionExtension
@@ -67,6 +68,10 @@ class Client(abc.ABC):
     @property
     @abc.abstractmethod
     def permissions(self) -> PermissionExtension: ...
+
+    @property
+    @abc.abstractmethod
+    def dashboard(self) -> DashboardExtension: ...
 
     @property
     @abc.abstractmethod

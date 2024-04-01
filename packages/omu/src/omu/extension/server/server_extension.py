@@ -2,32 +2,28 @@ from omu.app import App
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
-from omu.extension.table import TableExtensionType, TableType
+from omu.extension.table import TABLE_EXTENSION_TYPE, TableType
 
-ServerExtensionType = ExtensionType(
+SERVER_EXTENSION_TYPE = ExtensionType(
     "server", lambda client: ServerExtension(client), lambda: []
 )
 
-AppsTableType = TableType.create_model(
-    ServerExtensionType,
+APPS_TABLE_TYPE = TableType.create_model(
+    SERVER_EXTENSION_TYPE,
     "apps",
     App,
 )
-ShutdownEndpointType = EndpointType[bool, bool].create_json(
-    ServerExtensionType,
+SHUTDOWN_ENDPOINT_TYPE = EndpointType[bool, bool].create_json(
+    SERVER_EXTENSION_TYPE,
     "shutdown",
-)
-PrintTasksEndpointType = EndpointType[None, None].create_json(
-    ServerExtensionType,
-    "print_tasks",
 )
 
 
 class ServerExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        tables = client.extensions.get(TableExtensionType)
-        self.apps = tables.get(AppsTableType)
+        tables = client.extensions.get(TABLE_EXTENSION_TYPE)
+        self.apps = tables.get(APPS_TABLE_TYPE)
 
     async def shutdown(self, restart: bool = False) -> bool:
-        return await self.client.endpoints.call(ShutdownEndpointType, restart)
+        return await self.client.endpoints.call(SHUTDOWN_ENDPOINT_TYPE, restart)

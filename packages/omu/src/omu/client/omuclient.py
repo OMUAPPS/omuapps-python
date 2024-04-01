@@ -5,23 +5,27 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from omu.extension.asset import AssetExtension, AssetExtensionType
+from omu.extension.asset import ASSET_EXTENSION_TYPE, AssetExtension
+from omu.extension.dashboard import (
+    DASHBOARD_EXTENSION_TYPE,
+    DashboardExtension,
+)
 from omu.extension.endpoint import (
+    ENDPOINT_EXTENSION_TYPE,
     EndpointExtension,
-    EndpointExtensionType,
 )
 from omu.extension.extension_manager import ExtensionManager
 from omu.extension.message import (
+    MESSAGE_EXTENSION_TYPE,
     MessageExtension,
-    MessageExtensionType,
 )
-from omu.extension.permission import PermissionExtension, PermissionExtensionType
+from omu.extension.permission import PERMISSION_EXTENSION_TYPE, PermissionExtension
 from omu.extension.registry import (
+    REGISTRY_EXTENSION_TYPE,
     RegistryExtension,
-    RegistryExtensionType,
 )
-from omu.extension.server import ServerExtension, ServerExtensionType
-from omu.extension.table import TableExtension, TableExtensionType
+from omu.extension.server import SERVER_EXTENSION_TYPE, ServerExtension
+from omu.extension.table import TABLE_EXTENSION_TYPE, TableExtension
 from omu.network import Address, Network
 from omu.network.packet import Packet, PacketType
 from omu.network.websocket_connection import WebsocketsConnection
@@ -54,13 +58,14 @@ class OmuClient(Client):
         self._network.listeners.connected += self._listeners.ready.emit
         self._extensions = extension_registry or ExtensionManager(self)
 
-        self._endpoints = self.extensions.register(EndpointExtensionType)
-        self._tables = self.extensions.register(TableExtensionType)
-        self._registry = self.extensions.register(RegistryExtensionType)
-        self._message = self.extensions.register(MessageExtensionType)
-        self._assets = self.extensions.register(AssetExtensionType)
-        self._server = self.extensions.register(ServerExtensionType)
-        self._permissions = self.extensions.register(PermissionExtensionType)
+        self._endpoints = self.extensions.register(ENDPOINT_EXTENSION_TYPE)
+        self._tables = self.extensions.register(TABLE_EXTENSION_TYPE)
+        self._registry = self.extensions.register(REGISTRY_EXTENSION_TYPE)
+        self._message = self.extensions.register(MESSAGE_EXTENSION_TYPE)
+        self._assets = self.extensions.register(ASSET_EXTENSION_TYPE)
+        self._server = self.extensions.register(SERVER_EXTENSION_TYPE)
+        self._permissions = self.extensions.register(PERMISSION_EXTENSION_TYPE)
+        self._dashboard = self.extensions.register(DASHBOARD_EXTENSION_TYPE)
 
         self._loop.create_task(self._listeners.initialized.emit())
 
@@ -107,6 +112,10 @@ class OmuClient(Client):
     @property
     def permissions(self) -> PermissionExtension:
         return self._permissions
+
+    @property
+    def dashboard(self) -> DashboardExtension:
+        return self._dashboard
 
     @property
     def running(self) -> bool:

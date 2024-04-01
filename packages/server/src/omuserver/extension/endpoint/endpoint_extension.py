@@ -5,12 +5,12 @@ from typing import Dict
 
 from loguru import logger
 from omu.extension.endpoint.endpoint_extension import (
-    EndpointCallEvent,
+    ENDPOINT_CALL_PACKET,
+    ENDPOINT_ERROR_PACKET,
+    ENDPOINT_RECEIVE_PACKET,
+    ENDPOINT_REGISTER_PACKET,
     EndpointDataReq,
     EndpointError,
-    EndpointErrorEvent,
-    EndpointReceiveEvent,
-    EndpointRegisterEvent,
     EndpointType,
 )
 from omu.helper import Coro
@@ -41,7 +41,7 @@ class SessionEndpoint(Endpoint):
     async def call(self, data: EndpointDataReq, session: Session) -> None:
         if self._session.closed:
             raise RuntimeError(f"Session {self._session.app.key()} already closed")
-        await self._session.send(EndpointCallEvent, data)
+        await self._session.send(ENDPOINT_CALL_PACKET, data)
 
 
 class ServerEndpoint[Req, Res](Endpoint):
@@ -67,12 +67,12 @@ class ServerEndpoint[Req, Res](Endpoint):
             res = await self._callback(session, req)
             json = self._endpoint.response_serializer.serialize(res)
             await session.send(
-                EndpointReceiveEvent,
+                ENDPOINT_RECEIVE_PACKET,
                 EndpointDataReq(type=data["type"], id=data["id"], data=json),
             )
         except Exception as e:
             await session.send(
-                EndpointErrorEvent,
+                ENDPOINT_ERROR_PACKET,
                 EndpointError(type=data["type"], id=data["id"], error=str(e)),
             )
             raise e
@@ -84,11 +84,11 @@ class EndpointCall:
         self._data = data
 
     async def receive(self, data: EndpointDataReq) -> None:
-        await self._session.send(EndpointReceiveEvent, data)
+        await self._session.send(ENDPOINT_RECEIVE_PACKET, data)
 
     async def error(self, error: str) -> None:
         await self._session.send(
-            EndpointErrorEvent,
+            ENDPOINT_ERROR_PACKET,
             EndpointError(type=self._data["type"], id=self._data["id"], error=error),
         )
 
@@ -99,22 +99,22 @@ class EndpointExtension:
         self._endpoints: Dict[str, Endpoint] = {}
         self._calls: Dict[str, EndpointCall] = {}
         server.packet_dispatcher.register(
-            EndpointRegisterEvent,
-            EndpointCallEvent,
-            EndpointReceiveEvent,
-            EndpointErrorEvent,
+            ENDPOINT_REGISTER_PACKET,
+            ENDPOINT_CALL_PACKET,
+            ENDPOINT_RECEIVE_PACKET,
+            ENDPOINT_ERROR_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
-            EndpointRegisterEvent, self._on_endpoint_register
+            ENDPOINT_REGISTER_PACKET, self._on_endpoint_register
         )
         server.packet_dispatcher.add_packet_handler(
-            EndpointCallEvent, self._on_endpoint_call
+            ENDPOINT_CALL_PACKET, self._on_endpoint_call
         )
         server.packet_dispatcher.add_packet_handler(
-            EndpointReceiveEvent, self._on_endpoint_receive
+            ENDPOINT_RECEIVE_PACKET, self._on_endpoint_receive
         )
         server.packet_dispatcher.add_packet_handler(
-            EndpointErrorEvent, self._on_endpoint_error
+            ENDPOINT_ERROR_PACKET, self._on_endpoint_error
         )
 
     async def _on_endpoint_register(self, session: Session, id: str) -> None:
@@ -139,7 +139,7 @@ class EndpointExtension:
                 f"{session.app.name} tried to call unknown endpoint {req['type']}"
             )
             await session.send(
-                EndpointErrorEvent,
+                ENDPOINT_ERROR_PACKET,
                 EndpointError(
                     type=req["type"],
                     id=req["id"],
@@ -156,7 +156,7 @@ class EndpointExtension:
         call = self._calls.get(f"{req['type']}:{req['id']}")
         if call is None:
             await session.send(
-                EndpointErrorEvent,
+                ENDPOINT_ERROR_PACKET,
                 EndpointError(
                     type=req["type"], id=req["id"], error="Endpoint not connected"
                 ),
@@ -168,7 +168,7 @@ class EndpointExtension:
         call = self._calls.get(f"{error['type']}:{error['id']}")
         if call is None:
             await session.send(
-                EndpointErrorEvent,
+                ENDPOINT_ERROR_PACKET,
                 EndpointError(
                     type=error["type"], id=error["id"], error="Endpoint not connected"
                 ),
@@ -182,7 +182,7 @@ class EndpointExtension:
         endpoint = self._endpoints.get(req["type"])
         if endpoint is None:
             await session.send(
-                EndpointErrorEvent,
+                ENDPOINT_ERROR_PACKET,
                 EndpointError(
                     type=req["type"], id=req["id"], error="Endpoint not connected"
                 ),

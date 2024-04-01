@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from .server_extension import ServerExtension, ServerExtensionType
+from .server_extension import SERVER_EXTENSION_TYPE, ServerExtension
 
-__all__ = ["ServerExtension", "ServerExtensionType"]
+__all__ = ["ServerExtension", "SERVER_EXTENSION_TYPE"]

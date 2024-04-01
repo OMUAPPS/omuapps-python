@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict
 
 from omu.extension.registry.registry_extension import (
+    REGISTRY_GET_ENDPOINT,
+    REGISTRY_LISTEN_PACKET,
+    REGISTRY_UPDATE_PACKET,
     RegistryData,
-    RegistryGetEndpoint,
-    RegistryListenEvent,
-    RegistryUpdateEvent,
 )
 from omu.identifier import Identifier
 from omu.serializer import Serializable
@@ -22,14 +22,16 @@ if TYPE_CHECKING:
 class RegistryExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
-        server.packet_dispatcher.register(RegistryListenEvent, RegistryUpdateEvent)
-        server.packet_dispatcher.add_packet_handler(
-            RegistryListenEvent, self._on_listen
+        server.packet_dispatcher.register(
+            REGISTRY_LISTEN_PACKET, REGISTRY_UPDATE_PACKET
         )
         server.packet_dispatcher.add_packet_handler(
-            RegistryUpdateEvent, self._on_update
+            REGISTRY_LISTEN_PACKET, self._on_listen
         )
-        server.endpoints.bind_endpoint(RegistryGetEndpoint, self._on_get)
+        server.packet_dispatcher.add_packet_handler(
+            REGISTRY_UPDATE_PACKET, self._on_update
+        )
+        server.endpoints.bind_endpoint(REGISTRY_GET_ENDPOINT, self._on_get)
         self.registries: Dict[Identifier, ServerRegistry] = {}
 
     async def _on_listen(self, session: Session, key: str) -> None:

@@ -4,7 +4,7 @@ import asyncio
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List
 
 from omu.extension.table import TableConfig
-from omu.extension.table.table_extension import TableProxyData, TableProxyEvent
+from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyData
 from omu.identifier import Identifier
 
 from .adapters.tableadapter import TableAdapter
@@ -121,7 +121,7 @@ class CachedTable(ServerTable):
         session = tuple(self._proxy_sessions.values())[0]
         self._proxy_id += 1
         await session.send(
-            TableProxyEvent,
+            TABLE_PROXY_PACKET,
             TableProxyData(
                 items=items,
                 type=self._identifier.key(),
@@ -148,7 +148,7 @@ class CachedTable(ServerTable):
             return 0
         session = tuple(self._proxy_sessions.values())[index + 1]
         await session.send(
-            TableProxyEvent,
+            TABLE_PROXY_PACKET,
             TableProxyData(
                 items=items,
                 type=self._identifier.key(),

@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 
 from omu.extension.asset.asset_extension import (
-    AssetDownloadEndpoint,
-    AssetUploadEndpoint,
+    ASSET_DOWNLOAD_ENDPOINT,
+    ASSET_UPLOAD_ENDPOINT,
     Files,
 )
 from omu.identifier import Identifier
@@ -19,8 +19,8 @@ if TYPE_CHECKING:
 class AssetExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
-        server.endpoints.bind_endpoint(AssetUploadEndpoint, self.handle_upload)
-        server.endpoints.bind_endpoint(AssetDownloadEndpoint, self.handle_download)
+        server.endpoints.bind_endpoint(ASSET_UPLOAD_ENDPOINT, self.handle_upload)
+        server.endpoints.bind_endpoint(ASSET_DOWNLOAD_ENDPOINT, self.handle_download)
 
     async def handle_upload(self, session: Session, files: Files) -> List[Identifier]:
         uploaded_files = []

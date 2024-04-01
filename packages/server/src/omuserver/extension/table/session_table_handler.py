@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict
 
 from omu.extension.table.table_extension import (
+    TABLE_ITEM_ADD_PACKET,
+    TABLE_ITEM_CLEAR_PACKET,
+    TABLE_ITEM_REMOVE_EVENT,
+    TABLE_ITEM_UPDATE_PACKET,
     TableEventData,
-    TableItemAddEvent,
-    TableItemClearEvent,
-    TableItemRemoveEvent,
     TableItemsData,
-    TableItemUpdateEvent,
 )
 
 from omuserver.extension.table.server_table import ServerTable
@@ -37,7 +37,7 @@ class SessionTableListener:
         if self._session.closed:
             return
         await self._session.send(
-            TableItemAddEvent,
+            TABLE_ITEM_ADD_PACKET,
             TableItemsData(
                 items=items,
                 type=self._id,
@@ -48,7 +48,7 @@ class SessionTableListener:
         if self._session.closed:
             return
         await self._session.send(
-            TableItemUpdateEvent,
+            TABLE_ITEM_UPDATE_PACKET,
             TableItemsData(
                 items=items,
                 type=self._id,
@@ -59,7 +59,7 @@ class SessionTableListener:
         if self._session.closed:
             return
         await self._session.send(
-            TableItemRemoveEvent,
+            TABLE_ITEM_REMOVE_EVENT,
             TableItemsData(
                 items=items,
                 type=self._id,
@@ -69,7 +69,7 @@ class SessionTableListener:
     async def on_clear(self) -> None:
         if self._session.closed:
             return
-        await self._session.send(TableItemClearEvent, TableEventData(type=self._id))
+        await self._session.send(TABLE_ITEM_CLEAR_PACKET, TableEventData(type=self._id))
 
     def __repr__(self) -> str:
         return f"<SessionTableHandler key={self._id} app={self._session.app}>"

@@ -5,25 +5,25 @@ from typing import Dict, List
 
 from omu.extension.table import Table, TableType
 from omu.extension.table.table_extension import (
+    TABLE_CONFIG_SET_PACKET,
+    TABLE_ITEM_ADD_PACKET,
+    TABLE_ITEM_CLEAR_PACKET,
+    TABLE_ITEM_FETCH_ALL_ENDPOINT,
+    TABLE_ITEM_FETCH_ENDPOINT,
+    TABLE_ITEM_GET_ENDPOINT,
+    TABLE_ITEM_REMOVE_EVENT,
+    TABLE_ITEM_SIZE_ENDPOINT,
+    TABLE_ITEM_UPDATE_PACKET,
+    TABLE_LISTEN_PACKET,
+    TABLE_PROXY_ENDPOINT,
+    TABLE_PROXY_LISTEN_PACKET,
+    TABLE_PROXY_PACKET,
     SetConfigReq,
-    TableConfigSetEvent,
     TableEventData,
     TableFetchReq,
-    TableItemAddEvent,
-    TableItemClearEvent,
-    TableItemFetchAllEndpoint,
-    TableItemFetchEndpoint,
-    TableItemGetEndpoint,
-    TableItemRemoveEvent,
     TableItemsData,
-    TableItemSizeEndpoint,
-    TableItemUpdateEvent,
     TableKeysData,
-    TableListenEvent,
     TableProxyData,
-    TableProxyEndpoint,
-    TableProxyEvent,
-    TableProxyListenEvent,
 )
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -44,45 +44,47 @@ class TableExtension:
         self._tables: Dict[Identifier, ServerTable] = {}
         self._adapters: List[TableAdapter] = []
         server.packet_dispatcher.register(
-            TableConfigSetEvent,
-            TableListenEvent,
-            TableProxyListenEvent,
-            TableProxyEvent,
-            TableItemAddEvent,
-            TableItemUpdateEvent,
-            TableItemRemoveEvent,
-            TableItemClearEvent,
+            TABLE_CONFIG_SET_PACKET,
+            TABLE_LISTEN_PACKET,
+            TABLE_PROXY_LISTEN_PACKET,
+            TABLE_PROXY_PACKET,
+            TABLE_ITEM_ADD_PACKET,
+            TABLE_ITEM_UPDATE_PACKET,
+            TABLE_ITEM_REMOVE_EVENT,
+            TABLE_ITEM_CLEAR_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
-            TableConfigSetEvent, self._on_table_set_config
+            TABLE_CONFIG_SET_PACKET, self._on_table_set_config
         )
         server.packet_dispatcher.add_packet_handler(
-            TableListenEvent, self._on_table_listen
+            TABLE_LISTEN_PACKET, self._on_table_listen
         )
         server.packet_dispatcher.add_packet_handler(
-            TableProxyListenEvent, self._on_table_proxy_listen
+            TABLE_PROXY_LISTEN_PACKET, self._on_table_proxy_listen
         )
         server.packet_dispatcher.add_packet_handler(
-            TableItemAddEvent, self._on_table_item_add
+            TABLE_ITEM_ADD_PACKET, self._on_table_item_add
         )
         server.packet_dispatcher.add_packet_handler(
-            TableItemUpdateEvent, self._on_table_item_update
+            TABLE_ITEM_UPDATE_PACKET, self._on_table_item_update
         )
         server.packet_dispatcher.add_packet_handler(
-            TableItemRemoveEvent, self._on_table_item_remove
+            TABLE_ITEM_REMOVE_EVENT, self._on_table_item_remove
         )
         server.packet_dispatcher.add_packet_handler(
-            TableItemClearEvent, self._on_table_item_clear
+            TABLE_ITEM_CLEAR_PACKET, self._on_table_item_clear
         )
-        server.endpoints.bind_endpoint(TableItemGetEndpoint, self._on_table_item_get)
+        server.endpoints.bind_endpoint(TABLE_ITEM_GET_ENDPOINT, self._on_table_item_get)
         server.endpoints.bind_endpoint(
-            TableItemFetchEndpoint, self._on_table_item_fetch
+            TABLE_ITEM_FETCH_ENDPOINT, self._on_table_item_fetch
         )
         server.endpoints.bind_endpoint(
-            TableItemFetchAllEndpoint, self._on_table_item_fetch_all
+            TABLE_ITEM_FETCH_ALL_ENDPOINT, self._on_table_item_fetch_all
         )
-        server.endpoints.bind_endpoint(TableItemSizeEndpoint, self._on_table_item_size)
-        server.endpoints.bind_endpoint(TableProxyEndpoint, self._on_table_proxy)
+        server.endpoints.bind_endpoint(
+            TABLE_ITEM_SIZE_ENDPOINT, self._on_table_item_size
+        )
+        server.endpoints.bind_endpoint(TABLE_PROXY_ENDPOINT, self._on_table_proxy)
         server.listeners.stop += self.on_server_stop
 
     async def _on_table_item_get(

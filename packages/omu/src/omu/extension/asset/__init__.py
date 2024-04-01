@@ -1,6 +1,6 @@
-from .asset_extension import AssetExtension, AssetExtensionType
+from .asset_extension import ASSET_EXTENSION_TYPE, AssetExtension
 
 __all__ = [
     "AssetExtension",
-    "AssetExtensionType",
+    "ASSET_EXTENSION_TYPE",
 ]
