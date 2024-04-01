@@ -21,16 +21,16 @@ class PermissionExtension(Extension):
         self.client = client
         self.permissions: List[Identifier] = []
         self.registered_permissions: Dict[Identifier, PermissionType] = {}
-        self.require_permissions: Dict[Identifier, PermissionType] = {}
-        self.client.network.register_packet(
-            PermissionRegisterPacket,
-            PermissionGrantPacket,
+        self.required_permissions: Dict[Identifier, PermissionType] = {}
+        client.network.register_packet(
+            PERMISSION_REGISTER_PACKET,
+            PERMISSION_GRANTED_PACKET,
         )
-        self.client.network.add_packet_handler(
-            PermissionGrantPacket,
+        client.network.add_packet_handler(
+            PERMISSION_GRANTED_PACKET,
             self.handle_grant,
         )
-        self.client.network.listeners.connected += self.on_connected
+        client.network.listeners.connected += self.on_connected
 
     def register(self, permission: PermissionType):
         base_identifier = self.client.app.identifier
@@ -40,36 +40,38 @@ class PermissionExtension(Extension):
             )
         self.registered_permissions[permission.identifier] = permission
 
-    def request(self, permission: PermissionType):
-        self.require_permissions[permission.identifier] = permission
+    def require(self, permission: PermissionType):
+        self.required_permissions[permission.identifier] = permission
 
-    def has(self, permission: PermissionType):
-        return permission.identifier in self.permissions
+    def has(self, permission_identifier: Identifier):
+        return permission_identifier in self.permissions
 
     async def on_connected(self):
+        await self.client.send(
+            PERMISSION_REGISTER_PACKET,
+            [*self.registered_permissions.values()],
+        )
         await self.client.endpoints.call(
-            PermissionRequestEndpoint, [*self.require_permissions.keys()]
+            PERMISSION_REQUEST_ENDPOINT,
+            [*self.required_permissions.keys()],
         )
 
     async def handle_grant(self, permissions: List[Identifier]):
         self.permissions = permissions
 
 
-PermissionRegisterPacket = PacketType.create_serialized(
+PERMISSION_REGISTER_PACKET = PacketType.create_json(
     PermissionExtensionType,
     "register",
-    Serializer.model(PermissionType).array().pipe(Serializer.json()),
+    Serializer.model(PermissionType).array(),
 )
-
-PermissionRequestEndpoint = EndpointType[List[Identifier], None].create_serialized(
+PERMISSION_REQUEST_ENDPOINT = EndpointType[List[Identifier], None].create_json(
     PermissionExtensionType,
     "request",
-    request_serializer=Serializer.model(Identifier).array().pipe(Serializer.json()),
-    response_serializer=Serializer.json(),
+    request_serializer=Serializer.model(Identifier).array(),
 )
-
-PermissionGrantPacket = PacketType.create_json(
+PERMISSION_GRANTED_PACKET = PacketType.create_json(
     PermissionExtensionType,
-    "grant",
+    "granted",
     Serializer.model(Identifier).array(),
 )

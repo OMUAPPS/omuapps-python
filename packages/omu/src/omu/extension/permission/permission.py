@@ -7,12 +7,12 @@ from omu.identifier import Identifier
 from omu.model import Model
 
 
-class PermissionJson(TypedDict):
+class PermissionTypeJson(TypedDict):
     identifier: str
 
 
 @dataclass(frozen=True)
-class PermissionType(Model[PermissionJson]):
+class PermissionType(Model[PermissionTypeJson]):
     identifier: Identifier
 
     @classmethod
@@ -25,13 +25,13 @@ class PermissionType(Model[PermissionJson]):
             identifier=identifier / name,
         )
 
-    def to_json(self) -> PermissionJson:
+    def to_json(self) -> PermissionTypeJson:
         return {
             "identifier": self.identifier.key(),
         }
 
     @classmethod
-    def from_json(cls, json: PermissionJson) -> PermissionType:
+    def from_json(cls, json: PermissionTypeJson) -> PermissionType:
         return PermissionType(
             identifier=Identifier(json["identifier"]),
         )

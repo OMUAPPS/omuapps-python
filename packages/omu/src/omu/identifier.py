@@ -14,7 +14,7 @@ NAMESPACE_REGEX = re.compile(r"^(\.[^/:.]|[\w-])+$")
 NAME_REGEX = re.compile(r"^[^/:.]+$")
 
 
-class Identifier(Keyable, Model[str]):
+class Identifier(Model[str], Keyable):
     def __init__(self, namespace: str, *path: str) -> None:
         self.validate(namespace, *path)
         self.namespace: Final[str] = namespace
