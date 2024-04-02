@@ -62,6 +62,8 @@ class ServerAuthenticator(Security):
         return token
 
     async def validate_app_token(self, app: App, token: Token) -> bool:
+        if self._server.config.dashboard_token == token:
+            return True
         cursor = self._token_db.execute(
             """
             SELECT token
