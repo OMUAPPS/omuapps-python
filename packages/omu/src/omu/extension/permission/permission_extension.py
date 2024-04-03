@@ -19,7 +19,7 @@ PERMISSION_EXTENSION_TYPE = ExtensionType(
 class PermissionExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self.permissions: List[Identifier] = []
+        self.permissions: List[PermissionType] = []
         self.registered_permissions: Dict[Identifier, PermissionType] = {}
         self.required_permissions: Dict[Identifier, PermissionType] = {}
         client.network.register_packet(
@@ -56,7 +56,7 @@ class PermissionExtension(Extension):
             [*self.required_permissions.keys()],
         )
 
-    async def handle_grant(self, permissions: List[Identifier]):
+    async def handle_grant(self, permissions: List[PermissionType]):
         self.permissions = permissions
 
 
@@ -73,5 +73,5 @@ PERMISSION_REQUEST_ENDPOINT = EndpointType[List[Identifier], None].create_json(
 PERMISSION_GRANT_PACKET = PacketType.create_json(
     PERMISSION_EXTENSION_TYPE,
     "grant",
-    Serializer.model(Identifier).array(),
+    Serializer.model(PermissionType).array(),
 )

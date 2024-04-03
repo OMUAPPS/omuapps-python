@@ -51,7 +51,7 @@ class PermissionExtension:
         self, session: Session, permission_identifiers: List[Identifier]
     ):
         self.request_id += 1
-        permissions = []
+        permissions: List[PermissionType] = []
         for identifier in permission_identifiers:
             permission = self.permission_registry.get(identifier)
             if permission is not None:
