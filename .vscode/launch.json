@@ -8,10 +8,10 @@
             "args": [
                 "--debug",
                 "--token",
-                "dev-admin-token",
+                "dev-token",
             ],
             "cwd": "${workspaceFolder}/appdata",
-            "justMyCode": false,
+            "justMyCode": true,
             "preLaunchTask": "pyright"
         }
     ]

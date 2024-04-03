@@ -13,7 +13,7 @@ from omu.serializer import Serializable
 
 from .message import Message, MessageType
 
-MessageExtensionType = ExtensionType(
+MESSAGE_EXTENSION_TYPE = ExtensionType(
     "message",
     lambda client: MessageExtension(client),
     lambda: [],
@@ -40,9 +40,9 @@ class MessageSerializer(Serializable[MessageData, bytes]):
         return MessageData(key=key, body=body)
 
 
-MessageListenPacket = PacketType[str].create_json(MessageExtensionType, "listen")
-MessageBroadcastPacket = PacketType[MessageData].create_serialized(
-    MessageExtensionType,
+MESSAGE_LISTEN_PACKET = PacketType[str].create_json(MESSAGE_EXTENSION_TYPE, "listen")
+MESSAGE_BROADCAST_PACKET = PacketType[MessageData].create_serialized(
+    MESSAGE_EXTENSION_TYPE,
     "broadcast",
     MessageSerializer(),
 )
@@ -53,8 +53,8 @@ class MessageExtension(Extension):
         self.client = client
         self._message_identifiers: List[Identifier] = []
         client.network.register_packet(
-            MessageListenPacket,
-            MessageBroadcastPacket,
+            MESSAGE_LISTEN_PACKET,
+            MESSAGE_BROADCAST_PACKET,
         )
 
     def create[T](self, name: str, _t: type[T] | None = None) -> Message[T]:
@@ -76,12 +76,12 @@ class MessageImpl[T](Message):
         self.serializer = message_type.serializer
         self.listeners = []
         self.listening = False
-        client.network.add_packet_handler(MessageBroadcastPacket, self._on_broadcast)
+        client.network.add_packet_handler(MESSAGE_BROADCAST_PACKET, self._on_broadcast)
 
     async def broadcast(self, body: T) -> None:
         data = self.serializer.serialize(body)
         await self.client.send(
-            MessageBroadcastPacket,
+            MESSAGE_BROADCAST_PACKET,
             MessageData(key=self.key, body=data),
         )
 
@@ -93,7 +93,7 @@ class MessageImpl[T](Message):
         return lambda: self.listeners.remove(listener)
 
     async def _listen(self) -> None:
-        await self.client.send(MessageListenPacket, self.key)
+        await self.client.send(MESSAGE_LISTEN_PACKET, self.key)
 
     async def _on_broadcast(self, data: MessageData) -> None:
         if data.key != self.key:

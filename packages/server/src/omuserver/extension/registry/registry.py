@@ -2,8 +2,8 @@ from typing import Any, Dict
 
 from omu import Identifier
 from omu.extension.registry.registry_extension import (
+    REGISTRY_UPDATE_PACKET,
     RegistryData,
-    RegistryUpdateEvent,
 )
 from omu.serializer import Serializable
 
@@ -41,7 +41,7 @@ class ServerRegistry:
             if listener.closed:
                 raise Exception(f"Session {listener.app=} closed")
             await listener.send(
-                RegistryUpdateEvent,
+                REGISTRY_UPDATE_PACKET,
                 RegistryData(key=self._key, existing=self.existing, value=self.data),
             )
 
@@ -51,7 +51,7 @@ class ServerRegistry:
         self._listeners[session.app.key()] = session
         session.listeners.disconnected += self.detach_session
         await session.send(
-            RegistryUpdateEvent,
+            REGISTRY_UPDATE_PACKET,
             RegistryData(key=self._key, existing=self.existing, value=self.data),
         )
 

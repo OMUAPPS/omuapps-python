@@ -9,8 +9,8 @@ dependencies = ["edgetrans>=0.2.3", "omuchat>=0.1.9"]
 readme = "README.md"
 requires-python = ">= 3.12"
 
-[project.scripts]
-hello = "plugin_chat:hello"
+[project.entry-points."omu.plugins"]
+plugin = "omuplugin_translator:plugin"
 
 [build-system]
 requires = ["hatchling"]

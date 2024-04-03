@@ -5,7 +5,7 @@ import json
 from typing import Callable, Mapping, Protocol
 
 
-class Serializable[T, D](abc.ABC):
+class Serializable[T, D](Protocol):
     @abc.abstractmethod
     def serialize(self, item: T) -> D: ...
 

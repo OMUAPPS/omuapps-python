@@ -1,74 +1,86 @@
 import abc
+import datetime
 import random
-import string
-from typing import Dict, Tuple
+import sqlite3
 
-import sqlitedict
 from omu import App
 
-from omuserver import Server
-from omuserver.security import Permission
-from omuserver.security.permission import AdminPermissions, Permissions
+from omuserver.server import Server
 
 type Token = str
 
 
 class Security(abc.ABC):
     @abc.abstractmethod
-    async def get_token(self, app: App, token: Token | None = None) -> Token | None: ...
+    async def generate_app_token(self, app: App) -> Token: ...
 
     @abc.abstractmethod
-    async def authenticate_app(
-        self, app: App, token: Token | None = None
-    ) -> Tuple[Permission, Token]: ...
-
-    @abc.abstractmethod
-    async def add_permissions(self, token: Token, permissions: Permission) -> None: ...
-
-    @abc.abstractmethod
-    async def get_permissions(self, token: Token) -> Permission: ...
+    async def validate_app_token(self, app: App, token: Token) -> bool: ...
 
 
-class ServerSecurity(Security):
-    def __init__(self, server: Server) -> None:
+class TokenGenerator:
+    def __init__(self):
+        self._chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+    def generate(self, length: int) -> str:
+        return "".join(random.choices(self._chars, k=length))
+
+
+class ServerAuthenticator(Security):
+    def __init__(self, server: Server):
         self._server = server
-        self._permissions: Dict[Token, Permission] = sqlitedict.SqliteDict(
-            server.directories.get("security") / "tokens.sqlite", autocommit=True
+        self._token_generator = TokenGenerator()
+        self._token_db = sqlite3.connect(
+            server.directories.get("security") / "tokens.sqlite"
+        )
+        self._token_db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tokens (
+                token TEXT PRIMARY KEY,
+                identifier TEXT,
+                created_at INTEGER,
+                last_used_at INTEGER
+            )
+            """
         )
 
-    async def get_token(self, app: App, token: Token | None = None) -> Token | None:
-        if token is None:
-            token = self._generate_token()
-            self._permissions[token] = Permissions(app.key())
-        elif token not in self._permissions:
-            return None
+    async def generate_app_token(self, app: App) -> Token:
+        token = self._token_generator.generate(32)
+        self._token_db.execute(
+            """
+            INSERT INTO tokens (token, identifier, created_at, last_used_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                token,
+                app.identifier.key(),
+                datetime.datetime.now(),
+                datetime.datetime.now(),
+            ),
+        )
+        self._token_db.commit()
         return token
 
-    async def _get_token(self, app: App, token: Token | None = None) -> Token:
-        if token is None or token not in self._permissions:
-            token = await self.get_token(app)
-            if token is None:
-                raise ValueError(f"Failed to generate token for {app}")
-        return token
-
-    async def authenticate_app(
-        self, app: App, token: Token | None = None
-    ) -> Tuple[Permission, Token]:
-        token = await self._get_token(app, token)
-        permissions = await self.get_permissions(token)
-        if permissions.owner != app.key() and not isinstance(
-            permissions, AdminPermissions
-        ):
-            permissions = Permissions(app.key())
-        return permissions, token
-
-    async def add_permissions(self, token: Token, permissions: Permission) -> None:
-        self._permissions[token] = permissions
-
-    async def get_permissions(self, token: Token) -> Permission:
-        return self._permissions[token]
-
-    def _generate_token(self):
-        token_length = 16
-        characters = string.ascii_letters + string.digits
-        return "".join(random.choices(characters, k=token_length))
+    async def validate_app_token(self, app: App, token: Token) -> bool:
+        if self._server.config.dashboard_token == token:
+            return True
+        cursor = self._token_db.execute(
+            """
+            SELECT token
+            FROM tokens
+            WHERE token = ? AND identifier = ?
+            """,
+            (token, app.identifier.key()),
+        )
+        result = cursor.fetchone()
+        if result is None:
+            return False
+        self._token_db.execute(
+            """
+            UPDATE tokens
+            SET last_used_at = ?
+            WHERE token = ?
+            """,
+            (datetime.datetime.now(), token),
+        )
+        return True

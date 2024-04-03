@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING
 
 from loguru import logger
 from omu.extension.server.server_extension import (
-    AppsTableType,
-    PrintTasksEndpointType,
-    ShutdownEndpointType,
+    APPS_TABLE_TYPE,
+    SHUTDOWN_ENDPOINT_TYPE,
 )
 from omu.serializer import Serializer
 
@@ -25,13 +23,7 @@ class ServerExtension:
         server.network.listeners.connected += self.on_connected
         server.network.listeners.disconnected += self.on_disconnected
         server.listeners.start += self.on_start
-        server.endpoints.bind_endpoint(ShutdownEndpointType, self.shutdown)
-        server.endpoints.bind_endpoint(PrintTasksEndpointType, self.print_tasks)
-
-    async def print_tasks(self, session: Session, _) -> None:
-        logger.info("Tasks:")
-        for task in asyncio.all_tasks(self._server.loop):
-            logger.info(task)
+        server.endpoints.bind_endpoint(SHUTDOWN_ENDPOINT_TYPE, self.shutdown)
 
     async def shutdown(self, session: Session, restart: bool = False) -> bool:
         await self._server.shutdown()
@@ -48,7 +40,7 @@ class ServerExtension:
             self._server.loop.stop()
 
     async def on_start(self) -> None:
-        self.apps = await self._server.tables.register_table(AppsTableType)
+        self.apps = await self._server.tables.register_table(APPS_TABLE_TYPE)
         version = await self._server.registry.create(
             "server:version", __version__, Serializer.json()
         )

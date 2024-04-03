@@ -14,15 +14,13 @@ from omuserver.server.server import Server
 if TYPE_CHECKING:
     from omu import App
 
-    from omuserver.security import Permission
-
 
 class SessionConnection(abc.ABC):
     @abc.abstractmethod
     async def send(self, packet: Packet, packet_mapper: PacketMapper) -> None: ...
 
     @abc.abstractmethod
-    async def receive(self, packet_mapper: PacketMapper) -> Packet: ...
+    async def receive(self, packet_mapper: PacketMapper) -> Packet | None: ...
 
     @abc.abstractmethod
     async def close(self) -> None: ...
@@ -37,12 +35,12 @@ class Session:
         self,
         packet_mapper: PacketMapper,
         app: App,
-        permissions: Permission,
+        token: str,
         connection: SessionConnection,
     ) -> None:
         self.serializer = packet_mapper
         self.app = app
-        self.permissions = permissions
+        self.token = token
         self._connection = connection
         self._listeners = SessionListeners()
 
@@ -60,11 +58,17 @@ class Session:
             raise RuntimeError(
                 f"Expected {PACKET_TYPES.CONNECT.identifier} but got {packet.type}"
             )
-        event: ConnectPacket = packet.data
-        permissions, token = await server.security.authenticate_app(
-            event.app, event.token
-        )
-        session = Session(packet_mapper, event.app, permissions, connection)
+        if not isinstance(packet.data, ConnectPacket):
+            raise RuntimeError(f"Invalid packet data: {packet.data}")
+        event = packet.data
+        token = event.token
+        if token is None:
+            token = await server.security.generate_app_token(event.app)
+        else:
+            verified = await server.security.validate_app_token(event.app, token)
+            if not verified:
+                raise RuntimeError("Invalid token")
+        session = Session(packet_mapper, event.app, token, connection)
         await session.send(PACKET_TYPES.TOKEN, token)
         return session
 
@@ -80,6 +84,8 @@ class Session:
         try:
             while not self._connection.closed:
                 packet = await self._connection.receive(self.serializer)
+                if packet is None:
+                    break
                 asyncio.create_task(self._dispatch_packet(packet))
         finally:
             await self.disconnect()

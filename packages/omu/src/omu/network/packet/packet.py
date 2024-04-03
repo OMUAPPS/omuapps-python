@@ -32,11 +32,13 @@ class PacketType[T]:
         cls,
         identifier: Identifier,
         name: str,
-        serializer: Serializable[_T, Any] = Serializer.noop(),
+        serializer: Serializable[_T, Any] | None = None,
     ) -> PacketType[_T]:
         return PacketType(
             identifier=identifier / name,
-            serializer=Serializer.of(serializer).pipe(Serializer.json()),
+            serializer=Serializer.of(serializer or Serializer.noop()).pipe(
+                Serializer.json()
+            ),
         )
 
     @classmethod

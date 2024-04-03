@@ -1,6 +1,6 @@
-from .registry_extension import RegistryExtension, RegistryExtensionType
+from .registry_extension import REGISTRY_EXTENSION_TYPE, RegistryExtension
 
 __all__ = [
     "RegistryExtension",
-    "RegistryExtensionType",
+    "REGISTRY_EXTENSION_TYPE",
 ]

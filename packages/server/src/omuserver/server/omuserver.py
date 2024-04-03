@@ -12,8 +12,10 @@ from omuserver import __version__
 from omuserver.config import Config
 from omuserver.directories import Directories
 from omuserver.extension.asset import AssetExtension
+from omuserver.extension.dashboard import DashboardExtension
 from omuserver.extension.endpoint import EndpointExtension
 from omuserver.extension.message import MessageExtension
+from omuserver.extension.permission import PermissionExtension
 from omuserver.extension.plugin import PluginExtension
 from omuserver.extension.registry import RegistryExtension
 from omuserver.extension.server import ServerExtension
@@ -21,7 +23,7 @@ from omuserver.extension.table import TableExtension
 from omuserver.helper import safe_path_join
 from omuserver.network import Network
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
-from omuserver.security.security import ServerSecurity
+from omuserver.security.security import Security, ServerAuthenticator
 
 from .server import Server, ServerListeners
 
@@ -57,14 +59,16 @@ class OmuServer(Server):
         self._network.listeners.start += self._handle_network_start
         self._network.add_http_route("/proxy", self._handle_proxy)
         self._network.add_http_route("/asset", self._handle_assets)
-        self._security = ServerSecurity(self)
+        self._security = ServerAuthenticator(self)
         self._running = False
-        self._endpoint = EndpointExtension(self)
+        self._endpoints = EndpointExtension(self)
+        self._dashboard = DashboardExtension(self)
+        self._permissions = PermissionExtension(self)
         self._tables = TableExtension(self)
         self._server = ServerExtension(self)
         self._registry = RegistryExtension(self)
-        self._message = MessageExtension(self)
-        self._plugin = PluginExtension(self)
+        self._messages = MessageExtension(self)
+        self._plugins = PluginExtension(self)
         self._assets = AssetExtension(self)
 
     async def _handle_proxy(self, request: web.Request) -> web.StreamResponse:
@@ -155,7 +159,7 @@ class OmuServer(Server):
         return self._address
 
     @property
-    def security(self) -> ServerSecurity:
+    def security(self) -> Security:
         return self._security
 
     @property
@@ -172,7 +176,15 @@ class OmuServer(Server):
 
     @property
     def endpoints(self) -> EndpointExtension:
-        return self._endpoint
+        return self._endpoints
+
+    @property
+    def dashboard(self) -> DashboardExtension:
+        return self._dashboard
+
+    @property
+    def permissions(self) -> PermissionExtension:
+        return self._permissions
 
     @property
     def tables(self) -> TableExtension:
@@ -184,11 +196,11 @@ class OmuServer(Server):
 
     @property
     def messages(self) -> MessageExtension:
-        return self._message
+        return self._messages
 
     @property
     def plugins(self) -> PluginExtension:
-        return self._plugin
+        return self._plugins
 
     @property
     def assets(self) -> AssetExtension:

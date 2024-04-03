@@ -1,7 +1,0 @@
-{
-  "$schema": "./_schema.json",
-  "dependencies": {
-    "omuplugin_chat": ""
-  },
-  "module": "omuplugin_chat"
-}

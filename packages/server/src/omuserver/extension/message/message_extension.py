@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict
 
 from omu.extension.message.message_extension import (
-    MessageBroadcastPacket,
+    MESSAGE_BROADCAST_PACKET,
+    MESSAGE_LISTEN_PACKET,
     MessageData,
-    MessageListenPacket,
 )
 
 if TYPE_CHECKING:
@@ -30,12 +30,14 @@ class MessageExtension:
     def __init__(self, server: Server):
         self._server = server
         self._keys: Dict[str, Message] = {}
-        server.packet_dispatcher.register(MessageListenPacket, MessageBroadcastPacket)
-        server.packet_dispatcher.add_packet_handler(
-            MessageListenPacket, self._on_listen
+        server.packet_dispatcher.register(
+            MESSAGE_LISTEN_PACKET, MESSAGE_BROADCAST_PACKET
         )
         server.packet_dispatcher.add_packet_handler(
-            MessageBroadcastPacket, self._on_broadcast
+            MESSAGE_LISTEN_PACKET, self._on_listen
+        )
+        server.packet_dispatcher.add_packet_handler(
+            MESSAGE_BROADCAST_PACKET, self._on_broadcast
         )
 
     async def _on_register(self, session: Session, key: str) -> None:
@@ -58,4 +60,4 @@ class MessageExtension:
             self._keys[key] = Message(key)
         message = self._keys[key]
         for listener in message.listeners:
-            await listener.send(MessageBroadcastPacket, data)
+            await listener.send(MESSAGE_BROADCAST_PACKET, data)

@@ -3,8 +3,10 @@ from __future__ import annotations
 import re
 import urllib.parse
 from pathlib import Path
+from typing import Final, Tuple
 
 from omu.helper import generate_md5_hash, sanitize_filename
+from omu.model import Model
 
 from .interface import Keyable
 
@@ -12,11 +14,11 @@ NAMESPACE_REGEX = re.compile(r"^(\.[^/:.]|[\w-])+$")
 NAME_REGEX = re.compile(r"^[^/:.]+$")
 
 
-class Identifier(Keyable):
+class Identifier(Model[str], Keyable):
     def __init__(self, namespace: str, *path: str) -> None:
         self.validate(namespace, *path)
-        self.namespace = namespace
-        self.path = path
+        self.namespace: Final[str] = namespace
+        self.path: Final[Tuple[str, ...]] = path
 
     @classmethod
     def validate(cls, namespace: str, *path: str) -> None:
@@ -61,6 +63,13 @@ class Identifier(Keyable):
         parsed = urllib.parse.urlparse(url)
         return ".".join(reversed(parsed.netloc.split(".")))
 
+    def to_json(self) -> str:
+        return self.key()
+
+    @classmethod
+    def from_json(cls, json: str) -> Identifier:
+        return cls.from_key(json)
+
     def key(self) -> str:
         return self.format(self.namespace, *self.path)
 
@@ -70,10 +79,10 @@ class Identifier(Keyable):
         )
         return Path(namespace, *self.path)
 
-    def is_subpath_of(self, other: Identifier) -> bool:
+    def is_subpath_of(self, base: Identifier) -> bool:
         return (
-            self.namespace == other.namespace
-            and self.path[: len(other.path)] == other.path
+            self.namespace == base.namespace
+            and self.path[: len(base.path)] == base.path
         )
 
     def join(self, *path: str) -> Identifier:

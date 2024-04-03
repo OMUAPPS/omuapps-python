@@ -8,7 +8,7 @@ from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.serializer import Serializable, Serializer
 
-AssetExtensionType = ExtensionType(
+ASSET_EXTENSION_TYPE = ExtensionType(
     "asset",
     lambda client: AssetExtension(client),
     lambda: [],
@@ -37,21 +37,16 @@ class FILES_SERIALIZER(Serializable[Files, bytes]):
         return files
 
 
-IDENTIFIERS_SERIALIZER = (
-    Serializer(Identifier.key, Identifier.from_key).array().pipe(Serializer.json())
-)
-
-
-AssetUploadEndpoint = EndpointType[Files, List[Identifier]].create_serialized(
-    AssetExtensionType,
+ASSET_UPLOAD_ENDPOINT = EndpointType[Files, List[Identifier]].create_serialized(
+    ASSET_EXTENSION_TYPE,
     "upload",
     request_serializer=FILES_SERIALIZER,
-    response_serializer=IDENTIFIERS_SERIALIZER,
+    response_serializer=Serializer.model(Identifier).array().pipe(Serializer.json()),
 )
-AssetDownloadEndpoint = EndpointType[List[Identifier], Files].create_serialized(
-    AssetExtensionType,
+ASSET_DOWNLOAD_ENDPOINT = EndpointType[List[Identifier], Files].create_serialized(
+    ASSET_EXTENSION_TYPE,
     "download",
-    request_serializer=IDENTIFIERS_SERIALIZER,
+    request_serializer=Serializer.model(Identifier).array().pipe(Serializer.json()),
     response_serializer=FILES_SERIALIZER,
 )
 
@@ -61,10 +56,10 @@ class AssetExtension(Extension):
         self.client = client
 
     async def upload(self, assets: Files) -> List[Identifier]:
-        return await self.client.endpoints.call(AssetUploadEndpoint, assets)
+        return await self.client.endpoints.call(ASSET_UPLOAD_ENDPOINT, assets)
 
     async def download(self, identifiers: List[Identifier]) -> Files:
-        return await self.client.endpoints.call(AssetDownloadEndpoint, identifiers)
+        return await self.client.endpoints.call(ASSET_DOWNLOAD_ENDPOINT, identifiers)
 
     def url(self, identifier: Identifier) -> str:
         address = self.client.network.address

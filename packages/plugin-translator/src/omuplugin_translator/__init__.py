@@ -1,12 +1,13 @@
 from omu import Plugin
 
 
-def get_plugin():
+def get_client():
     from .plugin import client
 
-    return Plugin(
-        client,
-    )
+    return client
 
 
-__all__ = ["get_plugin"]
+plugin = Plugin(
+    get_client,
+)
+__all__ = ["plugin"]
