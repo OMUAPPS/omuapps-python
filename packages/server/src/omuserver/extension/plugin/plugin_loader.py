@@ -3,26 +3,18 @@ from __future__ import annotations
 import asyncio
 import importlib.metadata
 import importlib.util
-import json
-import re
 import sys
-import time
-import traceback
-from dataclasses import dataclass
 from multiprocessing import Process
-from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Dict,
     List,
     Mapping,
     Protocol,
-    TypeGuard,
 )
 
 from loguru import logger
 from omu import Address
-from omu.extension.plugin import PluginMetadata
 from omu.network.websocket_connection import WebsocketsConnection
 from omu.plugin import Plugin
 from packaging.specifiers import SpecifierSet
@@ -36,45 +28,11 @@ from .plugin_session_connection import PluginSessionConnection
 if TYPE_CHECKING:
     from omuserver.server import Server
 
+PLUGIN_GROUP = "omu.plugins"
+
 
 class PluginModule(Protocol):
     plugin: Plugin
-
-
-@dataclass(frozen=True)
-class PluginEntry:
-    dependencies: Mapping[str, SpecifierSet | None]
-    module: str
-
-    @classmethod
-    def validate(cls, metadata: PluginMetadata) -> PluginEntry:
-        invalid_dependencies: Dict[str, str | None] = {}
-        dependencies: Dict[str, SpecifierSet | None] = {}
-        for dependency, specifier in metadata.get("dependencies", []).items():
-            if not re.match(r"^[a-zA-Z0-9_-]+$", dependency):
-                invalid_dependencies[dependency] = specifier
-            if specifier is None or specifier == "":
-                dependencies[dependency] = None
-            else:
-                dependencies[dependency] = SpecifierSet(specifier)
-        if invalid_dependencies:
-            raise ValueError(f"Invalid dependencies: {invalid_dependencies}")
-        if "module" not in metadata or not re.match(
-            r"^[a-zA-Z0-9_-]+$", metadata["module"]
-        ):
-            raise ValueError(f"Invalid module: {metadata.get('module')}")
-        return cls(
-            dependencies=dependencies,
-            module=metadata["module"],
-        )
-
-    @classmethod
-    def _parse_plugin(cls, path: Path) -> PluginEntry:
-        data = json.loads(path.read_text())
-        metadata = PluginEntry.validate(data)
-        if metadata is None:
-            raise ValueError(f"Invalid metadata in plugin {path}")
-        return metadata
 
 
 class DependencyResolver:
@@ -179,50 +137,36 @@ class DependencyResolver:
 class PluginLoader:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self.dependency_resolver = DependencyResolver()
-        self.plugins: Dict[Path, PluginEntry] = {}
+        self.plugins: Dict[str, Plugin] = {}
 
     async def load_plugins(self) -> None:
-        self.register_plugins()
-        await self.resolve_plugin_dependencies()
         await self.run_plugins()
 
-    def register_plugins(self):
-        for plugin in self._server.directories.plugins.iterdir():
-            if not plugin.is_file():
+    async def run_plugins(self):
+        entry_points = importlib.metadata.entry_points(group=PLUGIN_GROUP)
+        for entry_point in entry_points:
+            if entry_point.value in self.plugins:
+                raise ValueError(f"Duplicate plugin: {entry_point}")
+            plugin = self.load_plugin_from_entry_point(entry_point)
+            self.plugins[entry_point.value] = plugin
+            await self.run_plugin(plugin)
+
+    async def load_updated_plugins(self):
+        entry_points = importlib.metadata.entry_points(group=PLUGIN_GROUP)
+        for entry_point in entry_points:
+            if entry_point.value in self.plugins:
                 continue
-            if plugin.name.startswith("_"):
-                continue
-            logger.info(f"Loading plugin: {plugin.name}")
-            metadata = PluginEntry._parse_plugin(plugin)
-            self.plugins[plugin] = metadata
+            plugin = self.load_plugin_from_entry_point(entry_point)
+            self.plugins[entry_point.value] = plugin
+            await self.run_plugin(plugin)
 
-    async def resolve_plugin_dependencies(self) -> None:
-        for metadata in self.plugins.values():
-            self.dependency_resolver.add_dependencies(metadata.dependencies)
-        await self.dependency_resolver.resolve()
-
-    async def run_plugins(self) -> None:
-        for metadata in self.plugins.values():
-            try:
-                await self.run_plugin(metadata)
-            except Exception as e:
-                traceback.print_exc()
-                logger.error(f"Error running plugin {metadata.module}: {e}")
-
-    async def run_plugin(self, metadata: PluginEntry):
-        module = __import__(metadata.module)
-        if not validate_plugin_module(module):
-            return
-        plugin = module.plugin
+    async def run_plugin(self, plugin):
         if plugin.isolated:
-            start_time = time.time()
             process = Process(
                 target=run_plugin_process,
                 args=(
                     plugin,
                     self._server.address,
-                    start_time,
                 ),
                 daemon=True,
             )
@@ -240,10 +184,15 @@ class PluginLoader:
             )
             self._server.loop.create_task(self._server.network.process_session(session))
 
-
-def validate_plugin_module(module: PluginModule) -> TypeGuard[PluginModule]:
-    plugin = getattr(module, "plugin", None)
-    return isinstance(plugin, Plugin)
+    def load_plugin_from_entry_point(
+        self, entry_point: importlib.metadata.EntryPoint
+    ) -> Plugin:
+        module = importlib.import_module(entry_point.module)
+        plugin = getattr(module, entry_point.attr, None)
+        if plugin is None:
+            logger.error(f"Invalid plugin: {entry_point}")
+            raise ValueError(f"Invalid plugin: {entry_point}")
+        return plugin
 
 
 def handle_exception(loop: asyncio.AbstractEventLoop, context: dict) -> None:
@@ -256,11 +205,8 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: dict) -> None:
 def run_plugin_process(
     plugin: Plugin,
     address: Address,
-    start_time: float,
 ) -> None:
-    a = time.time() - start_time
     client = plugin.get_client()
-    logger.info(a)
     connection = WebsocketsConnection(client, address)
     client.network.set_connection(connection)
     loop = asyncio.get_event_loop()

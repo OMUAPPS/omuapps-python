@@ -39,7 +39,6 @@ async def on_message_add(message: model.Message) -> model.Message:
 async def on_ready():
     global translator
     translator = await EdgeTranslator.create()
-    await client.start()
 
 
 if __name__ == "__main__":

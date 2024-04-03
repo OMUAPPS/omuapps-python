@@ -1,7 +1,0 @@
-{
-  "$schema": "./_schema.json",
-  "dependencies": {
-    "omuplugin_nyanya": ""
-  },
-  "module": "omuplugin_nyanya"
-}
