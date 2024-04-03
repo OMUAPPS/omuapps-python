@@ -33,7 +33,7 @@ def main(debug: bool, token: str | None):
 
     config = Config()
     config.address = Address(
-        host="0.0.0.0",
+        host=None,
         port=26423,
         secure=False,
     )

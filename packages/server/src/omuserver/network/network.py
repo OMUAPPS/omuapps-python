@@ -104,7 +104,12 @@ class Network:
     def is_port_available(self) -> bool:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind((self._server.address.host, self._server.address.port))
+                s.bind(
+                    (
+                        self._server.address.host or "127.0.0.1",
+                        self._server.address.port,
+                    )
+                )
                 return True
         except OSError:
             return False
