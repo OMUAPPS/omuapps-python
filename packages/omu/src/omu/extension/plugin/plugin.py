@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping, NotRequired, TypedDict
+from typing import Mapping, TypedDict
 
 from omu import Identifier
 from omu.model import Model
@@ -10,7 +10,6 @@ from omu.model import Model
 class PluginMetadata(TypedDict):
     dependencies: Mapping[str, str | None]
     module: str
-    isolated: NotRequired[bool]
 
 
 class PluginJson(TypedDict):

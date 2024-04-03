@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from typing import Callable
 
 from .client import Client
 
 
 @dataclass(frozen=True)
 class Plugin:
-    client: Client
+    get_client: Callable[[], Client]
+    isolated: bool = False

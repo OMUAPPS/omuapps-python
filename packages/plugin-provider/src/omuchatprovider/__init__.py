@@ -1,12 +1,14 @@
 from omu import Plugin
 
 
-def get_plugin():
+def get_client():
     from .chatprovider import client
 
-    return Plugin(
-        client,
-    )
+    return client
 
 
-__all__ = ["get_plugin"]
+plugin = Plugin(
+    get_client,
+    isolated=True,
+)
+__all__ = ["plugin"]

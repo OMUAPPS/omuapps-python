@@ -1,9 +1,9 @@
 from .plugin import PluginMetadata, PluginType
-from .plugin_extension import PluginExtension, PluginExtensionType
+from .plugin_extension import PLUGIN_EXTENSION_TYPE, PluginExtension
 
 __all__ = [
     "PluginType",
     "PluginMetadata",
     "PluginExtension",
-    "PluginExtensionType",
+    "PLUGIN_EXTENSION_TYPE",
 ]

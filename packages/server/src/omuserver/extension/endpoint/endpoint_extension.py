@@ -143,7 +143,7 @@ class EndpointExtension:
                 EndpointError(
                     type=req["type"],
                     id=req["id"],
-                    error=f"Endpoint not found {req['type']}",
+                    error=f"Endpoint {req['type']} not found",
                 ),
             )
             return
@@ -158,7 +158,9 @@ class EndpointExtension:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointError(
-                    type=req["type"], id=req["id"], error="Endpoint not connected"
+                    type=req["type"],
+                    id=req["id"],
+                    error=f"Endpoint not found {req['type']}",
                 ),
             )
             return
@@ -170,7 +172,9 @@ class EndpointExtension:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointError(
-                    type=error["type"], id=error["id"], error="Endpoint not connected"
+                    type=error["type"],
+                    id=error["id"],
+                    error=f"Endpoint {error['type']} not found",
                 ),
             )
         else:
@@ -184,7 +188,9 @@ class EndpointExtension:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointError(
-                    type=req["type"], id=req["id"], error="Endpoint not connected"
+                    type=req["type"],
+                    id=req["id"],
+                    error=f"Endpoint {req['type']} not found",
                 ),
             )
             logger.warning(
