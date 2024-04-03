@@ -168,8 +168,6 @@ class PluginLoader:
             if plugin_key in self.plugins:
                 continue
             plugin = self.load_plugin_from_entry_point(entry_point)
-            if not isinstance(plugin, Plugin):
-                raise ValueError(f"Invalid plugin: {plugin} is not a Plugin")
             self.plugins[plugin_key] = plugin
             await self.run_plugin(plugin)
 
@@ -200,11 +198,9 @@ class PluginLoader:
     def load_plugin_from_entry_point(
         self, entry_point: importlib.metadata.EntryPoint
     ) -> Plugin:
-        module = importlib.import_module(entry_point.module)
-        plugin = getattr(module, entry_point.attr, None)
-        if plugin is None:
-            logger.error(f"Invalid plugin: {entry_point}")
-            raise ValueError(f"Invalid plugin: {entry_point}")
+        plugin = entry_point.load()
+        if not isinstance(plugin, Plugin):
+            raise ValueError(f"Invalid plugin: {plugin} is not a Plugin")
         return plugin
 
 
