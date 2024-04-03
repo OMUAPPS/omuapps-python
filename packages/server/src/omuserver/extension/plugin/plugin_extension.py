@@ -8,6 +8,7 @@ from typing import (
 )
 
 from omu.extension.plugin.plugin_extension import (
+    PLUGIN_PERMISSION,
     PLUGIN_REQUIRE_PACKET,
     PLUGIN_WAIT_ENDPOINT,
     WaitResponse,
@@ -39,6 +40,9 @@ class PluginExtension:
             PLUGIN_WAIT_ENDPOINT,
             self.handle_wait_endpoint,
         )
+        server.permissions.register(
+            PLUGIN_PERMISSION,
+        )
         server.listeners.start += self.on_server_start
 
     async def on_server_start(self) -> None:
@@ -47,12 +51,16 @@ class PluginExtension:
     async def handle_require_packet(
         self, session: Session, packages: Dict[str, str | None]
     ) -> None:
+        changed = False
         for package, version in packages.items():
             specifier = None
             if version is not None:
                 specifier = SpecifierSet(version)
-            self.dependency_resolver.add_dependencies({package: specifier})
-        await self.dependency_resolver.resolve()
+            if self.dependency_resolver.add_dependencies({package: specifier}):
+                changed = True
+
+        if not changed:
+            return
 
         async with self.lock:
             await self.dependency_resolver.resolve()

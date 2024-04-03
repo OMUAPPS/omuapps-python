@@ -97,15 +97,20 @@ class DependencyResolver:
             return
         logger.info(f"Updated dependencies: {stdout}")
 
-    def add_dependencies(self, dependencies: Mapping[str, SpecifierSet | None]):
+    def add_dependencies(self, dependencies: Mapping[str, SpecifierSet | None]) -> bool:
+        changed = False
         for dependency, specifier in dependencies.items():
             if dependency not in self._dependencies:
                 self._dependencies[dependency] = SpecifierSet()
+                changed = True
                 continue
             if specifier is not None:
                 specifier_set = self._dependencies[dependency]
+                if specifier_set != specifier:
+                    changed = True
                 specifier_set &= specifier
                 continue
+        return changed
 
     async def resolve(self):
         to_install: Dict[str, SpecifierSet] = {}
@@ -145,22 +150,30 @@ class PluginLoader:
     async def run_plugins(self):
         entry_points = importlib.metadata.entry_points(group=PLUGIN_GROUP)
         for entry_point in entry_points:
-            if entry_point.value in self.plugins:
+            if entry_point.dist is None:
+                raise ValueError(f"Invalid plugin: {entry_point} has no distribution")
+            plugin_key = entry_point.dist.name
+            if plugin_key in self.plugins:
                 raise ValueError(f"Duplicate plugin: {entry_point}")
             plugin = self.load_plugin_from_entry_point(entry_point)
-            self.plugins[entry_point.value] = plugin
+            self.plugins[plugin_key] = plugin
             await self.run_plugin(plugin)
 
     async def load_updated_plugins(self):
         entry_points = importlib.metadata.entry_points(group=PLUGIN_GROUP)
         for entry_point in entry_points:
-            if entry_point.value in self.plugins:
+            if entry_point.dist is None:
+                raise ValueError(f"Invalid plugin: {entry_point} has no distribution")
+            plugin_key = entry_point.dist.name
+            if plugin_key in self.plugins:
                 continue
             plugin = self.load_plugin_from_entry_point(entry_point)
-            self.plugins[entry_point.value] = plugin
+            if not isinstance(plugin, Plugin):
+                raise ValueError(f"Invalid plugin: {plugin} is not a Plugin")
+            self.plugins[plugin_key] = plugin
             await self.run_plugin(plugin)
 
-    async def run_plugin(self, plugin):
+    async def run_plugin(self, plugin: Plugin):
         if plugin.isolated:
             process = Process(
                 target=run_plugin_process,

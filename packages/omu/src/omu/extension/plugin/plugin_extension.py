@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import Dict, List, TypedDict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -16,7 +16,7 @@ PLUGIN_EXTENSION_TYPE = ExtensionType(
 class PluginExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self.plugins: List[str] = []
+        self.plugins: Dict[str, str | None] = {}
 
         self.client.network.register_packet(
             PLUGIN_REQUIRE_PACKET,
@@ -25,20 +25,18 @@ class PluginExtension(Extension):
 
     async def on_connected(self):
         await self.client.send(PLUGIN_REQUIRE_PACKET, self.plugins)
-        await self.client.endpoints.call(PLUGIN_WAIT_ENDPOINT, self.plugins)
+        await self.client.endpoints.call(PLUGIN_WAIT_ENDPOINT, [*self.plugins.keys()])
 
-    def install(self, plugin: str):
-        if plugin in self.plugins:
-            raise ValueError(f"Plugin {plugin} already registered")
+    def require(self, plugins: Dict[str, str | None]):
+        self.plugins.update(plugins)
         self.client.permissions.require(PLUGIN_PERMISSION)
-        self.plugins.append(plugin)
 
 
 PLUGIN_PERMISSION = PermissionType.create(
     PLUGIN_EXTENSION_TYPE,
-    "Plugin",
+    "request",
 )
-PLUGIN_REQUIRE_PACKET = PacketType[str].create_json(
+PLUGIN_REQUIRE_PACKET = PacketType[Dict[str, str | None]].create_json(
     PLUGIN_EXTENSION_TYPE,
     "require",
 )

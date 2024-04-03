@@ -24,10 +24,10 @@ class PermissionExtension(Extension):
         self.required_permissions: Dict[Identifier, PermissionType] = {}
         client.network.register_packet(
             PERMISSION_REGISTER_PACKET,
-            PERMISSION_GRANTED_PACKET,
+            PERMISSION_GRANT_PACKET,
         )
         client.network.add_packet_handler(
-            PERMISSION_GRANTED_PACKET,
+            PERMISSION_GRANT_PACKET,
             self.handle_grant,
         )
         client.network.listeners.connected += self.on_connected
@@ -70,8 +70,8 @@ PERMISSION_REQUEST_ENDPOINT = EndpointType[List[Identifier], None].create_json(
     "request",
     request_serializer=Serializer.model(Identifier).array(),
 )
-PERMISSION_GRANTED_PACKET = PacketType.create_json(
+PERMISSION_GRANT_PACKET = PacketType.create_json(
     PERMISSION_EXTENSION_TYPE,
-    "granted",
+    "grant",
     Serializer.model(Identifier).array(),
 )
