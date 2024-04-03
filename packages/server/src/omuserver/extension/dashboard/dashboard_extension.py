@@ -42,6 +42,8 @@ class DashboardExtension:
     async def handle_dashboard_set(
         self, session: Session, identifier: Identifier
     ) -> DashboardSetResponse:
+        if session.token != self.server.config.dashboard_token:
+            raise ValueError("Dashboard token does not match")
         self.dashboard_session = session
         session.listeners.disconnected += self._on_dashboard_disconnected
         await self.send_pending_permission_requests()
