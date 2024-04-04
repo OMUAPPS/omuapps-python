@@ -5,7 +5,7 @@ from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.serializer import Serializable, Serializer
+from omu.serializer import Serializer
 
 ASSET_EXTENSION_TYPE = ExtensionType(
     "asset",
@@ -15,9 +15,9 @@ ASSET_EXTENSION_TYPE = ExtensionType(
 type Files = Mapping[Identifier, bytes]
 
 
-class FILES_SERIALIZER(Serializable[Files, bytes]):
-    @staticmethod
-    def serialize(item: Files) -> bytes:
+class FILES_SERIALIZER:
+    @classmethod
+    def serialize(cls, item: Files) -> bytes:
         writer = ByteWriter()
         writer.write_int(len(item))
         for identifier, value in item.items():
@@ -25,8 +25,8 @@ class FILES_SERIALIZER(Serializable[Files, bytes]):
             writer.write_byte_array(value)
         return writer.finish()
 
-    @staticmethod
-    def deserialize(item: bytes) -> Files:
+    @classmethod
+    def deserialize(cls, item: bytes) -> Files:
         with ByteReader(item) as reader:
             count = reader.read_int()
             files: Files = {}

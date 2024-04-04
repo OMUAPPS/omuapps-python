@@ -28,17 +28,17 @@ class RegistryPacket:
     value: bytes
 
 
-class REGISTRY_DATA_SERIALIZER(Serializable[RegistryPacket, bytes]):
-    @staticmethod
-    def serialize(item: RegistryPacket) -> bytes:
+class REGISTRY_DATA_SERIALIZER:
+    @classmethod
+    def serialize(cls, item: RegistryPacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.key)
         writer.write_boolean(item.existing)
         writer.write_byte_array(item.value)
         return writer.finish()
 
-    @staticmethod
-    def deserialize(item: bytes) -> RegistryPacket:
+    @classmethod
+    def deserialize(cls, item: bytes) -> RegistryPacket:
         with ByteReader(item) as reader:
             key = reader.read_string()
             existing = reader.read_boolean()

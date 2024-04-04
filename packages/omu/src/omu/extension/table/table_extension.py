@@ -5,6 +5,7 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    Sequence,
     TypedDict,
 )
 
@@ -95,7 +96,7 @@ class TableItemsData(TableEventData):
 
 
 class TableKeysData(TableEventData):
-    keys: List[str]
+    keys: Sequence[str]
 
 
 class TableProxyData(TableItemsData):
@@ -108,9 +109,9 @@ class TableFetchReq(TableEventData):
     cursor: str | None
 
 
-class ITEMS_SERIALIZER(Serializable[TableItemsData, bytes]):
-    @staticmethod
-    def serialize(item: TableItemsData) -> bytes:
+class ITEMS_SERIALIZER:
+    @classmethod
+    def serialize(cls, item: TableItemsData) -> bytes:
         writer = ByteWriter()
         writer.write_string(item["type"])
         writer.write_int(len(item["items"]))
@@ -119,8 +120,8 @@ class ITEMS_SERIALIZER(Serializable[TableItemsData, bytes]):
             writer.write_byte_array(value)
         return writer.finish()
 
-    @staticmethod
-    def deserialize(item: bytes) -> TableItemsData:
+    @classmethod
+    def deserialize(cls, item: bytes) -> TableItemsData:
         with ByteReader(item) as reader:
             type = reader.read_string()
             item_count = reader.read_int()
@@ -132,7 +133,7 @@ class ITEMS_SERIALIZER(Serializable[TableItemsData, bytes]):
         return {"type": type, "items": items}
 
 
-class ITEM_PROXY_SERIALIZER(Serializable[TableProxyData, bytes]):
+class ITEM_PROXY_SERIALIZER:
     @staticmethod
     def serialize(item: TableProxyData) -> bytes:
         writer = ByteWriter()

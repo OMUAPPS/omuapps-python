@@ -9,7 +9,6 @@ from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
-from omu.serializer import Serializable
 
 from .message import Message, MessageType
 
@@ -26,16 +25,16 @@ class MessagePacket:
     body: bytes
 
 
-class MESSAGE_SERIALIZER(Serializable[MessagePacket, bytes]):
-    @staticmethod
-    def serialize(item: MessagePacket) -> bytes:
+class MESSAGE_SERIALIZER:
+    @classmethod
+    def serialize(cls, item: MessagePacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.key)
         writer.write_byte_array(item.body)
         return writer.finish()
 
-    @staticmethod
-    def deserialize(item: bytes) -> MessagePacket:
+    @classmethod
+    def deserialize(cls, item: bytes) -> MessagePacket:
         with ByteReader(item) as reader:
             key = reader.read_string()
             body = reader.read_byte_array()
