@@ -37,11 +37,11 @@ def main(debug: bool, token: str | None):
         port=26423,
         secure=False,
     )
+    config.dashboard_token = token
 
     if debug:
         logger.warning("Debug mode enabled")
         config.directories.plugins = (Path.cwd() / ".." / "plugins").resolve()
-        config.dashboard_token = token
         config.strict_origin = False
         tracemalloc.start()
 

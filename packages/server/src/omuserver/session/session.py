@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
@@ -36,11 +36,13 @@ class Session:
         packet_mapper: PacketMapper,
         app: App,
         token: str,
+        is_dashboard: bool,
         connection: SessionConnection,
     ) -> None:
         self.serializer = packet_mapper
         self.app = app
         self.token = token
+        self.is_dashboard = is_dashboard
         self._connection = connection
         self._listeners = SessionListeners()
 
@@ -62,15 +64,26 @@ class Session:
             raise RuntimeError(f"Invalid packet data: {packet.data}")
         event = packet.data
         token = event.token
-        if token is None:
-            token = await server.security.generate_app_token(event.app)
-        else:
-            verified = await server.security.validate_app_token(event.app, token)
-            if not verified:
-                raise RuntimeError("Invalid token")
-        session = Session(packet_mapper, event.app, token, connection)
+        token, is_dashboard = await cls.verify_app_token(server, event, token)
+        session = Session(packet_mapper, event.app, token, is_dashboard, connection)
         await session.send(PACKET_TYPES.TOKEN, token)
         return session
+
+    @classmethod
+    async def verify_app_token(
+        cls, server: Server, connect_packet: ConnectPacket, token: str | None
+    ) -> Tuple[str, bool]:
+        if token is None:
+            token = await server.security.generate_app_token(connect_packet.app)
+        if token == server.config.dashboard_token:
+            return token, True
+        else:
+            verified = await server.security.validate_app_token(
+                connect_packet.app, token
+            )
+            if not verified:
+                raise RuntimeError("Invalid token")
+        return token, False
 
     @property
     def closed(self) -> bool:

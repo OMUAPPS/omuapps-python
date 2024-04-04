@@ -72,7 +72,8 @@ class Network:
                 self._packet_dispatcher.packet_mapper,
                 connection,
             )
-            self._validate_origin(request, session)
+            if not session.is_dashboard:
+                self._validate_origin(request, session)
             await self.process_session(session)
             return ws
 
