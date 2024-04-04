@@ -33,7 +33,7 @@ class TableExtension(Extension):
         self._client = client
         self._tables: Dict[Identifier, Table] = {}
         client.network.register_packet(
-            TABLE_CONFIG_SET_PACKET,
+            TABLE_CONFIG_PACKET,
             TABLE_LISTEN_PACKET,
             TABLE_PROXY_LISTEN_PACKET,
             TABLE_PROXY_PACKET,
@@ -153,10 +153,14 @@ class SetConfigReq(TypedDict):
     config: TableConfig
 
 
-TABLE_CONFIG_SET_PACKET = PacketType[SetConfigReq].create_json(
-    TABLE_EXTENSION_TYPE, "config_set"
+TABLE_CONFIG_PACKET = PacketType[SetConfigReq].create_json(
+    TABLE_EXTENSION_TYPE,
+    "config",
 )
-TABLE_LISTEN_PACKET = PacketType[str].create_json(TABLE_EXTENSION_TYPE, name="listen")
+TABLE_LISTEN_PACKET = PacketType[str].create_json(
+    TABLE_EXTENSION_TYPE,
+    "listen",
+)
 TABLE_PROXY_LISTEN_PACKET = PacketType[str].create_json(
     TABLE_EXTENSION_TYPE, "proxy_listen"
 )
@@ -165,23 +169,20 @@ TABLE_PROXY_PACKET = PacketType[TableProxyData].create_serialized(
     "proxy",
     serializer=TableProxySerielizer(),
 )
-TABLE_PROXY_ENDPOINT = EndpointType[TableProxyData, int].create_serialized(
-    TABLE_EXTENSION_TYPE,
-    "proxy",
-    request_serializer=TableProxySerielizer(),
-    response_serializer=Serializer.json(),
-)
 TABLE_ITEM_ADD_PACKET = PacketType[TableItemsData].create_serialized(
-    TABLE_EXTENSION_TYPE, "item_add", TableItemsSerielizer()
+    TABLE_EXTENSION_TYPE,
+    "item_add",
+    TableItemsSerielizer(),
 )
 TABLE_ITEM_UPDATE_PACKET = PacketType[TableItemsData].create_serialized(
-    TABLE_EXTENSION_TYPE, "item_update", TableItemsSerielizer()
+    TABLE_EXTENSION_TYPE,
+    "item_update",
+    TableItemsSerielizer(),
 )
 TABLE_ITEM_REMOVE_EVENT = PacketType[TableItemsData].create_serialized(
-    TABLE_EXTENSION_TYPE, "item_remove", TableItemsSerielizer()
-)
-TABLE_ITEM_CLEAR_PACKET = PacketType[TableEventData].create_json(
-    TABLE_EXTENSION_TYPE, "item_clear"
+    TABLE_EXTENSION_TYPE,
+    "item_remove",
+    TableItemsSerielizer(),
 )
 TABLE_ITEM_GET_ENDPOINT = EndpointType[TableKeysData, TableItemsData].create_serialized(
     TABLE_EXTENSION_TYPE,
@@ -198,24 +199,26 @@ class TableFetchReq(TypedDict):
     cursor: str | None
 
 
-TABLE_ITEM_FETCH_ENDPOINT = EndpointType[
-    TableFetchReq, TableItemsData
-].create_serialized(
+TABLE_FETCH_ENDPOINT = EndpointType[TableFetchReq, TableItemsData].create_serialized(
     TABLE_EXTENSION_TYPE,
-    "item_fetch",
+    "fetch",
     request_serializer=Serializer.json(),
     response_serializer=TableItemsSerielizer(),
 )
-TABLE_ITEM_FETCH_ALL_ENDPOINT = EndpointType[
+TABLE_FETCH_ALL_ENDPOINT = EndpointType[
     TableEventData, TableItemsData
 ].create_serialized(
     TABLE_EXTENSION_TYPE,
-    "item_fetch_all",
+    "fetch_all",
     request_serializer=Serializer.json(),
     response_serializer=TableItemsSerielizer(),
 )
-TABLE_ITEM_SIZE_ENDPOINT = EndpointType[TableEventData, int].create_json(
-    TABLE_EXTENSION_TYPE, "item_size"
+TABLE_SIZE_ENDPOINT = EndpointType[TableEventData, int].create_json(
+    TABLE_EXTENSION_TYPE, "size"
+)
+TABLE_ITEM_CLEAR_PACKET = PacketType[TableEventData].create_json(
+    TABLE_EXTENSION_TYPE,
+    "clear",
 )
 
 
@@ -293,7 +296,7 @@ class TableImpl[T](Table[T]):
         cursor: str | None = None,
     ) -> Dict[str, T]:
         items_response = await self._client.endpoints.call(
-            TABLE_ITEM_FETCH_ENDPOINT,
+            TABLE_FETCH_ENDPOINT,
             TableFetchReq(type=self.key, before=before, after=after, cursor=cursor),
         )
         items = self._parse_items(items_response["items"])
@@ -302,7 +305,7 @@ class TableImpl[T](Table[T]):
 
     async def fetch_all(self) -> Dict[str, T]:
         items_response = await self._client.endpoints.call(
-            TABLE_ITEM_FETCH_ALL_ENDPOINT, TableEventData(type=self.key)
+            TABLE_FETCH_ALL_ENDPOINT, TableEventData(type=self.key)
         )
         items = self._parse_items(items_response["items"])
         await self.update_cache(items)
@@ -333,7 +336,7 @@ class TableImpl[T](Table[T]):
 
     async def size(self) -> int:
         res = await self._client.endpoints.call(
-            TABLE_ITEM_SIZE_ENDPOINT, TableEventData(type=self.key)
+            TABLE_SIZE_ENDPOINT, TableEventData(type=self.key)
         )
         return res
 
@@ -356,7 +359,7 @@ class TableImpl[T](Table[T]):
     async def on_connected(self) -> None:
         if self._config is not None:
             await self._client.send(
-                TABLE_CONFIG_SET_PACKET,
+                TABLE_CONFIG_PACKET,
                 SetConfigReq(type=self.key, config=self._config),
             )
         if self._listening:
@@ -376,8 +379,8 @@ class TableImpl[T](Table[T]):
                 else:
                     items[key] = updated_item
         serialized_items = self._serialize_items(items.values())
-        await self._client.endpoints.call(
-            TABLE_PROXY_ENDPOINT,
+        await self._client.send(
+            TABLE_PROXY_PACKET,
             TableProxyData(
                 type=self.key,
                 key=event["key"],
