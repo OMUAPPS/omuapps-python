@@ -24,7 +24,7 @@ class EndpointExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
         self.response_promises: Dict[int, Future] = {}
-        self.endpoints: Dict[str, Tuple[EndpointType, Coro[[Any], Any]]] = {}
+        self.endpoints: Dict[Identifier, Tuple[EndpointType, Coro[[Any], Any]]] = {}
         self.call_id = 0
         client.network.register_packet(
             ENDPOINT_REGISTER_PACKET,
@@ -50,9 +50,10 @@ class EndpointExtension(Extension):
         future.set_exception(Exception(data["error"]))
 
     async def _on_call(self, data: EndpointDataPacket) -> None:
-        if data["type"] not in self.endpoints:
-            return
-        endpoint, func = self.endpoints[data["type"]]
+        endpoint_id = Identifier.from_key(data["type"])
+        if endpoint_id not in self.endpoints:
+            raise Exception(f"Received call for unknown endpoint {endpoint_id}")
+        endpoint, func = self.endpoints[endpoint_id]
         try:
             req = endpoint.request_serializer.deserialize(data["data"])
             res = await func(req)
@@ -75,11 +76,9 @@ class EndpointExtension(Extension):
     def register[Req, Res](
         self, type: EndpointType[Req, Res], func: Coro[[Req], Res]
     ) -> None:
-        if type.identifier.key() in self.endpoints:
-            raise Exception(
-                f"Endpoint for key {type.identifier.key()} already registered"
-            )
-        self.endpoints[type.identifier.key()] = (type, func)
+        if type.identifier in self.endpoints:
+            raise Exception(f"Endpoint for key {type.identifier} already registered")
+        self.endpoints[type.identifier] = (type, func)
 
     def bind[T, R](
         self,
