@@ -270,6 +270,14 @@ class TableImpl[T](Table[T]):
             return items[key]
         return None
 
+    async def get_many(self, *keys: str) -> Dict[str, T]:
+        res = await self._client.endpoints.call(
+            TABLE_ITEM_GET_ENDPOINT, TableKeysData(type=self.key, keys=keys)
+        )
+        items = self._parse_items(res["items"])
+        self._cache.update(items)
+        return items
+
     async def add(self, *items: T) -> None:
         data = self._serialize_items(items)
         await self._client.send(

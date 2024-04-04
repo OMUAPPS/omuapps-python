@@ -49,6 +49,12 @@ class SerializedTable[T: Keyable](Table[T]):
             return None
         return self._type.serializer.deserialize(item)
 
+    async def get_many(self, *keys: str) -> Dict[str, T]:
+        items = await self._table.get_many(*keys)
+        return {
+            key: self._type.serializer.deserialize(item) for key, item in items.items()
+        }
+
     async def add(self, *items: T) -> None:
         data = {item.key(): self._type.serializer.serialize(item) for item in items}
         await self._table.add(data)

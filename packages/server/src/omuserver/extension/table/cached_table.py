@@ -90,17 +90,18 @@ class CachedTable(ServerTable):
         await self.update_cache({key: data})
         return data
 
-    async def get_all(self, keys: List[str]) -> Dict[str, bytes]:
+    async def get_many(self, *keys: str) -> Dict[str, bytes]:
+        key_list = list(keys)
         if self._adapter is None:
             raise Exception("Table not set")
         items: Dict[str, bytes] = {}
-        for key in tuple(keys):
+        for key in tuple(key_list):
             if key in self._cache:
                 items[key] = self._cache[key]
-                keys.remove(key)
-        if len(keys) == 0:
+                key_list.remove(key)
+        if len(key_list) == 0:
             return items
-        data = await self._adapter.get_all(keys)
+        data = await self._adapter.get_many(key_list)
         for key, value in data.items():
             items[key] = value
         await self.update_cache(items)
@@ -168,7 +169,7 @@ class CachedTable(ServerTable):
     async def remove(self, keys: List[str]) -> None:
         if self._adapter is None:
             raise Exception("Table not set")
-        removed = await self._adapter.get_all(keys)
+        removed = await self._adapter.get_many(keys)
         await self._adapter.remove_all(keys)
         for key in keys:
             if key in self._cache:

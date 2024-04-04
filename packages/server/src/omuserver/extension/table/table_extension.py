@@ -88,7 +88,7 @@ class TableExtension:
         self, session: Session, req: TableKeysData
     ) -> TableItemsData:
         table = await self.get_table(req["type"])
-        items = await table.get_all(req["keys"])
+        items = await table.get_many(*req["keys"])
         return TableItemsData(
             type=req["type"],
             items=items,

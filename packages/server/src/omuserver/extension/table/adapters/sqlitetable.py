@@ -38,7 +38,7 @@ class SqliteTableAdapter(TableAdapter):
             return None
         return row[0]
 
-    async def get_all(self, keys: list[str]) -> Dict[str, bytes]:
+    async def get_many(self, keys: list[str]) -> Dict[str, bytes]:
         cursor = self._conn.execute(
             f"SELECT key, value FROM data WHERE key IN ({','.join('?' for _ in keys)})",
             keys,

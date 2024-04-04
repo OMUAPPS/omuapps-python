@@ -38,6 +38,9 @@ class Table[T](abc.ABC):
     async def get(self, key: str) -> T | None: ...
 
     @abc.abstractmethod
+    async def get_many(self, *keys: str) -> Dict[str, T]: ...
+
+    @abc.abstractmethod
     async def add(self, *items: T) -> None: ...
 
     @abc.abstractmethod
