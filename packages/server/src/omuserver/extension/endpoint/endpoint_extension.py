@@ -119,8 +119,9 @@ class EndpointExtension:
             ENDPOINT_ERROR_PACKET, self._on_endpoint_error
         )
 
-    async def _on_endpoint_register(self, session: Session, id: str) -> None:
-        identifier = Identifier.from_key(id)
+    async def _on_endpoint_register(
+        self, session: Session, identifier: Identifier
+    ) -> None:
         endpoint = SessionEndpoint(session, identifier)
         self._endpoints[identifier.key()] = endpoint
 
