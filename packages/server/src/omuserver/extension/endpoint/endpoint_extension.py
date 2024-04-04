@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Dict
+from typing import Dict, List
 
 from loguru import logger
 from omu.extension.endpoint.endpoint_extension import (
@@ -98,7 +98,7 @@ class EndpointCall:
 class EndpointExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self._endpoints: Dict[str, Endpoint] = {}
+        self._endpoints: Dict[Identifier, Endpoint] = {}
         self._calls: Dict[str, EndpointCall] = {}
         server.packet_dispatcher.register(
             ENDPOINT_REGISTER_PACKET,
@@ -120,20 +120,21 @@ class EndpointExtension:
         )
 
     async def _on_endpoint_register(
-        self, session: Session, identifier: Identifier
+        self, session: Session, endpoint_identifiers: List[Identifier]
     ) -> None:
-        endpoint = SessionEndpoint(session, identifier)
-        self._endpoints[identifier.key()] = endpoint
+        for identifier in endpoint_identifiers:
+            endpoint = SessionEndpoint(session, identifier)
+            self._endpoints[identifier] = endpoint
 
     def bind_endpoint[Req, Res](
         self,
         type: EndpointType[Req, Res],
         callback: Coro[[Session, Req], Res],
     ) -> None:
-        if type.identifier.key() in self._endpoints:
+        if type.identifier in self._endpoints:
             raise ValueError(f"Endpoint {type.identifier.key()} already bound")
         endpoint = ServerEndpoint(self._server, type, callback)
-        self._endpoints[type.identifier.key()] = endpoint
+        self._endpoints[type.identifier] = endpoint
 
     async def _on_endpoint_call(
         self, session: Session, req: EndpointDataPacket
@@ -190,7 +191,8 @@ class EndpointExtension:
     async def _get_endpoint(
         self, req: EndpointDataPacket, session: Session
     ) -> Endpoint | None:
-        endpoint = self._endpoints.get(req["type"])
+        identifier = Identifier.from_key(req["type"])
+        endpoint = self._endpoints.get(identifier)
         if endpoint is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,

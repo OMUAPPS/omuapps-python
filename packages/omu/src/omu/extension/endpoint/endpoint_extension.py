@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from asyncio import Future
-from typing import Any, Callable, Dict, Tuple, TypedDict
+from typing import Any, Callable, Dict, List, Tuple, TypedDict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -70,8 +70,7 @@ class EndpointExtension(Extension):
             raise e
 
     async def on_connected(self) -> None:
-        for endpoint, _ in self.endpoints.values():
-            await self.client.send(ENDPOINT_REGISTER_PACKET, endpoint.identifier)
+        await self.client.send(ENDPOINT_REGISTER_PACKET, [*self.endpoints.keys()])
 
     def register[Req, Res](
         self, type: EndpointType[Req, Res], func: Coro[[Req], Res]
@@ -162,10 +161,10 @@ class ENDPOINT_DATA_SERIALIZER:
         return EndpointDataPacket(type=type, id=id, data=data)
 
 
-ENDPOINT_REGISTER_PACKET = PacketType[Identifier].create_json(
+ENDPOINT_REGISTER_PACKET = PacketType[List[Identifier]].create_json(
     ENDPOINT_EXTENSION_TYPE,
     "register",
-    Serializer.model(Identifier),
+    Serializer.model(Identifier).array(),
 )
 ENDPOINT_CALL_PACKET = PacketType[EndpointDataPacket].create_serialized(
     ENDPOINT_EXTENSION_TYPE,
