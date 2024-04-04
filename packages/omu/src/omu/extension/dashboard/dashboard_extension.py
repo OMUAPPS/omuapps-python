@@ -33,13 +33,10 @@ class DashboardSetResponse(TypedDict):
     success: bool
 
 
-DASHBOARD_SET_ENDPOINT = EndpointType[
-    Identifier, DashboardSetResponse
-].create_serialized(
+DASHBOARD_SET_ENDPOINT = EndpointType[Identifier, DashboardSetResponse].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "set",
-    request_serializer=Serializer.model(Identifier).pipe(Serializer.json()),
-    response_serializer=Serializer.json(),
+    request_serializer=Serializer.model(Identifier),
 )
 DASHBOARD_PERMISSION_REQUEST_PACKET = PacketType.create_json(
     DASHBOARD_EXTENSION_TYPE,
