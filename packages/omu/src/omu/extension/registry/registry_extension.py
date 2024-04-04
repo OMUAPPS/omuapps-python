@@ -22,39 +22,41 @@ REGISTRY_EXTENSION_TYPE = ExtensionType(
 
 
 @dataclass(frozen=True)
-class RegistryData:
+class RegistryPacket:
     key: str
     existing: bool
     value: bytes
 
 
-class RegistryDataSerializer(Serializable[RegistryData, bytes]):
-    def serialize(self, item: RegistryData) -> bytes:
+class REGISTRY_DATA_SERIALIZER(Serializable[RegistryPacket, bytes]):
+    @staticmethod
+    def serialize(item: RegistryPacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.key)
         writer.write_boolean(item.existing)
         writer.write_byte_array(item.value)
         return writer.finish()
 
-    def deserialize(self, item: bytes) -> RegistryData:
+    @staticmethod
+    def deserialize(item: bytes) -> RegistryPacket:
         with ByteReader(item) as reader:
             key = reader.read_string()
             existing = reader.read_boolean()
             value = reader.read_byte_array()
-            return RegistryData(key, existing, value)
+            return RegistryPacket(key, existing, value)
 
 
-REGISTRY_UPDATE_PACKET = PacketType[RegistryData].create_serialized(
+REGISTRY_UPDATE_PACKET = PacketType[RegistryPacket].create_serialized(
     REGISTRY_EXTENSION_TYPE,
     "update",
-    serializer=RegistryDataSerializer(),
+    serializer=REGISTRY_DATA_SERIALIZER,
 )
 REGISTRY_LISTEN_PACKET = PacketType[str].create_json(REGISTRY_EXTENSION_TYPE, "listen")
-REGISTRY_GET_ENDPOINT = EndpointType[str, RegistryData].create_serialized(
+REGISTRY_GET_ENDPOINT = EndpointType[str, RegistryPacket].create_serialized(
     REGISTRY_EXTENSION_TYPE,
     "get",
     request_serializer=Serializer.json(),
-    response_serializer=RegistryDataSerializer(),
+    response_serializer=REGISTRY_DATA_SERIALIZER,
 )
 
 
@@ -104,7 +106,7 @@ class RegistryImpl[T](Registry[T]):
         new_value = await handler(value)
         await self.client.send(
             REGISTRY_UPDATE_PACKET,
-            RegistryData(
+            RegistryPacket(
                 self.key,
                 True,
                 self.serializer.serialize(new_value),
@@ -121,7 +123,7 @@ class RegistryImpl[T](Registry[T]):
         self.listeners.append(handler)
         return lambda: self.listeners.remove(handler)
 
-    async def _on_update(self, event: RegistryData) -> None:
+    async def _on_update(self, event: RegistryPacket) -> None:
         if event.key != self.key:
             return
         if event.existing:

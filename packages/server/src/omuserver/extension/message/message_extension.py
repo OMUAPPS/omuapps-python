@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Dict
 from omu.extension.message.message_extension import (
     MESSAGE_BROADCAST_PACKET,
     MESSAGE_LISTEN_PACKET,
-    MessageData,
+    MessagePacket,
 )
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ class MessageExtension:
         message = self._keys[key]
         message.add_listener(session)
 
-    async def _on_broadcast(self, session: Session, data: MessageData) -> None:
+    async def _on_broadcast(self, session: Session, data: MessagePacket) -> None:
         key = data.key
         if key not in self._keys:
             self._keys[key] = Message(key)

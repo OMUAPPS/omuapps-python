@@ -21,30 +21,32 @@ MESSAGE_EXTENSION_TYPE = ExtensionType(
 
 
 @dataclass
-class MessageData:
+class MessagePacket:
     key: str
     body: bytes
 
 
-class MessageSerializer(Serializable[MessageData, bytes]):
-    def serialize(self, item: MessageData) -> bytes:
+class MESSAGE_SERIALIZER(Serializable[MessagePacket, bytes]):
+    @staticmethod
+    def serialize(item: MessagePacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.key)
         writer.write_byte_array(item.body)
         return writer.finish()
 
-    def deserialize(self, item: bytes) -> MessageData:
+    @staticmethod
+    def deserialize(item: bytes) -> MessagePacket:
         with ByteReader(item) as reader:
             key = reader.read_string()
             body = reader.read_byte_array()
-        return MessageData(key=key, body=body)
+        return MessagePacket(key=key, body=body)
 
 
 MESSAGE_LISTEN_PACKET = PacketType[str].create_json(MESSAGE_EXTENSION_TYPE, "listen")
-MESSAGE_BROADCAST_PACKET = PacketType[MessageData].create_serialized(
+MESSAGE_BROADCAST_PACKET = PacketType[MessagePacket].create_serialized(
     MESSAGE_EXTENSION_TYPE,
     "broadcast",
-    MessageSerializer(),
+    MESSAGE_SERIALIZER(),
 )
 
 
@@ -82,7 +84,7 @@ class MessageImpl[T](Message):
         data = self.serializer.serialize(body)
         await self.client.send(
             MESSAGE_BROADCAST_PACKET,
-            MessageData(key=self.key, body=data),
+            MessagePacket(key=self.key, body=data),
         )
 
     def listen(self, listener: Coro[[T], None]) -> Callable[[], None]:
@@ -95,7 +97,7 @@ class MessageImpl[T](Message):
     async def _listen(self) -> None:
         await self.client.send(MESSAGE_LISTEN_PACKET, self.key)
 
-    async def _on_broadcast(self, data: MessageData) -> None:
+    async def _on_broadcast(self, data: MessagePacket) -> None:
         if data.key != self.key:
             return
         for listener in self.listeners:

@@ -9,8 +9,8 @@ from omu.extension.endpoint.endpoint_extension import (
     ENDPOINT_ERROR_PACKET,
     ENDPOINT_RECEIVE_PACKET,
     ENDPOINT_REGISTER_PACKET,
-    EndpointDataReq,
-    EndpointError,
+    EndpointDataPacket,
+    EndpointErrorPacket,
     EndpointType,
 )
 from omu.helper import Coro
@@ -26,7 +26,7 @@ class Endpoint(abc.ABC):
     def identifier(self) -> Identifier: ...
 
     @abc.abstractmethod
-    async def call(self, data: EndpointDataReq, session: Session) -> None: ...
+    async def call(self, data: EndpointDataPacket, session: Session) -> None: ...
 
 
 class SessionEndpoint(Endpoint):
@@ -38,7 +38,7 @@ class SessionEndpoint(Endpoint):
     def identifier(self) -> Identifier:
         return self._identifier
 
-    async def call(self, data: EndpointDataReq, session: Session) -> None:
+    async def call(self, data: EndpointDataPacket, session: Session) -> None:
         if self._session.closed:
             raise RuntimeError(f"Session {self._session.app.key()} already closed")
         await self._session.send(ENDPOINT_CALL_PACKET, data)
@@ -59,7 +59,7 @@ class ServerEndpoint[Req, Res](Endpoint):
     def identifier(self) -> Identifier:
         return self._endpoint.identifier
 
-    async def call(self, data: EndpointDataReq, session: Session) -> None:
+    async def call(self, data: EndpointDataPacket, session: Session) -> None:
         if session.closed:
             raise RuntimeError("Session already closed")
         try:
@@ -68,28 +68,30 @@ class ServerEndpoint[Req, Res](Endpoint):
             json = self._endpoint.response_serializer.serialize(res)
             await session.send(
                 ENDPOINT_RECEIVE_PACKET,
-                EndpointDataReq(type=data["type"], id=data["id"], data=json),
+                EndpointDataPacket(type=data["type"], id=data["id"], data=json),
             )
         except Exception as e:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
-                EndpointError(type=data["type"], id=data["id"], error=str(e)),
+                EndpointErrorPacket(type=data["type"], id=data["id"], error=str(e)),
             )
             raise e
 
 
 class EndpointCall:
-    def __init__(self, session: Session, data: EndpointDataReq) -> None:
+    def __init__(self, session: Session, data: EndpointDataPacket) -> None:
         self._session = session
         self._data = data
 
-    async def receive(self, data: EndpointDataReq) -> None:
+    async def receive(self, data: EndpointDataPacket) -> None:
         await self._session.send(ENDPOINT_RECEIVE_PACKET, data)
 
     async def error(self, error: str) -> None:
         await self._session.send(
             ENDPOINT_ERROR_PACKET,
-            EndpointError(type=self._data["type"], id=self._data["id"], error=error),
+            EndpointErrorPacket(
+                type=self._data["type"], id=self._data["id"], error=error
+            ),
         )
 
 
@@ -132,7 +134,9 @@ class EndpointExtension:
         endpoint = ServerEndpoint(self._server, type, callback)
         self._endpoints[type.identifier.key()] = endpoint
 
-    async def _on_endpoint_call(self, session: Session, req: EndpointDataReq) -> None:
+    async def _on_endpoint_call(
+        self, session: Session, req: EndpointDataPacket
+    ) -> None:
         endpoint = await self._get_endpoint(req, session)
         if endpoint is None:
             logger.warning(
@@ -140,7 +144,7 @@ class EndpointExtension:
             )
             await session.send(
                 ENDPOINT_ERROR_PACKET,
-                EndpointError(
+                EndpointErrorPacket(
                     type=req["type"],
                     id=req["id"],
                     error=f"Endpoint {req['type']} not found",
@@ -151,13 +155,13 @@ class EndpointExtension:
         self._calls[f"{req['type']}:{req["id"]}"] = EndpointCall(session, req)
 
     async def _on_endpoint_receive(
-        self, session: Session, req: EndpointDataReq
+        self, session: Session, req: EndpointDataPacket
     ) -> None:
         call = self._calls.get(f"{req['type']}:{req['id']}")
         if call is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
-                EndpointError(
+                EndpointErrorPacket(
                     type=req["type"],
                     id=req["id"],
                     error=f"Endpoint not found {req['type']}",
@@ -166,12 +170,14 @@ class EndpointExtension:
             return
         await call.receive(req)
 
-    async def _on_endpoint_error(self, session: Session, error: EndpointError) -> None:
+    async def _on_endpoint_error(
+        self, session: Session, error: EndpointErrorPacket
+    ) -> None:
         call = self._calls.get(f"{error['type']}:{error['id']}")
         if call is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
-                EndpointError(
+                EndpointErrorPacket(
                     type=error["type"],
                     id=error["id"],
                     error=f"Endpoint {error['type']} not found",
@@ -181,13 +187,13 @@ class EndpointExtension:
             await call.error(error["error"])
 
     async def _get_endpoint(
-        self, req: EndpointDataReq, session: Session
+        self, req: EndpointDataPacket, session: Session
     ) -> Endpoint | None:
         endpoint = self._endpoints.get(req["type"])
         if endpoint is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
-                EndpointError(
+                EndpointErrorPacket(
                     type=req["type"],
                     id=req["id"],
                     error=f"Endpoint {req['type']} not found",

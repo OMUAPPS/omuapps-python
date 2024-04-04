@@ -1,9 +1,9 @@
 from .extension import Extension, ExtensionType
-from .extension_manager import ExtensionManager
+from .extension_registry import ExtensionRegistry
 
 __all__ = [
     "Extension",
     "ExtensionType",
-    "ExtensionManager",
-    "ExtensionManager",
+    "ExtensionRegistry",
+    "ExtensionRegistry",
 ]

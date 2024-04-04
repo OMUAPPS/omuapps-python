@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from omu.extension.asset import ASSET_EXTENSION_TYPE, AssetExtension
+from omu.app import App
+from omu.extension import ExtensionRegistry
+from omu.extension.asset import (
+    ASSET_EXTENSION_TYPE,
+    AssetExtension,
+)
 from omu.extension.dashboard import (
     DASHBOARD_EXTENSION_TYPE,
     DashboardExtension,
@@ -14,27 +18,31 @@ from omu.extension.endpoint import (
     ENDPOINT_EXTENSION_TYPE,
     EndpointExtension,
 )
-from omu.extension.extension_manager import ExtensionManager
 from omu.extension.message import (
     MESSAGE_EXTENSION_TYPE,
     MessageExtension,
 )
-from omu.extension.permission import PERMISSION_EXTENSION_TYPE, PermissionExtension
+from omu.extension.permission import (
+    PERMISSION_EXTENSION_TYPE,
+    PermissionExtension,
+)
 from omu.extension.registry import (
     REGISTRY_EXTENSION_TYPE,
     RegistryExtension,
 )
-from omu.extension.server import SERVER_EXTENSION_TYPE, ServerExtension
-from omu.extension.table import TABLE_EXTENSION_TYPE, TableExtension
+from omu.extension.server import (
+    SERVER_EXTENSION_TYPE,
+    ServerExtension,
+)
+from omu.extension.table import (
+    TABLE_EXTENSION_TYPE,
+    TableExtension,
+)
 from omu.network import Address, Network
 from omu.network.packet import Packet, PacketType
 from omu.network.websocket_connection import WebsocketsConnection
 
 from .client import Client, ClientListeners
-
-if TYPE_CHECKING:
-    from omu.app import App
-    from omu.extension import ExtensionManager
 
 
 class OmuClient(Client):
@@ -43,7 +51,7 @@ class OmuClient(Client):
         app: App,
         address: Address,
         connection: WebsocketsConnection | None = None,
-        extension_registry: ExtensionManager | None = None,
+        extension_registry: ExtensionRegistry | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
     ):
         self._loop = loop or asyncio.get_event_loop()
@@ -56,7 +64,7 @@ class OmuClient(Client):
             connection or WebsocketsConnection(self, address),
         )
         self._network.listeners.connected += self._listeners.ready.emit
-        self._extensions = extension_registry or ExtensionManager(self)
+        self._extensions = extension_registry or ExtensionRegistry(self)
 
         self._endpoints = self.extensions.register(ENDPOINT_EXTENSION_TYPE)
         self._tables = self.extensions.register(TABLE_EXTENSION_TYPE)
@@ -82,7 +90,7 @@ class OmuClient(Client):
         return self._network
 
     @property
-    def extensions(self) -> ExtensionManager:
+    def extensions(self) -> ExtensionRegistry:
         return self._extensions
 
     @property

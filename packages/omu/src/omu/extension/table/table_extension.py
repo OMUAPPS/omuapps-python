@@ -102,8 +102,15 @@ class TableProxyData(TableItemsData):
     key: int
 
 
-class TableItemsSerielizer(Serializable[TableItemsData, bytes]):
-    def serialize(self, item: TableItemsData) -> bytes:
+class TableFetchReq(TableEventData):
+    before: int | None
+    after: int | None
+    cursor: str | None
+
+
+class ITEMS_SERIALIZER(Serializable[TableItemsData, bytes]):
+    @staticmethod
+    def serialize(item: TableItemsData) -> bytes:
         writer = ByteWriter()
         writer.write_string(item["type"])
         writer.write_int(len(item["items"]))
@@ -112,7 +119,8 @@ class TableItemsSerielizer(Serializable[TableItemsData, bytes]):
             writer.write_byte_array(value)
         return writer.finish()
 
-    def deserialize(self, item: bytes) -> TableItemsData:
+    @staticmethod
+    def deserialize(item: bytes) -> TableItemsData:
         with ByteReader(item) as reader:
             type = reader.read_string()
             item_count = reader.read_int()
@@ -124,8 +132,9 @@ class TableItemsSerielizer(Serializable[TableItemsData, bytes]):
         return {"type": type, "items": items}
 
 
-class TableProxySerielizer(Serializable[TableProxyData, bytes]):
-    def serialize(self, item: TableProxyData) -> bytes:
+class ITEM_PROXY_SERIALIZER(Serializable[TableProxyData, bytes]):
+    @staticmethod
+    def serialize(item: TableProxyData) -> bytes:
         writer = ByteWriter()
         writer.write_string(item["type"])
         writer.write_int(item["key"])
@@ -135,7 +144,8 @@ class TableProxySerielizer(Serializable[TableProxyData, bytes]):
             writer.write_byte_array(value)
         return writer.finish()
 
-    def deserialize(self, item: bytes) -> TableProxyData:
+    @staticmethod
+    def deserialize(item: bytes) -> TableProxyData:
         with ByteReader(item) as reader:
             type = reader.read_string()
             key = reader.read_int()
@@ -167,43 +177,34 @@ TABLE_PROXY_LISTEN_PACKET = PacketType[str].create_json(
 TABLE_PROXY_PACKET = PacketType[TableProxyData].create_serialized(
     TABLE_EXTENSION_TYPE,
     "proxy",
-    serializer=TableProxySerielizer(),
+    serializer=ITEM_PROXY_SERIALIZER,
 )
 TABLE_ITEM_ADD_PACKET = PacketType[TableItemsData].create_serialized(
     TABLE_EXTENSION_TYPE,
     "item_add",
-    TableItemsSerielizer(),
+    ITEMS_SERIALIZER,
 )
 TABLE_ITEM_UPDATE_PACKET = PacketType[TableItemsData].create_serialized(
     TABLE_EXTENSION_TYPE,
     "item_update",
-    TableItemsSerielizer(),
+    ITEMS_SERIALIZER,
 )
 TABLE_ITEM_REMOVE_EVENT = PacketType[TableItemsData].create_serialized(
     TABLE_EXTENSION_TYPE,
     "item_remove",
-    TableItemsSerielizer(),
+    ITEMS_SERIALIZER,
 )
 TABLE_ITEM_GET_ENDPOINT = EndpointType[TableKeysData, TableItemsData].create_serialized(
     TABLE_EXTENSION_TYPE,
     "item_get",
     request_serializer=Serializer.json(),
-    response_serializer=TableItemsSerielizer(),
+    response_serializer=ITEMS_SERIALIZER,
 )
-
-
-class TableFetchReq(TypedDict):
-    type: str
-    before: int | None
-    after: int | None
-    cursor: str | None
-
-
 TABLE_FETCH_ENDPOINT = EndpointType[TableFetchReq, TableItemsData].create_serialized(
     TABLE_EXTENSION_TYPE,
     "fetch",
     request_serializer=Serializer.json(),
-    response_serializer=TableItemsSerielizer(),
+    response_serializer=ITEMS_SERIALIZER,
 )
 TABLE_FETCH_ALL_ENDPOINT = EndpointType[
     TableEventData, TableItemsData
@@ -211,7 +212,7 @@ TABLE_FETCH_ALL_ENDPOINT = EndpointType[
     TABLE_EXTENSION_TYPE,
     "fetch_all",
     request_serializer=Serializer.json(),
-    response_serializer=TableItemsSerielizer(),
+    response_serializer=ITEMS_SERIALIZER,
 )
 TABLE_SIZE_ENDPOINT = EndpointType[TableEventData, int].create_json(
     TABLE_EXTENSION_TYPE, "size"

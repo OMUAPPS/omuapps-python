@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from omu.extension import Extension, ExtensionType
 
 
-class ExtensionManager:
+class ExtensionRegistry:
     def __init__(self, client: Client) -> None:
         self._client = client
         self._extensions: Dict[str, Extension] = {}

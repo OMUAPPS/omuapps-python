@@ -5,13 +5,13 @@ import iwashi
 from omu import Address, OmuClient
 from omuchat import App
 from omuchat.chat import (
+    AUTHOR_TABLE,
+    CHANNEL_TABLE,
+    CREATE_CHANNEL_TREE_ENDPOINT,
     IDENTIFIER,
-    AuthorsTableKey,
-    ChannelsTableKey,
-    CreateChannelTreeEndpoint,
-    MessagesTableKey,
-    ProviderTableKey,
-    RoomTableKey,
+    MESSAGE_TABLE,
+    PROVIDER_TABLE,
+    ROOM_TABLE,
 )
 from omuchat.model.channel import Channel
 
@@ -27,16 +27,16 @@ address = Address("127.0.0.1", 26423)
 client = OmuClient(app, address=address)
 
 
-messages = client.tables.get(MessagesTableKey)
-authors = client.tables.get(AuthorsTableKey)
+messages = client.tables.get(MESSAGE_TABLE)
+authors = client.tables.get(AUTHOR_TABLE)
 messages.set_config({"cache_size": 1000})
 authors.set_config({"cache_size": 500})
-channels = client.tables.get(ChannelsTableKey)
-providers = client.tables.get(ProviderTableKey)
-rooms = client.tables.get(RoomTableKey)
+channels = client.tables.get(CHANNEL_TABLE)
+providers = client.tables.get(PROVIDER_TABLE)
+rooms = client.tables.get(ROOM_TABLE)
 
 
-@client.endpoints.bind(endpoint_type=CreateChannelTreeEndpoint)
+@client.endpoints.bind(endpoint_type=CREATE_CHANNEL_TREE_ENDPOINT)
 async def create_channel_tree(url: str) -> List[Channel]:
     results = await iwashi.visit(url)
     if results is None:

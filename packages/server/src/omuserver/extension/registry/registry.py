@@ -3,7 +3,7 @@ from typing import Any, Dict
 from omu import Identifier
 from omu.extension.registry.registry_extension import (
     REGISTRY_UPDATE_PACKET,
-    RegistryData,
+    RegistryPacket,
 )
 from omu.serializer import Serializable
 
@@ -42,7 +42,7 @@ class ServerRegistry:
                 raise Exception(f"Session {listener.app=} closed")
             await listener.send(
                 REGISTRY_UPDATE_PACKET,
-                RegistryData(key=self._key, existing=self.existing, value=self.data),
+                RegistryPacket(key=self._key, existing=self.existing, value=self.data),
             )
 
     async def attach_session(self, session: Session) -> None:
@@ -52,7 +52,7 @@ class ServerRegistry:
         session.listeners.disconnected += self.detach_session
         await session.send(
             REGISTRY_UPDATE_PACKET,
-            RegistryData(key=self._key, existing=self.existing, value=self.data),
+            RegistryPacket(key=self._key, existing=self.existing, value=self.data),
         )
 
     async def detach_session(self, session: Session) -> None:

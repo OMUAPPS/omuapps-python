@@ -6,9 +6,10 @@ from typing import Any, Callable, Dict, Tuple, TypedDict
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
+from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
-from omu.serializer import Serializable, Serializer
+from omu.serializer import Serializer
 
 from .endpoint import EndpointType
 
@@ -26,6 +27,7 @@ class EndpointExtension(Extension):
         self.endpoints: Dict[str, Tuple[EndpointType, Coro[[Any], Any]]] = {}
         self.call_id = 0
         client.network.register_packet(
+            ENDPOINT_REGISTER_PACKET,
             ENDPOINT_CALL_PACKET,
             ENDPOINT_RECEIVE_PACKET,
             ENDPOINT_ERROR_PACKET,
@@ -35,19 +37,19 @@ class EndpointExtension(Extension):
         client.network.add_packet_handler(ENDPOINT_CALL_PACKET, self._on_call)
         client.network.listeners.connected += self.on_connected
 
-    async def _on_receive(self, data: EndpointDataReq) -> None:
+    async def _on_receive(self, data: EndpointDataPacket) -> None:
         if data["id"] not in self.response_promises:
             raise Exception(f"Received response for unknown call id {data['id']}")
         future = self.response_promises.pop(data["id"])
         future.set_result(data["data"])
 
-    async def _on_error(self, data: EndpointError) -> None:
+    async def _on_error(self, data: EndpointErrorPacket) -> None:
         if data["id"] not in self.response_promises:
             raise Exception(f"Received error for unknown call id {data['id']}")
         future = self.response_promises.pop(data["id"])
         future.set_exception(Exception(data["error"]))
 
-    async def _on_call(self, data: EndpointDataReq) -> None:
+    async def _on_call(self, data: EndpointDataPacket) -> None:
         if data["type"] not in self.endpoints:
             return
         endpoint, func = self.endpoints[data["type"]]
@@ -57,18 +59,18 @@ class EndpointExtension(Extension):
             res_data = endpoint.response_serializer.serialize(res)
             await self.client.send(
                 ENDPOINT_RECEIVE_PACKET,
-                EndpointDataReq(type=data["type"], id=data["id"], data=res_data),
+                EndpointDataPacket(type=data["type"], id=data["id"], data=res_data),
             )
         except Exception as e:
             await self.client.send(
                 ENDPOINT_ERROR_PACKET,
-                EndpointError(type=data["type"], id=data["id"], error=str(e)),
+                EndpointErrorPacket(type=data["type"], id=data["id"], error=str(e)),
             )
             raise e
 
     async def on_connected(self) -> None:
         for endpoint, _ in self.endpoints.values():
-            await self.client.send(ENDPOINT_REGISTER_PACKET, endpoint.identifier.key())
+            await self.client.send(ENDPOINT_REGISTER_PACKET, endpoint.identifier)
 
     def register[Req, Res](
         self, type: EndpointType[Req, Res], func: Coro[[Req], Res]
@@ -118,7 +120,7 @@ class EndpointExtension(Extension):
             json = endpoint.request_serializer.serialize(data)
             await self.client.send(
                 ENDPOINT_CALL_PACKET,
-                EndpointDataReq(
+                EndpointDataPacket(
                     type=endpoint.identifier.key(), id=self.call_id, data=json
                 ),
             )
@@ -130,57 +132,53 @@ class EndpointExtension(Extension):
             ) from e
 
 
-class EndpointReq(TypedDict):
+class EndpointPacket(TypedDict):
     type: str
     id: int
 
 
-class EndpointDataReq(EndpointReq):
-    type: str
-    id: int
+class EndpointDataPacket(EndpointPacket):
     data: bytes
 
 
-class EndpointError(EndpointReq):
-    type: str
-    id: int
+class EndpointErrorPacket(EndpointPacket):
     error: str
 
 
-class CallSerializer(Serializable[EndpointDataReq, bytes]):
-    def serialize(self, item: EndpointDataReq) -> bytes:
+class ENDPOINT_DATA_SERIALIZER:
+    @classmethod
+    def serialize(cls, item: EndpointDataPacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item["type"])
         writer.write_int(item["id"])
         writer.write_byte_array(item["data"])
         return writer.finish()
 
-    def deserialize(self, item: bytes) -> EndpointDataReq:
+    @classmethod
+    def deserialize(cls, item: bytes) -> EndpointDataPacket:
         with ByteReader(item) as reader:
             type = reader.read_string()
             id = reader.read_int()
             data = reader.read_byte_array()
-        return EndpointDataReq(type=type, id=id, data=data)
+        return EndpointDataPacket(type=type, id=id, data=data)
 
 
-CALL_SERIALIZER = CallSerializer()
-
-ENDPOINT_REGISTER_PACKET = PacketType[str].create_json(
+ENDPOINT_REGISTER_PACKET = PacketType[Identifier].create_json(
     ENDPOINT_EXTENSION_TYPE,
     "register",
-    Serializer.json(),
+    Serializer.model(Identifier),
 )
-ENDPOINT_CALL_PACKET = PacketType[EndpointDataReq].create_serialized(
+ENDPOINT_CALL_PACKET = PacketType[EndpointDataPacket].create_serialized(
     ENDPOINT_EXTENSION_TYPE,
     "call",
-    CALL_SERIALIZER,
+    ENDPOINT_DATA_SERIALIZER,
 )
-ENDPOINT_RECEIVE_PACKET = PacketType[EndpointDataReq].create_serialized(
+ENDPOINT_RECEIVE_PACKET = PacketType[EndpointDataPacket].create_serialized(
     ENDPOINT_EXTENSION_TYPE,
     "receive",
-    CALL_SERIALIZER,
+    ENDPOINT_DATA_SERIALIZER,
 )
-ENDPOINT_ERROR_PACKET = PacketType[EndpointError].create_json(
+ENDPOINT_ERROR_PACKET = PacketType[EndpointErrorPacket].create_json(
     ENDPOINT_EXTENSION_TYPE,
     "error",
 )

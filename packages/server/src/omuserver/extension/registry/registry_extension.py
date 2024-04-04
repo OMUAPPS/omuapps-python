@@ -6,7 +6,7 @@ from omu.extension.registry.registry_extension import (
     REGISTRY_GET_ENDPOINT,
     REGISTRY_LISTEN_PACKET,
     REGISTRY_UPDATE_PACKET,
-    RegistryData,
+    RegistryPacket,
 )
 from omu.identifier import Identifier
 from omu.serializer import Serializable
@@ -38,13 +38,13 @@ class RegistryExtension:
         registry = await self.get(key)
         await registry.attach_session(session)
 
-    async def _on_update(self, session: Session, event: RegistryData) -> None:
+    async def _on_update(self, session: Session, event: RegistryPacket) -> None:
         registry = await self.get(event.key)
         await registry.store(event.value)
 
-    async def _on_get(self, session: Session, key: str) -> RegistryData:
+    async def _on_get(self, session: Session, key: str) -> RegistryPacket:
         registry = await self.get(key)
-        return RegistryData(key, registry.existing, registry.data)
+        return RegistryPacket(key, registry.existing, registry.data)
 
     async def get(self, key: str) -> ServerRegistry:
         identifier = Identifier.from_key(key)
