@@ -62,6 +62,7 @@ class PermissionExtension:
         )
         if accepted:
             self.session_permissions[session] = permissions
-            await session.send(PERMISSION_GRANT_PACKET, permissions)
+            if not session.closed:
+                await session.send(PERMISSION_GRANT_PACKET, permissions)
         else:
             await session.disconnect()
