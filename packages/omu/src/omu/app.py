@@ -2,20 +2,20 @@ from __future__ import annotations
 
 from typing import Final, List, NotRequired, TypedDict
 
-from omu.extension.i18n.i18n import LocalizationData
+from omu.i18n import LocalizedText
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
 
 
 class AppLocalization(TypedDict):
-    name: NotRequired[LocalizationData]
-    description: NotRequired[LocalizationData]
-    image_url: NotRequired[LocalizationData]
-    site_url: NotRequired[LocalizationData]
-    repository_url: NotRequired[LocalizationData]
-    authors: NotRequired[LocalizationData]
-    license: NotRequired[LocalizationData]
+    name: NotRequired[LocalizedText]
+    description: NotRequired[LocalizedText]
+    image_url: NotRequired[LocalizedText]
+    site_url: NotRequired[LocalizedText]
+    repository_url: NotRequired[LocalizedText]
+    authors: NotRequired[LocalizedText]
+    license: NotRequired[LocalizedText]
 
 
 class AppJson(TypedDict):
