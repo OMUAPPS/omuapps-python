@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Final, List, NotRequired, TypedDict
+from typing import Final, NotRequired, TypedDict
 
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -10,12 +10,12 @@ from omu.model import Model
 
 
 class AppLocalization(TypedDict):
-    fallback: Locale
+    locale: Locale
     name: NotRequired[LocalizedText]
     description: NotRequired[LocalizedText]
-    image_url: NotRequired[LocalizedText]
-    site_url: NotRequired[LocalizedText]
-    repository_url: NotRequired[LocalizedText]
+    image: NotRequired[LocalizedText]
+    site: NotRequired[LocalizedText]
+    repository: NotRequired[LocalizedText]
     authors: NotRequired[LocalizedText]
     license: NotRequired[LocalizedText]
 
@@ -23,12 +23,7 @@ class AppLocalization(TypedDict):
 class AppJson(TypedDict):
     identifier: str
     version: NotRequired[str] | None
-    license: NotRequired[str] | None
-    description: NotRequired[str] | None
-    authors: NotRequired[List[str]] | None
-    site_url: NotRequired[str] | None
-    repository_url: NotRequired[str] | None
-    image_url: NotRequired[str] | None
+    url: NotRequired[str] | None
     localizations: NotRequired[AppLocalization] | None
 
 
@@ -38,26 +33,14 @@ class App(Keyable, Model[AppJson]):
         identifier: Identifier | str,
         *,
         version: str | None = None,
-        license: str | None = None,
-        description: str | None = None,
-        authors: List[str] | None = None,
-        site_url: str | None = None,
-        repository_url: str | None = None,
-        image_url: str | None = None,
+        url: str | None = None,
         localizations: AppLocalization | None = None,
     ) -> None:
         if isinstance(identifier, str):
             identifier = Identifier.from_key(identifier)
         self.identifier: Final[Identifier] = identifier
-        self.name: Final[str] = "/".join(identifier.path)
-        self.group: Final[str] = identifier.namespace
         self.version = version
-        self.license = license
-        self.description = description
-        self.authors = authors
-        self.site_url = site_url
-        self.repository_url = repository_url
-        self.image_url = image_url
+        self.url = url
         self.localizations = localizations
 
     @classmethod
@@ -66,12 +49,7 @@ class App(Keyable, Model[AppJson]):
         return cls(
             identifier,
             version=json.get("version"),
-            license=json.get("license"),
-            description=json.get("description"),
-            authors=json.get("authors"),
-            site_url=json.get("site_url"),
-            repository_url=json.get("repository_url"),
-            image_url=json.get("image_url"),
+            url=json.get("url"),
             localizations=json.get("localizations"),
         )
 
@@ -79,12 +57,7 @@ class App(Keyable, Model[AppJson]):
         return AppJson(
             identifier=self.key(),
             version=self.version,
-            license=self.license,
-            description=self.description,
-            authors=self.authors,
-            site_url=self.site_url,
-            repository_url=self.repository_url,
-            image_url=self.image_url,
+            url=self.url,
             localizations=self.localizations,
         )
 
