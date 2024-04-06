@@ -10,7 +10,7 @@ from omu.model import Model
 
 
 class AppLocalization(TypedDict):
-    fallback: NotRequired[Locale]
+    fallback: Locale
     name: NotRequired[LocalizedText]
     description: NotRequired[LocalizedText]
     image_url: NotRequired[LocalizedText]
