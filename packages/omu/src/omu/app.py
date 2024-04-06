@@ -3,12 +3,14 @@ from __future__ import annotations
 from typing import Final, List, NotRequired, TypedDict
 
 from omu.i18n import LocalizedText
+from omu.i18n.locale import Locale
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
 
 
 class AppLocalization(TypedDict):
+    fallback: NotRequired[Locale]
     name: NotRequired[LocalizedText]
     description: NotRequired[LocalizedText]
     image_url: NotRequired[LocalizedText]
