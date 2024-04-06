@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Final, List, NotRequired, TypedDict
 
-from omu.i18n import LocalizedText
-from omu.i18n.locale import Locale
 from omu.identifier import Identifier
 from omu.interface import Keyable
+from omu.localization import LocalizedText
+from omu.localization.locale import Locale
 from omu.model import Model
 
 
