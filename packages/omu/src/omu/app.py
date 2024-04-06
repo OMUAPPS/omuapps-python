@@ -2,9 +2,20 @@ from __future__ import annotations
 
 from typing import Final, List, NotRequired, TypedDict
 
+from omu.extension.i18n.i18n import LocalizationData
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
+
+
+class AppLocalization(TypedDict):
+    name: NotRequired[LocalizationData]
+    description: NotRequired[LocalizationData]
+    image_url: NotRequired[LocalizationData]
+    site_url: NotRequired[LocalizationData]
+    repository_url: NotRequired[LocalizationData]
+    authors: NotRequired[LocalizationData]
+    license: NotRequired[LocalizationData]
 
 
 class AppJson(TypedDict):
@@ -16,6 +27,7 @@ class AppJson(TypedDict):
     site_url: NotRequired[str] | None
     repository_url: NotRequired[str] | None
     image_url: NotRequired[str] | None
+    localizations: NotRequired[AppLocalization] | None
 
 
 class App(Keyable, Model[AppJson]):
@@ -30,6 +42,7 @@ class App(Keyable, Model[AppJson]):
         site_url: str | None = None,
         repository_url: str | None = None,
         image_url: str | None = None,
+        localizations: AppLocalization | None = None,
     ) -> None:
         if isinstance(identifier, str):
             identifier = Identifier.from_key(identifier)
@@ -43,6 +56,7 @@ class App(Keyable, Model[AppJson]):
         self.site_url = site_url
         self.repository_url = repository_url
         self.image_url = image_url
+        self.localizations = localizations
 
     @classmethod
     def from_json(cls, json: AppJson) -> App:
@@ -56,6 +70,7 @@ class App(Keyable, Model[AppJson]):
             site_url=json.get("site_url"),
             repository_url=json.get("repository_url"),
             image_url=json.get("image_url"),
+            localizations=json.get("localizations"),
         )
 
     def to_json(self) -> AppJson:
@@ -68,6 +83,7 @@ class App(Keyable, Model[AppJson]):
             site_url=self.site_url,
             repository_url=self.repository_url,
             image_url=self.image_url,
+            localizations=self.localizations,
         )
 
     def key(self) -> str:
