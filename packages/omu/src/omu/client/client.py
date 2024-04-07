@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from omu.extension import ExtensionRegistry
     from omu.extension.dashboard import DashboardExtension
     from omu.extension.endpoint import EndpointExtension
+    from omu.extension.i18n import I18nExtension
     from omu.extension.message import MessageExtension
     from omu.extension.permission import PermissionExtension
     from omu.extension.registry import RegistryExtension
@@ -72,6 +73,10 @@ class Client(abc.ABC):
     @property
     @abc.abstractmethod
     def dashboard(self) -> DashboardExtension: ...
+
+    @property
+    @abc.abstractmethod
+    def i18n(self) -> I18nExtension: ...
 
     @property
     @abc.abstractmethod

@@ -18,6 +18,10 @@ from omu.extension.endpoint import (
     ENDPOINT_EXTENSION_TYPE,
     EndpointExtension,
 )
+from omu.extension.i18n import (
+    I18N_EXTENSION_TYPE,
+    I18nExtension,
+)
 from omu.extension.message import (
     MESSAGE_EXTENSION_TYPE,
     MessageExtension,
@@ -74,6 +78,7 @@ class OmuClient(Client):
         self._server = self.extensions.register(SERVER_EXTENSION_TYPE)
         self._permissions = self.extensions.register(PERMISSION_EXTENSION_TYPE)
         self._dashboard = self.extensions.register(DASHBOARD_EXTENSION_TYPE)
+        self._i18n = self.extensions.register(I18N_EXTENSION_TYPE)
 
         self._loop.create_task(self._listeners.initialized.emit())
 
@@ -124,6 +129,10 @@ class OmuClient(Client):
     @property
     def dashboard(self) -> DashboardExtension:
         return self._dashboard
+
+    @property
+    def i18n(self) -> I18nExtension:
+        return self._i18n
 
     @property
     def running(self) -> bool:
