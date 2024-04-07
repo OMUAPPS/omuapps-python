@@ -106,11 +106,12 @@ class Network:
 
         await self._listeners.status.emit("connected")
         await self._listeners.connected.emit()
-        self._client.loop.create_task(self._dispatch_tasks())
+        await self._dispatch_tasks()
 
         await self._closed_event.wait()
 
         if reconnect:
+            await asyncio.sleep(1)
             await self.connect(token=self._token, reconnect=True)
 
     async def disconnect(self) -> None:
