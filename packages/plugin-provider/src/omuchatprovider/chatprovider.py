@@ -12,11 +12,7 @@ from .services import ChatService, ProviderService, get_services
 IDENTIFIER = Identifier("cc.omuchat", "chatprovider")
 APP = App(
     identifier=IDENTIFIER,
-    description="Chat provider for Omu",
     version="0.1.0",
-    authors=["omu"],
-    license="MIT",
-    repository_url="https://github.com/OMUCHAT/provider",
 )
 
 

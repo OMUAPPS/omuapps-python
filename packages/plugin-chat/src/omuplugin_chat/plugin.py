@@ -17,11 +17,7 @@ from omuchat.model.channel import Channel
 
 app = App(
     IDENTIFIER,
-    description="",
     version="0.1.0",
-    authors=["omu"],
-    license="MIT",
-    repository_url="https://github.com/OMUCHAT",
 )
 address = Address("127.0.0.1", 26423)
 client = OmuClient(app, address=address)
