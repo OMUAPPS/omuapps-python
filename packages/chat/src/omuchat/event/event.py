@@ -15,8 +15,8 @@ type EventHandler[**P] = Callable[P, Coroutine[None, None, None]]
 
 @dataclass(frozen=True)
 class EventSource[**P]:
-    subscribe: Callable[[EventHandler[P], Client]]
-    unsubscribe: Callable[[EventHandler[P], Client]]
+    subscribe: Callable[[EventHandler[P], Client], ...]
+    unsubscribe: Callable[[EventHandler[P], Client], ...]
 
 
 class ListenerEvent[**P](EventSource[P]):
@@ -70,7 +70,8 @@ class TableEvent[T](ListenerEvent[Mapping[str, T]]):
         )
         self.wrappers = {}
 
-    def _create_batch_wrapper(self, emit: EventHandler[[T]]):
+    @staticmethod
+    def _create_batch_wrapper(emit: EventHandler[[T]]):
         async def wrapper(items: Mapping[str, T]):
             for item in items.values():
                 await emit(item)
