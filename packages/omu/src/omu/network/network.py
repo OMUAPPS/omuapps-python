@@ -69,9 +69,9 @@ class Network:
         if not self._packet_handlers.get(packet_type.identifier):
             raise ValueError(f"Event type {packet_type.identifier} not registered")
 
-        def decorator(packet_handler: Coro[[T], None]) -> None:
+        def decorator(func: Coro[[T], None]) -> None:
             self._packet_handlers[packet_type.identifier].listeners.subscribe(
-                packet_handler
+                func
             )
 
         if packet_handler:

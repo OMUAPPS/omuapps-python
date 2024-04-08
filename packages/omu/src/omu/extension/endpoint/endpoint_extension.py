@@ -81,7 +81,7 @@ class EndpointExtension(Extension):
 
     def bind[T, R](
         self,
-        func: Coro[[T], R] | None = None,
+        handler: Coro[[T], R] | None = None,
         endpoint_type: EndpointType[T, R] | None = None,
     ):
         if endpoint_type is None:
@@ -91,12 +91,12 @@ class EndpointExtension(Extension):
             self.register(endpoint_type, func)
             return func
 
-        if func:
-            decorator(func)
+        if handler:
+            decorator(handler)
         return decorator
 
     def listen(
-        self, func: Coro | None = None, name: str | None = None
+        self, handler: Coro | None = None, name: str | None = None
     ) -> Callable[[Coro], Coro]:
         def decorator(func: Coro) -> Coro:
             type = EndpointType.create_json(
@@ -106,8 +106,8 @@ class EndpointExtension(Extension):
             self.register(type, func)
             return func
 
-        if func:
-            decorator(func)
+        if handler:
+            decorator(handler)
         return decorator
 
     async def call[Req, Res](self, endpoint: EndpointType[Req, Res], data: Req) -> Res:

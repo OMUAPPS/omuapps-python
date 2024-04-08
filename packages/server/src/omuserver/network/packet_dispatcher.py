@@ -45,8 +45,8 @@ class ServerPacketDispatcher:
         if not self._packet_listeners.get(event_type.identifier):
             raise ValueError(f"Event type {event_type.identifier} not registered")
 
-        def decorator(listener: Coro[[Session, T], None]) -> None:
-            self._packet_listeners[event_type.identifier].listeners.subscribe(listener)
+        def decorator(func: Coro[[Session, T], None]) -> None:
+            self._packet_listeners[event_type.identifier].listeners.subscribe(func)
 
         if listener:
             decorator(listener)
