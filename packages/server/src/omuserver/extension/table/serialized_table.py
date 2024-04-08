@@ -25,6 +25,7 @@ class SerializedTable[T: Keyable](Table[T]):
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self.key = type.identifier.key()
+        self._listening = False
         table.listeners.cache_update += self.on_cache_update
         table.listeners.add += self.on_add
         table.listeners.update += self.on_update
