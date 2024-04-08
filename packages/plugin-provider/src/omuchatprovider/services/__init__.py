@@ -9,4 +9,4 @@ def get_services():
     ]
 
 
-__all__ = ["ProviderService", "ChatService", "ChatSupplier"]
+__all__ = ["ProviderService", "ChatService", "ChatSupplier", "get_services"]
