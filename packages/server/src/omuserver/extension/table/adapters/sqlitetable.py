@@ -49,7 +49,7 @@ class SqliteTableAdapter(TableAdapter):
     async def set(self, key: str, value: bytes) -> None:
         self._conn.execute(
             "INSERT OR REPLACE INTO data (key, value) VALUES (?, ?)",
-            (key, (value)),
+            (key, value),
         )
 
     async def set_all(self, items: Mapping[str, bytes]) -> None:
