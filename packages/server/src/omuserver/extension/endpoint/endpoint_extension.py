@@ -142,7 +142,7 @@ class EndpointExtension:
         endpoint = await self._get_endpoint(req, session)
         if endpoint is None:
             logger.warning(
-                f"{session.app.name} tried to call unknown endpoint {req['type']}"
+                f"{session.app.key()} tried to call unknown endpoint {req['type']}"
             )
             await session.send(
                 ENDPOINT_ERROR_PACKET,
@@ -203,7 +203,7 @@ class EndpointExtension:
                 ),
             )
             logger.warning(
-                f"{session.app.name} tried to call unconnected endpoint {req['type']}"
+                f"{session.app.key()} tried to call unconnected endpoint {req['type']}"
             )
             return
         return endpoint
