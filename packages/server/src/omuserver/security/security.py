@@ -2,6 +2,7 @@ import abc
 import datetime
 import random
 import sqlite3
+import string
 
 from omu import App
 
@@ -20,7 +21,7 @@ class Security(abc.ABC):
 
 class TokenGenerator:
     def __init__(self):
-        self._chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        self._chars = string.ascii_letters + string.digits
 
     def generate(self, length: int) -> str:
         return "".join(random.choices(self._chars, k=length))
