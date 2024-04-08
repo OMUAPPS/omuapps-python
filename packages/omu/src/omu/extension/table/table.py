@@ -134,11 +134,11 @@ class TableType[T]:
         cls,
         identifier: Identifier,
         name: str,
-        model: type[ModelEntry[_T, _D]],
+        model_type: type[ModelEntry[_T, _D]],
     ) -> TableType[_T]:
         return TableType(
             identifier=identifier / name,
-            serializer=Serializer.model(model).pipe(Serializer.json()),
+            serializer=Serializer.model(model_type).pipe(Serializer.json()),
             key_func=lambda item: item.key(),
         )
 

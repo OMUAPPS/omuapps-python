@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, AsyncGenerator, Dict, List
+from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping
 
 from omu.extension.table import TableConfig
 from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyData
@@ -107,7 +107,7 @@ class CachedTable(ServerTable):
         await self.update_cache(items)
         return items
 
-    async def add(self, items: Dict[str, bytes]) -> None:
+    async def add(self, items: Mapping[str, bytes]) -> None:
         if self._adapter is None:
             raise Exception("Table not set")
         if len(self._proxy_sessions) > 0:
@@ -118,7 +118,7 @@ class CachedTable(ServerTable):
         await self.update_cache(items)
         self.mark_changed()
 
-    async def send_proxy_event(self, items: Dict[str, bytes]) -> None:
+    async def send_proxy_event(self, items: Mapping[str, bytes]) -> None:
         session = tuple(self._proxy_sessions.values())[0]
         self._proxy_id += 1
         await session.send(
@@ -130,7 +130,9 @@ class CachedTable(ServerTable):
             ),
         )
 
-    async def proxy(self, session: Session, key: int, items: Dict[str, bytes]) -> int:
+    async def proxy(
+        self, session: Session, key: int, items: Mapping[str, bytes]
+    ) -> int:
         adapter = self._adapter
         if adapter is None:
             raise Exception("Table not set")
@@ -158,7 +160,7 @@ class CachedTable(ServerTable):
         )
         return self._proxy_id
 
-    async def update(self, items: Dict[str, bytes]) -> None:
+    async def update(self, items: Mapping[str, bytes]) -> None:
         if self._adapter is None:
             raise Exception("Table not set")
         await self._adapter.set_all(items)
@@ -233,7 +235,7 @@ class CachedTable(ServerTable):
     def set_cache_size(self, size: int) -> None:
         self._cache_size = size
 
-    async def update_cache(self, items: Dict[str, bytes]) -> None:
+    async def update_cache(self, items: Mapping[str, bytes]) -> None:
         if self._cache_size is None or self._cache_size <= 0:
             return
         for key, item in items.items():

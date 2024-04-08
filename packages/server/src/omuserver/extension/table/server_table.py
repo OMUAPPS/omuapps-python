@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Union
+from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping, Union
 
 from omu.event_emitter import EventEmitter
 
@@ -44,7 +44,7 @@ class ServerTable(abc.ABC):
 
     @abc.abstractmethod
     async def proxy(
-        self, session: Session, key: int, items: Dict[str, bytes]
+        self, session: Session, key: int, items: Mapping[str, bytes]
     ) -> int: ...
 
     @abc.abstractmethod
@@ -57,10 +57,10 @@ class ServerTable(abc.ABC):
     async def get_many(self, *keys: str) -> Dict[str, bytes]: ...
 
     @abc.abstractmethod
-    async def add(self, items: Dict[str, bytes]) -> None: ...
+    async def add(self, items: Mapping[str, bytes]) -> None: ...
 
     @abc.abstractmethod
-    async def update(self, items: Dict[str, bytes]) -> None: ...
+    async def update(self, items: Mapping[str, bytes]) -> None: ...
 
     @abc.abstractmethod
     async def remove(self, keys: List[str]) -> None: ...
@@ -92,8 +92,8 @@ class ServerTable(abc.ABC):
 
 class ServerTableListeners:
     def __init__(self) -> None:
-        self.add: EventEmitter[Dict[str, bytes]] = EventEmitter()
-        self.update: EventEmitter[Dict[str, bytes]] = EventEmitter()
-        self.remove: EventEmitter[Dict[str, bytes]] = EventEmitter()
+        self.add: EventEmitter[Mapping[str, bytes]] = EventEmitter()
+        self.update: EventEmitter[Mapping[str, bytes]] = EventEmitter()
+        self.remove: EventEmitter[Mapping[str, bytes]] = EventEmitter()
         self.clear: EventEmitter[[]] = EventEmitter()
-        self.cache_update: EventEmitter[Dict[str, bytes]] = EventEmitter()
+        self.cache_update: EventEmitter[Mapping[str, bytes]] = EventEmitter()

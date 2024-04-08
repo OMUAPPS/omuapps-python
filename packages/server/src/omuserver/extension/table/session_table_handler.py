@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any, Mapping
 
 from omu.extension.table.table_extension import (
     TABLE_ITEM_ADD_PACKET,
@@ -33,7 +33,7 @@ class SessionTableListener:
         self.table.listeners.remove -= self.on_remove
         self.table.listeners.clear -= self.on_clear
 
-    async def on_add(self, items: Dict[str, Any]) -> None:
+    async def on_add(self, items: Mapping[str, Any]) -> None:
         if self._session.closed:
             return
         await self._session.send(
@@ -44,7 +44,7 @@ class SessionTableListener:
             ),
         )
 
-    async def on_update(self, items: Dict[str, Any]) -> None:
+    async def on_update(self, items: Mapping[str, Any]) -> None:
         if self._session.closed:
             return
         await self._session.send(
@@ -55,7 +55,7 @@ class SessionTableListener:
             ),
         )
 
-    async def on_remove(self, items: Dict[str, Any]) -> None:
+    async def on_remove(self, items: Mapping[str, Any]) -> None:
         if self._session.closed:
             return
         await self._session.send(

@@ -122,28 +122,28 @@ class SerializedTable[T: Keyable](Table[T]):
             return lambda: self._listeners.cache_update.unsubscribe(listener)
         return lambda: None
 
-    async def on_add(self, items: Dict[str, bytes]) -> None:
+    async def on_cache_update(self, cache: Mapping[str, bytes]) -> None:
+        await self._listeners.cache_update(self._parse_items(cache))
+
+    async def on_add(self, items: Mapping[str, bytes]) -> None:
         _items = self._parse_items(items)
         await self._listeners.add(_items)
 
-    async def on_update(self, items: Dict[str, bytes]) -> None:
+    async def on_update(self, items: Mapping[str, bytes]) -> None:
         _items = self._parse_items(items)
         await self._listeners.update(_items)
 
-    async def on_remove(self, items: Dict[str, bytes]) -> None:
+    async def on_remove(self, items: Mapping[str, bytes]) -> None:
         _items = self._parse_items(items)
         await self._listeners.remove(_items)
 
     async def on_clear(self) -> None:
         await self._listeners.clear()
 
-    async def on_cache_update(self, cache: Dict[str, bytes]) -> None:
-        await self._listeners.cache_update(self._parse_items(cache))
-
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
         raise NotImplementedError
 
-    def _parse_items(self, items: Dict[str, bytes]) -> Dict[str, T]:
+    def _parse_items(self, items: Mapping[str, bytes]) -> Dict[str, T]:
         parsed: Dict[str, T] = {}
         for key, item in items.items():
             item = self._type.serializer.deserialize(item)

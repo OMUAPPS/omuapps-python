@@ -67,14 +67,14 @@ class TableExtension(Extension):
         return self.create(type.identifier, type.serializer, type.key_func)
 
     def model[T: Keyable, D](
-        self, identifier: Identifier, name: str, type: type[ModelType[T, D]]
+        self, identifier: Identifier, name: str, model_type: type[ModelType[T, D]]
     ) -> Table[T]:
         identifier = identifier / name
         if self.has(identifier):
             return self._tables[identifier]
         return self.create(
             identifier,
-            Serializer.model(type).pipe(Serializer.json()),
+            Serializer.model(model_type).pipe(Serializer.json()),
             lambda item: item.key(),
         )
 
@@ -92,7 +92,7 @@ class TableEventData(TypedDict):
 
 
 class TableItemsData(TableEventData):
-    items: Dict[str, bytes]
+    items: Mapping[str, bytes]
 
 
 class TableKeysData(TableEventData):
@@ -448,7 +448,7 @@ class TableImpl[T](Table[T]):
             parsed_items[key] = item
         return parsed_items
 
-    def _serialize_items(self, items: Iterable[T]) -> Dict[str, bytes]:
+    def _serialize_items(self, items: Iterable[T]) -> Mapping[str, bytes]:
         serialized_items: Mapping[str, bytes] = {}
         for item in items:
             key = self._key_function(item)

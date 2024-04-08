@@ -15,8 +15,8 @@ type EventHandler[**P] = Callable[P, Coroutine[None, None, None]]
 
 @dataclass(frozen=True)
 class EventSource[**P]:
-    subscribe: Callable[[EventHandler[P], Client], ...]
-    unsubscribe: Callable[[EventHandler[P], Client], ...]
+    subscribe: Callable[[EventHandler[P], Client], None]
+    unsubscribe: Callable[[EventHandler[P], Client], None]
 
 
 class ListenerEvent[**P](EventSource[P]):
