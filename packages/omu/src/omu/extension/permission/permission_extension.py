@@ -34,9 +34,9 @@ class PermissionExtension(Extension):
 
     def register(self, permission: PermissionType):
         base_identifier = self.client.app.identifier
-        if not permission.identifier.is_subpath_of(base_identifier):
+        if not permission.identifier.is_subpart_of(base_identifier):
             raise ValueError(
-                f"Permission identifier {permission.identifier} is not a subpath of app identifier {base_identifier}"
+                f"Permission identifier {permission.identifier} is not a subpart of app identifier {base_identifier}"
             )
         self.registered_permissions[permission.identifier] = permission
 
