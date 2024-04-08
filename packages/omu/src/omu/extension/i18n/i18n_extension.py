@@ -19,9 +19,9 @@ class I18nExtension(Extension):
         self.client = client
         self.locales_registry = client.registry.get(LOCALES_REGISTRY)
         self.locales: List[Locale] = []
-        client.network.listeners.connected += self._handle_connecte
+        client.network.listeners.connected += self._handle_connected
 
-    async def _handle_connecte(self) -> None:
+    async def _handle_connected(self) -> None:
         self.locales = await self.locales_registry.get()
 
     def translate(self, localized_text: LocalizedText) -> str:
@@ -32,7 +32,7 @@ class I18nExtension(Extension):
         translation = self.select_best_translation(localized_text)
         if not translation:
             raise ValueError(
-                f"Mising translation for {self.locales} in {localized_text}"
+                f"Missing translation for {self.locales} in {localized_text}"
             )
         return translation
 
