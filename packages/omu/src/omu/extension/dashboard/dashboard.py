@@ -34,3 +34,9 @@ class PermissionRequest(Model[PermissionRequestJson]):
             "app": self.app.to_json(),
             "permissions": [p.to_json() for p in self.permissions],
         }
+
+
+class DashboardOpenAppResponse(TypedDict):
+    success: bool
+    already_open: bool
+    dashboard_not_connected: bool

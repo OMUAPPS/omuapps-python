@@ -1,12 +1,16 @@
 from asyncio import Future
 from typing import Dict
 
+from omu.app import App
 from omu.extension.dashboard.dashboard import PermissionRequest
 from omu.extension.dashboard.dashboard_extension import (
+    DASHBOARD_OPEN_APP_ENDPOINT,
+    DASHBOARD_OPEN_APP_PACKET,
     DASHBOARD_PERMISSION_ACCEPT_PACKET,
     DASHBOARD_PERMISSION_DENY_PACKET,
     DASHBOARD_PERMISSION_REQUEST_PACKET,
     DASHBOARD_SET_ENDPOINT,
+    DashboardOpenAppResponse,
     DashboardSetResponse,
 )
 from omu.identifier import Identifier
@@ -25,10 +29,7 @@ class DashboardExtension:
             DASHBOARD_PERMISSION_REQUEST_PACKET,
             DASHBOARD_PERMISSION_ACCEPT_PACKET,
             DASHBOARD_PERMISSION_DENY_PACKET,
-        )
-        server.endpoints.bind_endpoint(
-            DASHBOARD_SET_ENDPOINT,
-            self.handle_dashboard_set,
+            DASHBOARD_OPEN_APP_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
             DASHBOARD_PERMISSION_ACCEPT_PACKET,
@@ -38,6 +39,33 @@ class DashboardExtension:
             DASHBOARD_PERMISSION_DENY_PACKET,
             self.handle_permission_deny,
         )
+        server.endpoints.bind_endpoint(
+            DASHBOARD_SET_ENDPOINT,
+            self.handle_dashboard_set,
+        )
+        server.endpoints.bind_endpoint(
+            DASHBOARD_OPEN_APP_ENDPOINT,
+            self.handle_dashboard_open_app,
+        )
+
+    async def handle_dashboard_open_app(
+        self, session: Session, app: App
+    ) -> DashboardOpenAppResponse:
+        if self.dashboard_session is None:
+            return {
+                "success": False,
+                "already_open": False,
+                "dashboard_not_connected": True,
+            }
+        await self.dashboard_session.send(
+            DASHBOARD_OPEN_APP_PACKET,
+            app,
+        )
+        return {
+            "success": True,
+            "already_open": False,
+            "dashboard_not_connected": False,
+        }
 
     async def handle_dashboard_set(
         self, session: Session, identifier: Identifier
