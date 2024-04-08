@@ -19,28 +19,28 @@ APP = App(
 client = Client(APP)
 
 
-class TextPettern(TypedDict):
+class TextPattern(TypedDict):
     type: Literal["text"]
     text: str
 
 
-class ImagePettern(TypedDict):
+class ImagePattern(TypedDict):
     type: Literal["image"]
     id: str
 
 
-class RegexPettern(TypedDict):
+class RegexPattern(TypedDict):
     type: Literal["regex"]
     regex: str
 
 
-type Pettern = TextPettern | ImagePettern | RegexPettern
+type Pattern = TextPattern | ImagePattern | RegexPattern
 
 
 class EmojiData(TypedDict):
     id: str
     asset: str
-    petterns: List[Pettern]
+    patterns: List[Pattern]
 
 
 class Emoji(Model[EmojiData], Keyable):
@@ -48,11 +48,11 @@ class Emoji(Model[EmojiData], Keyable):
         self,
         id: str,
         asset: Identifier,
-        petterns: List[Pettern],
+        patterns: List[Pattern],
     ) -> None:
         self.id = id
         self.asset = asset
-        self.petterns = petterns
+        self.patterns = patterns
 
     def key(self) -> str:
         return self.id
@@ -62,46 +62,46 @@ class Emoji(Model[EmojiData], Keyable):
         return cls(
             json["id"],
             Identifier.from_key(json["asset"]),
-            json["petterns"],
+            json["patterns"],
         )
 
     def to_json(self) -> EmojiData:
         return {
             "id": self.id,
             "asset": self.asset.key(),
-            "petterns": self.petterns,
+            "patterns": self.patterns,
         }
 
 
 EMOJI_TABLE_TYPE = TableType.create_model(
     IDENTIFIER,
     name="emoji",
-    model=Emoji,
+    model_type=Emoji,
 )
 emoji_table = client.tables.get(EMOJI_TABLE_TYPE)
 emoji_table.set_cache_size(1000)
 
 
-class petterns:
-    text: List[Tuple[TextPettern, Emoji]] = []
-    image: List[Tuple[ImagePettern, Emoji]] = []
-    regex: List[Tuple[RegexPettern, Emoji]] = []
+class Patterns:
+    text: List[Tuple[TextPattern, Emoji]] = []
+    image: List[Tuple[ImagePattern, Emoji]] = []
+    regex: List[Tuple[RegexPattern, Emoji]] = []
 
 
 @emoji_table.listen
 async def update_emoji_table(items: Mapping[str, Emoji]):
-    petterns.text.clear()
-    petterns.image.clear()
-    petterns.regex.clear()
+    Patterns.text.clear()
+    Patterns.image.clear()
+    Patterns.regex.clear()
 
     for emoji in items.values():
-        for pettern in emoji.petterns:
-            if pettern["type"] == "text":
-                petterns.text.append((pettern, emoji))
-            elif pettern["type"] == "image":
-                petterns.image.append((pettern, emoji))
-            elif pettern["type"] == "regex":
-                petterns.regex.append((pettern, emoji))
+        for pattern in emoji.patterns:
+            if pattern["type"] == "text":
+                Patterns.text.append((pattern, emoji))
+            elif pattern["type"] == "image":
+                Patterns.image.append((pattern, emoji))
+            elif pattern["type"] == "regex":
+                Patterns.regex.append((pattern, emoji))
 
 
 @dataclass
@@ -118,8 +118,8 @@ def transform(component: content.Component) -> content.Component:
             return parts[0]
         return content.Root(parts)
     if isinstance(component, content.Image):
-        for pettern, emoji in petterns.image:
-            if component.id == pettern["id"]:
+        for pattern, emoji in Patterns.image:
+            if component.id == pattern["id"]:
                 return content.Image.of(
                     url=client.assets.url(emoji.asset),
                     id=emoji.id,
@@ -155,16 +155,16 @@ def transform_text_content(
 
 def find_matching_emoji(text: str) -> EmojiMatch | None:
     match: EmojiMatch | None = None
-    for pettern, asset in petterns.text:
+    for pattern, asset in Patterns.text:
         if match:
-            search_end = match.end + len(pettern["text"])
-            start = text.find(pettern["text"], None, search_end)
+            search_end = match.end + len(pattern["text"])
+            start = text.find(pattern["text"], None, search_end)
         else:
-            start = text.find(pettern["text"])
+            start = text.find(pattern["text"])
         if start == -1:
             continue
         if not match or start < match.start:
-            end = start + len(pettern["text"])
+            end = start + len(pattern["text"])
             match = EmojiMatch(start, end, asset)
         if match.start == 0:
             break
@@ -172,10 +172,10 @@ def find_matching_emoji(text: str) -> EmojiMatch | None:
         if match.start == 0:
             return match
         text = text[: match.start]
-    for pettern, asset in petterns.regex:
-        if len(pettern["regex"]) == 0:
+    for pattern, asset in Patterns.regex:
+        if len(pattern["regex"]) == 0:
             continue
-        result = re.search(pettern["regex"], text)
+        result = re.search(pattern["regex"], text)
         if not result:
             continue
         if not match or result.start() < match.start:
