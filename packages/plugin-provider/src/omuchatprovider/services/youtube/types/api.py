@@ -216,48 +216,28 @@ class LiveChatMessageRenderer(TypedDict):
 
 
 class LiveChatTextMessageRenderer(LiveChatMessageRenderer):
-    id: str
-    timestampUsec: str
-    authorExternalChannelId: str
-    authorName: SimpleText
-    authorPhoto: Thumbnails
-    message: Runs
-    authorBadges: NotRequired[List[AuthorBadge]]
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
 
 
 class LiveChatPaidMessageRenderer(LiveChatMessageRenderer):
-    id: str
-    timestampUsec: str
-    authorName: SimpleText
-    authorPhoto: Thumbnails
     purchaseAmountText: SimpleText
-    message: Runs
     headerBackgroundColor: int
     headerTextColor: int
     bodyBackgroundColor: int
     bodyTextColor: int
-    authorExternalChannelId: str
     authorNameTextColor: int
     contextMenuEndpoint: ContextMenuEndpoint
     timestampColor: int
     contextMenuAccessibility: Accessibility
     trackingParams: str
-    authorBadges: NotRequired[List[AuthorBadge]]
     textInputBackgroundColor: int
     creatorHeartButton: CreatorHeartButton
     isV2Style: bool
 
 
 class LiveChatPaidStickerRenderer(LiveChatMessageRenderer):
-    id: str
-    timestampUsec: str
-    authorName: SimpleText
-    authorPhoto: Thumbnails
     sticker: Image
-    authorExternalChannelId: str
-    authorBadges: NotRequired[List[AuthorBadge]]
     purchaseAmountText: SimpleText
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
@@ -391,9 +371,6 @@ class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRender
     }
     """
 
-    id: str
-    timestampUsec: str
-    authorExternalChannelId: str
     header: LiveChatSponsorshipsGiftPurchaseAnnouncementRendererHeader
 
 
