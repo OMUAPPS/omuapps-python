@@ -508,7 +508,7 @@ class YoutubeChatService(ChatService):
                 content=message,
                 created_at=created_at,
             )
-            return (message, author)
+            return message, author
         elif "liveChatPaidMessageRenderer" in item:
             data = item["liveChatPaidMessageRenderer"]
             author = self._parse_author(data)
@@ -523,12 +523,11 @@ class YoutubeChatService(ChatService):
                 paid=paid,
                 created_at=created_at,
             )
-            return (message, author)
+            return message, author
         elif "liveChatMembershipItemRenderer" in item:
             data = item["liveChatMembershipItemRenderer"]
             author = self._parse_author(data)
             created_at = self._parse_created_at(data)
-            logger.info
             component = content.System.of(_parse_runs(data["headerSubtext"]))
             message = Message(
                 id=data["id"],
@@ -537,7 +536,7 @@ class YoutubeChatService(ChatService):
                 content=component,
                 created_at=created_at,
             )
-            return (message, author)
+            return message, author
         elif "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer" in item:
             data = item["liveChatSponsorshipsGiftRedemptionAnnouncementRenderer"]
             author = self._parse_author(data)
@@ -550,7 +549,7 @@ class YoutubeChatService(ChatService):
                 content=component,
                 created_at=created_at,
             )
-            return (message, author)
+            return message, author
         elif "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer" in item:
             data = item["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"]
             author = self._parse_author(data)
@@ -576,7 +575,7 @@ class YoutubeChatService(ChatService):
                 created_at=created_at,
                 gifts=[gift],
             )
-            return (message, author)
+            return message, author
         elif "liveChatPlaceholderItemRenderer" in item:
             """
             item["liveChatPlaceholderItemRenderer"] = {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
@@ -602,10 +601,10 @@ class YoutubeChatService(ChatService):
                 gifts=[sticker],
                 created_at=created_at,
             )
-            return (message, author)
+            return message, author
         else:
             raise ProviderError(f"Unknown message type: {list(item.keys())} {item=}")
-        return (None, None)
+        return None, None
 
     async def process_deleted_item(self, item: api.MarkChatItemAsDeletedActionData):
         message = await self.client.chat.messages.get(
