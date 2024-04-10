@@ -63,15 +63,15 @@ class PermissionExtension(Extension):
 PERMISSION_REGISTER_PACKET = PacketType.create_json(
     PERMISSION_EXTENSION_TYPE,
     "register",
-    Serializer.model(PermissionType).array(),
+    Serializer.model(PermissionType).to_array(),
 )
 PERMISSION_REQUEST_ENDPOINT = EndpointType[List[Identifier], None].create_json(
     PERMISSION_EXTENSION_TYPE,
     "request",
-    request_serializer=Serializer.model(Identifier).array(),
+    request_serializer=Serializer.model(Identifier).to_array(),
 )
 PERMISSION_GRANT_PACKET = PacketType.create_json(
     PERMISSION_EXTENSION_TYPE,
     "grant",
-    Serializer.model(PermissionType).array(),
+    Serializer.model(PermissionType).to_array(),
 )

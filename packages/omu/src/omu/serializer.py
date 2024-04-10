@@ -47,10 +47,10 @@ class Serializer[T, D](Serializable[T, D]):
     def json(cls) -> Serializer[T, bytes]:
         return JsonSerializer()
 
-    def array(self) -> Serializer[list[T], list[D]]:
+    def to_array(self) -> Serializer[list[T], list[D]]:
         return ArraySerializer(self)
 
-    def map(self) -> Serializer[Mapping[str, T], Mapping[str, D]]:
+    def to_map(self) -> Serializer[Mapping[str, T], Mapping[str, D]]:
         return MapSerializer(self)
 
     def pipe[E](self, other: Serializable[D, E]) -> Serializer[T, E]:
@@ -79,9 +79,16 @@ class ModelSerializer[M: JsonSerializable, D](Serializer[M, D]):
 class JsonSerializer[T](Serializer[T, bytes]):
     def __init__(self):
         super().__init__(
-            lambda item: json.dumps(item).encode("utf-8"),
-            lambda item: json.loads(item.decode("utf-8")),
+            self._serialize,
+            self._deserialize,
         )
+
+    def _serialize(self, item: T) -> bytes:
+        return json.dumps(item).encode("utf-8")
+
+    def _deserialize(self, item: bytes) -> T:
+        decoded = item.decode("utf-8")
+        return json.loads(decoded)
 
     def __repr__(self) -> str:
         return "JsonSerializer()"

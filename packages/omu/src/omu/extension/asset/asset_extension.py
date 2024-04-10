@@ -41,12 +41,12 @@ ASSET_UPLOAD_ENDPOINT = EndpointType[Files, List[Identifier]].create_serialized(
     ASSET_EXTENSION_TYPE,
     "upload",
     request_serializer=FILES_SERIALIZER,
-    response_serializer=Serializer.model(Identifier).array().pipe(Serializer.json()),
+    response_serializer=Serializer.model(Identifier).to_array().pipe(Serializer.json()),
 )
 ASSET_DOWNLOAD_ENDPOINT = EndpointType[List[Identifier], Files].create_serialized(
     ASSET_EXTENSION_TYPE,
     "download",
-    request_serializer=Serializer.model(Identifier).array().pipe(Serializer.json()),
+    request_serializer=Serializer.model(Identifier).to_array().pipe(Serializer.json()),
     response_serializer=FILES_SERIALIZER,
 )
 

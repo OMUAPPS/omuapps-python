@@ -164,7 +164,7 @@ class ENDPOINT_DATA_SERIALIZER:
 ENDPOINT_REGISTER_PACKET = PacketType[List[Identifier]].create_json(
     ENDPOINT_EXTENSION_TYPE,
     "register",
-    Serializer.model(Identifier).array(),
+    Serializer.model(Identifier).to_array(),
 )
 ENDPOINT_CALL_PACKET = PacketType[EndpointDataPacket].create_serialized(
     ENDPOINT_EXTENSION_TYPE,
