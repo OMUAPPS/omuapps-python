@@ -11,6 +11,7 @@ from typing import Dict, List, Mapping, Tuple, TypedDict
 import bs4
 from iwashi.visitors.youtube.youtube import Youtube
 from loguru import logger
+from omu.extension.message.message import MessageType
 from omu.helper import map_optional
 from omuchat.client import Client
 from omuchat.model import (
@@ -54,12 +55,15 @@ YOUTUBE_VISITOR = Youtube()
 session = get_session(INFO)
 
 
-class ReactionEvent(TypedDict):
+class ReactionMessage(TypedDict):
     room_id: str
     reactions: Dict[str, int]
 
 
-REACTION_MESSAGE = client.message.create("youtube-reaction", ReactionEvent)
+REACTION_MESSAGE_TYPE = MessageType[ReactionMessage].create_json(
+    identifier=client.app.identifier / "youtube", name="reaction"
+)
+REACTION_MESSAGE = client.message.get(REACTION_MESSAGE_TYPE)
 
 HEADERS = {
     "User-Agent": (
@@ -638,7 +642,7 @@ class YoutubeChatService(ChatService):
         if not reaction_counts:
             return
         await REACTION_MESSAGE.broadcast(
-            ReactionEvent(
+            ReactionMessage(
                 room_id=self._room.key(),
                 reactions=dict(reaction_counts),
             ),
