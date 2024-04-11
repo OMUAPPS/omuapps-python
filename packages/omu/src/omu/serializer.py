@@ -5,6 +5,10 @@ import json
 from typing import Callable, Mapping, Protocol
 
 
+class SerializeError(Exception):
+    pass
+
+
 class Serializable[T, D](Protocol):
     @abc.abstractmethod
     def serialize(self, item: T) -> D: ...
@@ -91,7 +95,10 @@ class JsonSerializer[T](Serializer[T, bytes]):
 
     def _deserialize(self, item: bytes) -> T:
         decoded = item.decode("utf-8")
-        return json.loads(decoded)
+        try:
+            return json.loads(decoded)
+        except json.JSONDecodeError as e:
+            raise SerializeError(f"Failed to deserialize JSON: {decoded}") from e
 
     def __repr__(self) -> str:
         return "JsonSerializer()"
