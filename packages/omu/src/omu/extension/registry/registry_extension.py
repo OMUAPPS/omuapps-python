@@ -10,7 +10,7 @@ from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
-from omu.serializer import Serializable, Serializer
+from omu.serializer import Serializable, SerializeError, Serializer
 
 from .registry import Registry, RegistryType
 
@@ -23,27 +23,27 @@ REGISTRY_EXTENSION_TYPE = ExtensionType(
 
 @dataclass(frozen=True)
 class RegistryPacket:
-    key: str
-    existing: bool
-    value: bytes
+    identifier: Identifier
+    value: bytes | None
 
 
 class REGISTRY_DATA_SERIALIZER:
     @classmethod
     def serialize(cls, item: RegistryPacket) -> bytes:
         writer = ByteWriter()
-        writer.write_string(item.key)
-        writer.write_boolean(item.existing)
-        writer.write_byte_array(item.value)
+        writer.write_string(item.identifier.key())
+        writer.write_boolean(item.value is not None)
+        if item.value is not None:
+            writer.write_byte_array(item.value)
         return writer.finish()
 
     @classmethod
     def deserialize(cls, item: bytes) -> RegistryPacket:
         with ByteReader(item) as reader:
-            key = reader.read_string()
+            key = Identifier.from_key(reader.read_string())
             existing = reader.read_boolean()
-            value = reader.read_byte_array()
-            return RegistryPacket(key, existing, value)
+            value = reader.read_byte_array() if existing else None
+        return RegistryPacket(key, value)
 
 
 REGISTRY_UPDATE_PACKET = PacketType[RegistryPacket].create_serialized(
@@ -51,8 +51,12 @@ REGISTRY_UPDATE_PACKET = PacketType[RegistryPacket].create_serialized(
     "update",
     serializer=REGISTRY_DATA_SERIALIZER,
 )
-REGISTRY_LISTEN_PACKET = PacketType[str].create_json(REGISTRY_EXTENSION_TYPE, "listen")
-REGISTRY_GET_ENDPOINT = EndpointType[str, RegistryPacket].create_serialized(
+REGISTRY_LISTEN_PACKET = PacketType[Identifier].create_json(
+    REGISTRY_EXTENSION_TYPE,
+    "listen",
+    Serializer.model(Identifier),
+)
+REGISTRY_GET_ENDPOINT = EndpointType[Identifier, RegistryPacket].create_serialized(
     REGISTRY_EXTENSION_TYPE,
     "get",
     request_serializer=Serializer.model(Identifier).to_json(),
@@ -90,16 +94,22 @@ class RegistryImpl[T](Registry[T]):
         self.identifier = identifier
         self.default_value = default_value
         self.serializer = serializer
-        self.key = identifier.key()
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
         client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._on_update)
 
     async def get(self) -> T:
-        result = await self.client.endpoints.call(REGISTRY_GET_ENDPOINT, self.key)
-        if not result.existing:
+        result = await self.client.endpoints.call(
+            REGISTRY_GET_ENDPOINT, self.identifier
+        )
+        if result.value is None:
             return self.default_value
-        return self.serializer.deserialize(result.value)
+        try:
+            return self.serializer.deserialize(result.value)
+        except SerializeError as e:
+            raise SerializeError(
+                f"Failed to deserialize registry value for identifier {self.identifier}"
+            ) from e
 
     async def update(self, handler: Coro[[T], T]) -> None:
         value = await self.get()
@@ -107,16 +117,15 @@ class RegistryImpl[T](Registry[T]):
         await self.client.send(
             REGISTRY_UPDATE_PACKET,
             RegistryPacket(
-                self.key,
-                True,
-                self.serializer.serialize(new_value),
+                identifier=self.identifier,
+                value=self.serializer.serialize(new_value),
             ),
         )
 
     def listen(self, handler: Coro[[T], None]) -> Callable[[], None]:
         if not self.listening:
             self.client.network.add_task(
-                lambda: self.client.send(REGISTRY_LISTEN_PACKET, self.key)
+                lambda: self.client.send(REGISTRY_LISTEN_PACKET, self.identifier)
             )
             self.listening = True
 
@@ -124,10 +133,15 @@ class RegistryImpl[T](Registry[T]):
         return lambda: self.listeners.remove(handler)
 
     async def _on_update(self, event: RegistryPacket) -> None:
-        if event.key != self.key:
+        if event.identifier != self.identifier:
             return
-        if event.existing:
-            value = self.serializer.deserialize(event.value)
+        if event.value is not None:
+            try:
+                value = self.serializer.deserialize(event.value)
+            except SerializeError as e:
+                raise SerializeError(
+                    f"Failed to deserialize registry value for identifier {self.identifier}"
+                ) from e
         else:
             value = self.default_value
         for listener in self.listeners:

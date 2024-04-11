@@ -6,20 +6,21 @@ from loguru import logger
 from omu.extension.server.server_extension import (
     APPS_TABLE_TYPE,
     SHUTDOWN_ENDPOINT_TYPE,
+    VERSION_REGISTRY_TYPE,
 )
-from omu.serializer import Serializer
 
 from omuserver import __version__
 from omuserver.helper import get_launch_command
 
 if TYPE_CHECKING:
     from omuserver.server import Server
-    from omuserver.session.session import Session
+    from omuserver.session import Session
 
 
 class ServerExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
+        self.version_registry = self._server.registry.create(VERSION_REGISTRY_TYPE)
         server.network.listeners.connected += self.on_connected
         server.network.listeners.disconnected += self.on_disconnected
         server.listeners.start += self.on_start
@@ -40,15 +41,8 @@ class ServerExtension:
             self._server.loop.stop()
 
     async def on_start(self) -> None:
+        await self.version_registry.set(__version__)
         self.apps = await self._server.tables.register_table(APPS_TABLE_TYPE)
-        version = await self._server.registry.create(
-            "server:version", __version__, Serializer.json()
-        )
-        await version.set(__version__)
-        directories = await self._server.registry.create(
-            "server:directories", self._server.directories.to_json(), Serializer.json()
-        )
-        await directories.set(self._server.directories.to_json())
         await self.apps.clear()
 
     async def on_connected(self, session: Session) -> None:

@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Dict
 
 from omu import Identifier
 from omu.extension.registry.registry_extension import (
@@ -13,27 +13,25 @@ from omuserver.session import Session
 
 class ServerRegistry:
     def __init__(self, server: Server, identifier: Identifier) -> None:
-        self._key = identifier.key()
+        self.identifier = identifier
         self._listeners: Dict[str, Session] = {}
         self._path = server.directories.get(
             "registry"
         ) / identifier.to_path().with_suffix(".json")
         self._changed = False
-        self.existing = self._path.exists()
-        self.data: bytes = b""
+        self.data: bytes | None = None
 
-    async def load(self) -> Any:
-        if self.data is None:
-            if self._path.exists():
-                self.data = self._path.read_bytes()
-            else:
-                self.data = b""
-        return self.data
+    async def load(self):
+        if self._path.exists():
+            self.data = self._path.read_bytes()
 
-    async def store(self, value: bytes) -> None:
+    async def store(self, value: bytes | None) -> None:
         self.data = value
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_bytes(value)
+        if value is None:
+            self._path.unlink(missing_ok=True)
+        else:
+            self._path.write_bytes(value)
         await self._notify()
 
     async def _notify(self) -> None:
@@ -42,7 +40,7 @@ class ServerRegistry:
                 raise Exception(f"Session {listener.app=} closed")
             await listener.send(
                 REGISTRY_UPDATE_PACKET,
-                RegistryPacket(key=self._key, existing=self.existing, value=self.data),
+                RegistryPacket(identifier=self.identifier, value=self.data),
             )
 
     async def attach_session(self, session: Session) -> None:
@@ -52,7 +50,7 @@ class ServerRegistry:
         session.listeners.disconnected += self.detach_session
         await session.send(
             REGISTRY_UPDATE_PACKET,
-            RegistryPacket(key=self._key, existing=self.existing, value=self.data),
+            RegistryPacket(identifier=self.identifier, value=self.data),
         )
 
     async def detach_session(self, session: Session) -> None:
@@ -74,7 +72,7 @@ class Registry[T]:
         self._serializer = serializer
 
     async def get(self) -> T:
-        if not self._registry.existing:
+        if self._registry.data is None:
             return self._default_value
         return self._serializer.deserialize(self._registry.data)
 

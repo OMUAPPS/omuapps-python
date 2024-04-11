@@ -2,6 +2,7 @@ from omu.app import App
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
+from omu.extension.registry import RegistryType
 from omu.extension.table import TABLE_EXTENSION_TYPE, TableType
 
 SERVER_EXTENSION_TYPE = ExtensionType(
@@ -16,6 +17,11 @@ APPS_TABLE_TYPE = TableType.create_model(
 SHUTDOWN_ENDPOINT_TYPE = EndpointType[bool, bool].create_json(
     SERVER_EXTENSION_TYPE,
     "shutdown",
+)
+VERSION_REGISTRY_TYPE = RegistryType[str | None].create_json(
+    SERVER_EXTENSION_TYPE,
+    "version",
+    default_value=None,
 )
 
 

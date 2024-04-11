@@ -2,7 +2,7 @@ from typing import List
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
-from omu.extension.registry.registry import RegistryType
+from omu.extension.registry import RegistryType
 from omu.localization import Locale, LocalizedText
 
 I18N_EXTENSION_TYPE = ExtensionType(
