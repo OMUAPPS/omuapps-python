@@ -14,13 +14,13 @@ class EventEmitter[**P]:
     ) -> None:
         self.on_subscribe = on_subscribe
         self.on_empty = on_empty
-        self._listeners: List[Coro[P, None]] = []
+        self._listeners: List[Callable[P, None] | Coro[P, None]] = []
 
     @property
     def empty(self) -> bool:
         return len(self._listeners) == 0
 
-    def subscribe(self, listener: Coro[P, None]) -> None:
+    def subscribe(self, listener: Callable[P, None] | Coro[P, None]) -> None:
         if listener in self._listeners:
             raise ValueError("Listener already subscribed")
         if self.on_subscribe and len(self._listeners) == 0:
@@ -29,7 +29,7 @@ class EventEmitter[**P]:
                 asyncio.create_task(coroutine)
         self._listeners.append(listener)
 
-    def unsubscribe(self, listener: Coro[P, None]) -> None:
+    def unsubscribe(self, listener: Callable[P, None] | Coro[P, None]) -> None:
         if listener not in self._listeners:
             return
         self._listeners.remove(listener)
@@ -38,16 +38,19 @@ class EventEmitter[**P]:
             if asyncio.iscoroutine(coroutine):
                 asyncio.create_task(coroutine)
 
-    def __iadd__(self, listener: Coro[P, None]) -> Self:
+    def __iadd__(self, listener: Callable[P, None] | Coro[P, None]) -> Self:
         self.subscribe(listener)
         return self
 
-    def __isub__(self, listener: Coro[P, None]) -> Self:
+    def __isub__(self, listener: Callable[P, None] | Coro[P, None]) -> Self:
         self.unsubscribe(listener)
         return self
 
     async def emit(self, *args: P.args, **kwargs: P.kwargs) -> None:
         for listener in tuple(self._listeners):
-            await listener(*args, **kwargs)
+            if asyncio.iscoroutinefunction(listener):
+                await listener(*args, **kwargs)
+            else:
+                listener(*args, **kwargs)
 
     __call__ = emit
