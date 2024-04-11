@@ -138,7 +138,7 @@ class TableType[T]:
     ) -> TableType[_T]:
         return TableType(
             identifier=identifier / name,
-            serializer=Serializer.model(model_type).pipe(Serializer.json()),
+            serializer=Serializer.model(model_type).to_json(),
             key_func=lambda item: item.key(),
         )
 

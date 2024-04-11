@@ -55,7 +55,7 @@ REGISTRY_LISTEN_PACKET = PacketType[str].create_json(REGISTRY_EXTENSION_TYPE, "l
 REGISTRY_GET_ENDPOINT = EndpointType[str, RegistryPacket].create_serialized(
     REGISTRY_EXTENSION_TYPE,
     "get",
-    request_serializer=Serializer.json(),
+    request_serializer=Serializer.model(Identifier).to_json(),
     response_serializer=REGISTRY_DATA_SERIALIZER,
 )
 

@@ -74,7 +74,7 @@ class TableExtension(Extension):
             return self._tables[identifier]
         return self.create(
             identifier,
-            Serializer.model(model_type).pipe(Serializer.json()),
+            Serializer.model(model_type).to_json(),
             lambda item: item.key(),
         )
 

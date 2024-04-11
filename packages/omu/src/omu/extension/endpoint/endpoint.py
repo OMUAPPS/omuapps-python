@@ -25,10 +25,10 @@ class EndpointType[Req, Res]:
             identifier=identifier / name,
             request_serializer=Serializer.of(
                 request_serializer or Serializer.noop()
-            ).pipe(Serializer.json()),
+            ).to_json(),
             response_serializer=Serializer.of(
                 response_serializer or Serializer.noop()
-            ).pipe(Serializer.json()),
+            ).to_json(),
         )
 
     @classmethod

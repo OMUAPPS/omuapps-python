@@ -47,6 +47,9 @@ class Serializer[T, D](Serializable[T, D]):
     def json(cls) -> Serializer[T, bytes]:
         return JsonSerializer()
 
+    def to_json(self) -> Serializer[T, bytes]:
+        return self.pipe(JsonSerializer())
+
     def to_array(self) -> Serializer[list[T], list[D]]:
         return ArraySerializer(self)
 
