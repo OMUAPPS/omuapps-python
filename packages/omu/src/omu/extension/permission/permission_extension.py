@@ -51,10 +51,11 @@ class PermissionExtension(Extension):
             PERMISSION_REGISTER_PACKET,
             [*self.registered_permissions.values()],
         )
-        await self.client.endpoints.call(
-            PERMISSION_REQUEST_ENDPOINT,
-            [*self.required_permissions.keys()],
-        )
+        if len(self.required_permissions) > 0:
+            await self.client.endpoints.call(
+                PERMISSION_REQUEST_ENDPOINT,
+                [*self.required_permissions.keys()],
+            )
 
     async def handle_grant(self, permissions: List[PermissionType]):
         self.permissions = permissions
