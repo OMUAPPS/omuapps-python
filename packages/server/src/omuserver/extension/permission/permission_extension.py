@@ -45,6 +45,11 @@ class PermissionExtension:
         self, session: Session, permissions: List[PermissionType]
     ) -> None:
         for permission in permissions:
+            if not permission.identifier.is_subpart_of(session.app.identifier):
+                raise ValueError(
+                    f"Permission identifier {permission.identifier} "
+                    f"is not a subpart of app identifier {session.app.identifier}"
+                )
             self.permission_registry[permission.identifier] = permission
 
     async def handle_request(
