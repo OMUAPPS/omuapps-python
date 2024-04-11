@@ -9,6 +9,7 @@ from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
+from omu.serializer import Serializer
 
 from .message import Message, MessageType
 
@@ -21,31 +22,35 @@ MESSAGE_EXTENSION_TYPE = ExtensionType(
 
 @dataclass
 class MessagePacket:
-    key: str
+    id: Identifier
     body: bytes
 
 
-class MESSAGE_SERIALIZER:
+class MessageSerializer:
     @classmethod
     def serialize(cls, item: MessagePacket) -> bytes:
         writer = ByteWriter()
-        writer.write_string(item.key)
+        writer.write_string(item.id.key())
         writer.write_byte_array(item.body)
         return writer.finish()
 
     @classmethod
     def deserialize(cls, item: bytes) -> MessagePacket:
         with ByteReader(item) as reader:
-            key = reader.read_string()
+            key = Identifier.from_key(reader.read_string())
             body = reader.read_byte_array()
-        return MessagePacket(key=key, body=body)
+        return MessagePacket(id=key, body=body)
 
 
-MESSAGE_LISTEN_PACKET = PacketType[str].create_json(MESSAGE_EXTENSION_TYPE, "listen")
+MESSAGE_LISTEN_PACKET = PacketType[Identifier].create_json(
+    MESSAGE_EXTENSION_TYPE,
+    "listen",
+    serializer=Serializer.model(Identifier),
+)
 MESSAGE_BROADCAST_PACKET = PacketType[MessagePacket].create_serialized(
     MESSAGE_EXTENSION_TYPE,
     "broadcast",
-    MESSAGE_SERIALIZER(),
+    MessageSerializer,
 )
 
 
@@ -73,7 +78,7 @@ class MessageExtension(Extension):
 class MessageImpl[T](Message):
     def __init__(self, client: Client, message_type: MessageType[T]):
         self.client = client
-        self.key = message_type.identifier.key()
+        self.identifier = message_type.identifier
         self.serializer = message_type.serializer
         self.listeners = []
         self.listening = False
@@ -83,21 +88,24 @@ class MessageImpl[T](Message):
         data = self.serializer.serialize(body)
         await self.client.send(
             MESSAGE_BROADCAST_PACKET,
-            MessagePacket(key=self.key, body=data),
+            MessagePacket(id=self.identifier, body=data),
         )
 
     def listen(self, listener: Coro[[T], None]) -> Callable[[], None]:
-        self.listeners.append(listener)
         if not self.listening:
-            self.client.network.add_task(self._listen)
+            self.client.network.add_task(self._send_listen)
             self.listening = True
+
+        self.listeners.append(listener)
         return lambda: self.listeners.remove(listener)
 
-    async def _listen(self) -> None:
-        await self.client.send(MESSAGE_LISTEN_PACKET, self.key)
+    async def _send_listen(self) -> None:
+        await self.client.send(MESSAGE_LISTEN_PACKET, self.identifier)
 
     async def _on_broadcast(self, data: MessagePacket) -> None:
-        if data.key != self.key:
+        if data.id != self.identifier:
             return
+
+        body = self.serializer.deserialize(data.body)
         for listener in self.listeners:
-            await listener(data.body)
+            await listener(body)

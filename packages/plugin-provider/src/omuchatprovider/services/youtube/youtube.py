@@ -11,7 +11,7 @@ from typing import Dict, List, Mapping, Tuple, TypedDict
 import bs4
 from iwashi.visitors.youtube.youtube import Youtube
 from loguru import logger
-from omu.extension.message.message import MessageType
+from omu.extension.message import MessageType
 from omu.helper import map_optional
 from omuchat.client import Client
 from omuchat.model import (
