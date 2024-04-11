@@ -47,7 +47,8 @@ class EventEmitter[**P]:
         return self
 
     async def emit(self, *args: P.args, **kwargs: P.kwargs) -> None:
-        for listener in self._listeners:
+        for listener in tuple(self._listeners):
+            print("listener", listener)
             await listener(*args, **kwargs)
 
     __call__ = emit
