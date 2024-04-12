@@ -143,6 +143,17 @@ class PluginLoader:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.plugins: Dict[str, Plugin] = {}
+        server.listeners.start += self.handle_server_start
+
+    async def handle_server_start(self) -> None:
+        for plugin in self.plugins.values():
+            if plugin.on_start_server is not None:
+                await plugin.on_start_server(self._server)
+
+    async def handle_server_stop(self) -> None:
+        for plugin in self.plugins.values():
+            if plugin.on_stop_server is not None:
+                await plugin.on_stop_server(self._server)
 
     async def load_plugins(self) -> None:
         await self.run_plugins()
@@ -174,7 +185,7 @@ class PluginLoader:
     async def run_plugin(self, plugin: Plugin):
         if plugin.isolated:
             process = Process(
-                target=run_plugin_process,
+                target=run_plugin_isolated,
                 args=(
                     plugin,
                     self._server.address,
@@ -183,17 +194,20 @@ class PluginLoader:
             )
             process.start()
         else:
-            plugin_client = plugin.get_client()
-            connection = PluginConnection()
-            plugin_client.network.set_connection(connection)
-            await plugin_client.start()
-            session_connection = PluginSessionConnection(connection)
-            session = await Session.from_connection(
-                self._server,
-                self._server.packet_dispatcher.packet_mapper,
-                session_connection,
-            )
-            self._server.loop.create_task(self._server.network.process_session(session))
+            if plugin.get_client is not None:
+                plugin_client = plugin.get_client()
+                connection = PluginConnection()
+                plugin_client.network.set_connection(connection)
+                await plugin_client.start()
+                session_connection = PluginSessionConnection(connection)
+                session = await Session.from_connection(
+                    self._server,
+                    self._server.packet_dispatcher.packet_mapper,
+                    session_connection,
+                )
+                self._server.loop.create_task(
+                    self._server.network.process_session(session)
+                )
 
     def load_plugin_from_entry_point(
         self, entry_point: importlib.metadata.EntryPoint
@@ -211,10 +225,12 @@ def handle_exception(loop: asyncio.AbstractEventLoop, context: dict) -> None:
         raise exception
 
 
-def run_plugin_process(
+def run_plugin_isolated(
     plugin: Plugin,
     address: Address,
 ) -> None:
+    if plugin.get_client is None:
+        raise ValueError(f"Invalid plugin: {plugin} has no client")
     client = plugin.get_client()
     connection = WebsocketsConnection(client, address)
     client.network.set_connection(connection)
