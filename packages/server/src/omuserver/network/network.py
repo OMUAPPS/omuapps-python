@@ -145,6 +145,6 @@ class Network:
 
 class NetworkListeners:
     def __init__(self) -> None:
-        self.start = EventEmitter()
+        self.start = EventEmitter[[]]()
         self.connected = EventEmitter[Session]()
         self.disconnected = EventEmitter[Session]()

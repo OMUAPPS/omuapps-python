@@ -70,9 +70,7 @@ class Network:
             raise ValueError(f"Event type {packet_type.identifier} not registered")
 
         def decorator(func: Coro[[T], None]) -> None:
-            self._packet_handlers[packet_type.identifier].listeners.subscribe(
-                func
-            )
+            self._packet_handlers[packet_type.identifier].listeners.subscribe(func)
 
         if packet_handler:
             decorator(packet_handler)
@@ -163,7 +161,7 @@ type NetworkStatus = Literal["connecting", "connected", "disconnected"]
 
 class NetworkListeners:
     def __init__(self) -> None:
-        self.connected = EventEmitter()
-        self.disconnected = EventEmitter()
+        self.connected = EventEmitter[[]]()
+        self.disconnected = EventEmitter[[]]()
         self.packet = EventEmitter[Packet]()
         self.status = EventEmitter[NetworkStatus]()

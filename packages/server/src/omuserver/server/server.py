@@ -26,8 +26,8 @@ if TYPE_CHECKING:
 
 class ServerListeners:
     def __init__(self) -> None:
-        self.start = EventEmitter()
-        self.stop = EventEmitter()
+        self.start = EventEmitter[[]]()
+        self.stop = EventEmitter[[]]()
 
 
 class Server(abc.ABC):

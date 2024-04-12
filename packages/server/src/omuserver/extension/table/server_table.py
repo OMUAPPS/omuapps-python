@@ -92,8 +92,8 @@ class ServerTable(abc.ABC):
 
 class ServerTableListeners:
     def __init__(self) -> None:
-        self.add: EventEmitter[Mapping[str, bytes]] = EventEmitter()
-        self.update: EventEmitter[Mapping[str, bytes]] = EventEmitter()
-        self.remove: EventEmitter[Mapping[str, bytes]] = EventEmitter()
-        self.clear: EventEmitter[[]] = EventEmitter()
-        self.cache_update: EventEmitter[Mapping[str, bytes]] = EventEmitter()
+        self.add = EventEmitter[Mapping[str, bytes]]()
+        self.update = EventEmitter[Mapping[str, bytes]]()
+        self.remove = EventEmitter[Mapping[str, bytes]]()
+        self.clear = EventEmitter[[]]()
+        self.cache_update = EventEmitter[Mapping[str, bytes]]()
