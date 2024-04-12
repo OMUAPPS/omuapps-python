@@ -25,7 +25,8 @@ class RegistryExtension:
         self.registries: Dict[Identifier, ServerRegistry] = {}
         self._startup_registries: List[ServerRegistry] = []
         server.packet_dispatcher.register(
-            REGISTRY_LISTEN_PACKET, REGISTRY_UPDATE_PACKET
+            REGISTRY_LISTEN_PACKET,
+            REGISTRY_UPDATE_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
             REGISTRY_LISTEN_PACKET, self.handle_listen

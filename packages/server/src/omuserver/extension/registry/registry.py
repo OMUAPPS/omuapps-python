@@ -14,7 +14,7 @@ from omuserver.session import Session
 class ServerRegistry:
     def __init__(self, server: Server, identifier: Identifier) -> None:
         self.identifier = identifier
-        self._listeners: Dict[str, Session] = {}
+        self._listeners: Dict[Identifier, Session] = {}
         self._path = server.directories.get(
             "registry"
         ) / identifier.to_path().with_suffix(".json")
@@ -44,9 +44,9 @@ class ServerRegistry:
             )
 
     async def attach_session(self, session: Session) -> None:
-        if session.app.key() in self._listeners:
-            del self._listeners[session.app.key()]
-        self._listeners[session.app.key()] = session
+        if session.app.identifier in self._listeners:
+            raise Exception("Session already attached")
+        self._listeners[session.app.identifier] = session
         session.listeners.disconnected += self.detach_session
         await session.send(
             REGISTRY_UPDATE_PACKET,
@@ -54,9 +54,9 @@ class ServerRegistry:
         )
 
     async def detach_session(self, session: Session) -> None:
-        if session.app.key() not in self._listeners:
+        if session.app.identifier not in self._listeners:
             raise Exception("Session not attached")
-        del self._listeners[session.app.key()]
+        del self._listeners[session.app.identifier]
         session.listeners.disconnected -= self.detach_session
 
 
