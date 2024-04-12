@@ -83,11 +83,14 @@ class OmuServer(Server):
                     "Content-Type": resp.content_type,
                 }
                 resp.raise_for_status()
-                return web.Response(
+                response = web.StreamResponse(
                     status=resp.status,
                     headers=headers,
-                    body=await resp.read(),
                 )
+                await response.prepare(request)
+                async for chunk in resp.content.iter_any():
+                    await response.write(chunk)
+                return response
         except aiohttp.ClientResponseError as e:
             return web.Response(status=e.status, text=e.message)
         except Exception as e:
