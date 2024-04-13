@@ -1,4 +1,5 @@
-from typing import List, Mapping
+from dataclasses import dataclass
+from typing import List
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -12,42 +13,79 @@ ASSET_EXTENSION_TYPE = ExtensionType(
     lambda client: AssetExtension(client),
     lambda: [],
 )
-type Files = Mapping[Identifier, bytes]
 
 
-class FILES_SERIALIZER:
+@dataclass
+class File:
+    identifier: Identifier
+    buffer: bytes
+
+
+class FileSerializer:
     @classmethod
-    def serialize(cls, item: Files) -> bytes:
+    def serialize(cls, item: File) -> bytes:
         writer = ByteWriter()
-        writer.write_int(len(item))
-        for identifier, value in item.items():
-            writer.write_string(identifier.key())
-            writer.write_byte_array(value)
+        writer.write_string(item.identifier.key())
+        writer.write_byte_array(item.buffer)
         return writer.finish()
 
     @classmethod
-    def deserialize(cls, item: bytes) -> Files:
+    def deserialize(cls, item: bytes) -> File:
+        with ByteReader(item) as reader:
+            identifier = Identifier.from_key(reader.read_string())
+            value = reader.read_byte_array()
+        return File(identifier, value)
+
+
+class FileArraySerializer:
+    @classmethod
+    def serialize(cls, item: List[File]) -> bytes:
+        writer = ByteWriter()
+        writer.write_int(len(item))
+        for file in item:
+            writer.write_string(file.identifier.key())
+            writer.write_byte_array(file.buffer)
+        return writer.finish()
+
+    @classmethod
+    def deserialize(cls, item: bytes) -> List[File]:
         with ByteReader(item) as reader:
             count = reader.read_int()
-            files: Files = {}
+            files: List[File] = []
             for _ in range(count):
                 identifier = Identifier.from_key(reader.read_string())
                 value = reader.read_byte_array()
-                files[identifier] = value
+                files.append(File(identifier, value))
         return files
 
 
-ASSET_UPLOAD_ENDPOINT = EndpointType[Files, List[Identifier]].create_serialized(
+ASSET_UPLOAD_ENDPOINT = EndpointType[File, Identifier].create_serialized(
     ASSET_EXTENSION_TYPE,
     "upload",
-    request_serializer=FILES_SERIALIZER,
+    request_serializer=FileSerializer,
+    response_serializer=Serializer.model(Identifier).to_json(),
+)
+ASSET_UPLOAD_MANY_ENDPOINT = EndpointType[
+    List[File], List[Identifier]
+].create_serialized(
+    ASSET_EXTENSION_TYPE,
+    "upload_many",
+    request_serializer=FileArraySerializer,
     response_serializer=Serializer.model(Identifier).to_array().to_json(),
 )
-ASSET_DOWNLOAD_ENDPOINT = EndpointType[List[Identifier], Files].create_serialized(
+ASSET_DOWNLOAD_ENDPOINT = EndpointType[Identifier, File].create_serialized(
     ASSET_EXTENSION_TYPE,
     "download",
+    request_serializer=Serializer.model(Identifier).to_json(),
+    response_serializer=FileSerializer,
+)
+ASSET_DOWNLOAD_MANY_ENDPOINT = EndpointType[
+    List[Identifier], List[File]
+].create_serialized(
+    ASSET_EXTENSION_TYPE,
+    "download_many",
     request_serializer=Serializer.model(Identifier).to_array().to_json(),
-    response_serializer=FILES_SERIALIZER,
+    response_serializer=FileArraySerializer,
 )
 
 
@@ -55,11 +93,19 @@ class AssetExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
 
-    async def upload(self, assets: Files) -> List[Identifier]:
-        return await self.client.endpoints.call(ASSET_UPLOAD_ENDPOINT, assets)
+    async def upload(self, file: File) -> Identifier:
+        return await self.client.endpoints.call(ASSET_UPLOAD_ENDPOINT, file)
 
-    async def download(self, identifiers: List[Identifier]) -> Files:
-        return await self.client.endpoints.call(ASSET_DOWNLOAD_ENDPOINT, identifiers)
+    async def upload_many(self, files: List[File]) -> List[Identifier]:
+        return await self.client.endpoints.call(ASSET_UPLOAD_MANY_ENDPOINT, files)
+
+    async def download(self, identifier: Identifier) -> File:
+        return await self.client.endpoints.call(ASSET_DOWNLOAD_ENDPOINT, identifier)
+
+    async def download_many(self, identifiers: List[Identifier]) -> List[File]:
+        return await self.client.endpoints.call(
+            ASSET_DOWNLOAD_MANY_ENDPOINT, identifiers
+        )
 
     def url(self, identifier: Identifier) -> str:
         address = self.client.network.address
