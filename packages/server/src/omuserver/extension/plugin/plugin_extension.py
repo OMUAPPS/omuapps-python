@@ -27,6 +27,7 @@ class PluginExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.lock = asyncio.Lock()
+        server.listeners.start += self.on_server_start
         self.loader = PluginLoader(server)
         self.dependency_resolver = DependencyResolver()
         server.packet_dispatcher.register(
@@ -43,7 +44,6 @@ class PluginExtension:
         server.permissions.register(
             PLUGIN_PERMISSION,
         )
-        server.listeners.start += self.on_server_start
 
     async def on_server_start(self) -> None:
         await self.loader.load_plugins()

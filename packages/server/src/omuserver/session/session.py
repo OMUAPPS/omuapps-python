@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING, Tuple
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
 from omu.network.packet.packet_types import ConnectPacket
-from omu.network.packet_mapper import PacketMapper
-
-from omuserver.server.server import Server
 
 if TYPE_CHECKING:
     from omu import App
+    from omu.network.packet_mapper import PacketMapper
+
+    from omuserver.server import Server
 
 
 class SessionConnection(abc.ABC):

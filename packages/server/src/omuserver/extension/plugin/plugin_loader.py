@@ -144,6 +144,7 @@ class PluginLoader:
         self._server = server
         self.plugins: Dict[str, Plugin] = {}
         server.listeners.start += self.handle_server_start
+        server.listeners.stop += self.handle_server_stop
 
     async def handle_server_start(self) -> None:
         for plugin in self.plugins.values():
