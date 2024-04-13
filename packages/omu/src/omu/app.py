@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Final, NotRequired, TypedDict
+from typing import Final, List, NotRequired, TypedDict
 
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -9,7 +9,7 @@ from omu.localization.locale import Locale
 from omu.model import Model
 
 
-class AppLocalization(TypedDict):
+class AppMetadata(TypedDict):
     locale: Locale
     name: NotRequired[LocalizedText]
     description: NotRequired[LocalizedText]
@@ -18,13 +18,14 @@ class AppLocalization(TypedDict):
     repository: NotRequired[LocalizedText]
     authors: NotRequired[LocalizedText]
     license: NotRequired[LocalizedText]
+    tags: NotRequired[List[str]]
 
 
 class AppJson(TypedDict):
     identifier: str
     version: NotRequired[str] | None
     url: NotRequired[str] | None
-    localizations: NotRequired[AppLocalization] | None
+    metadata: NotRequired[AppMetadata] | None
 
 
 class App(Keyable, Model[AppJson]):
@@ -34,14 +35,14 @@ class App(Keyable, Model[AppJson]):
         *,
         version: str | None = None,
         url: str | None = None,
-        localizations: AppLocalization | None = None,
+        metadata: AppMetadata | None = None,
     ) -> None:
         if isinstance(identifier, str):
             identifier = Identifier.from_key(identifier)
         self.identifier: Final[Identifier] = identifier
         self.version = version
         self.url = url
-        self.localizations = localizations
+        self.metadata = metadata
 
     @classmethod
     def from_json(cls, json: AppJson) -> App:
@@ -50,7 +51,7 @@ class App(Keyable, Model[AppJson]):
             identifier,
             version=json.get("version"),
             url=json.get("url"),
-            localizations=json.get("localizations"),
+            metadata=json.get("metadata"),
         )
 
     def to_json(self) -> AppJson:
@@ -58,7 +59,7 @@ class App(Keyable, Model[AppJson]):
             identifier=self.key(),
             version=self.version,
             url=self.url,
-            localizations=self.localizations,
+            metadata=self.metadata,
         )
 
     def key(self) -> str:
