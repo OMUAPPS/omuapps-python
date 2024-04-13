@@ -6,22 +6,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4.1.2
+
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5.1.0
         with:
           python-version: "3.x"
+
       - name: Install rye
-        uses: eifinger/setup-rye@v2.2.0
+        uses: eifinger/setup-rye@v2.5.2
         with:
           enable-cache: true
           cache-prefix: "rye"
+
       - name: Install dependencies
         run: |
           rye sync
+
       - name: Build
         run: |
           rye build --all
+
       - name: Publish a Python distribution to PyPI
         run: |
           python -m pip install --upgrade pip
