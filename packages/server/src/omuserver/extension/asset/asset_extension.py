@@ -33,14 +33,14 @@ class FileStorage(AssetStorage):
         self._path = path
 
     async def store(self, file: File) -> Identifier:
-        path = file.identifier.to_path()
+        path = file.identifier.get_sanitized_path()
         file_path = safe_path_join(self._path, path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_bytes(file.buffer)
         return file.identifier
 
     async def retrieve(self, identifier: Identifier) -> File:
-        path = identifier.to_path()
+        path = identifier.get_sanitized_path()
         file_path = safe_path_join(self._path, path)
         return File(identifier, file_path.read_bytes())
 

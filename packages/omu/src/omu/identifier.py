@@ -73,7 +73,7 @@ class Identifier(Model[str], Keyable):
     def key(self) -> str:
         return self.format(self.namespace, *self.path)
 
-    def to_path(self) -> Path:
+    def get_sanitized_path(self) -> Path:
         namespace = (
             f"{sanitize_filename(self.namespace)}-{generate_md5_hash(self.namespace)}"
         )

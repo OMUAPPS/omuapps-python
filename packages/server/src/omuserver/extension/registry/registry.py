@@ -17,7 +17,7 @@ class ServerRegistry:
         self._listeners: Dict[Identifier, Session] = {}
         self._path = server.directories.get(
             "registry"
-        ) / identifier.to_path().with_suffix(".json")
+        ) / identifier.get_sanitized_path().with_suffix(".json")
         self._changed = False
         self.data: bytes | None = None
 

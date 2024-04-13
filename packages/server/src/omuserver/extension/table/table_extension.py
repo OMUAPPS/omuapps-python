@@ -178,7 +178,7 @@ class TableExtension:
         return table
 
     def get_table_path(self, identifier: Identifier) -> Path:
-        path = self._server.directories.get("tables") / identifier.to_path()
+        path = self._server.directories.get("tables") / identifier.get_sanitized_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 

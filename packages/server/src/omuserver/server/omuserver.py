@@ -102,7 +102,7 @@ class OmuServer(Server):
         if not id:
             return web.Response(status=400)
         identifier = Identifier.from_key(id)
-        path = identifier.to_path()
+        path = identifier.get_sanitized_path()
         try:
             path = safe_path_join(self._directories.assets, path)
 
