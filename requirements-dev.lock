@@ -15,12 +15,14 @@
     # via omuplugin-chat
     # via omuplugin-emoji
     # via omuplugin-nyanya
+    # via omuplugin-obssync
     # via omuplugin-onecomme
     # via omuplugin-translator
 -e file:packages/plugin-provider
 -e file:packages/plugin-chat
 -e file:packages/plugin-emoji
 -e file:packages/plugin-nyanya
+-e file:packages/plugin-obssync
 -e file:packages/plugin-onecomme
 -e file:packages/plugin-translator
 -e file:packages/server
@@ -80,6 +82,7 @@ packaging==24.0
 pluggy==1.4.0
     # via pytest
 psutil==5.9.8
+    # via omuplugin-obssync
     # via omuserver
 pyright==1.1.355
 pytest==8.1.1

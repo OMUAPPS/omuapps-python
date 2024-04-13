@@ -1,0 +1,24 @@
+[project]
+name = "omuplugin_obssync"
+version = "0.2.4"
+description = "Add your description here"
+authors = [
+    { name = "am230", email = "111672334+am230@users.noreply.github.com" },
+]
+dependencies = ["omuchat>=0.1.9", "psutil>=5.9.8"]
+readme = "README.md"
+requires-python = ">= 3.12"
+
+[project.entry-points."omu.plugins"]
+plugin = "omuplugin_obssync:plugin"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true

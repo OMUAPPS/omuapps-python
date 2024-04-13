@@ -15,12 +15,14 @@
     # via omuplugin-chat
     # via omuplugin-emoji
     # via omuplugin-nyanya
+    # via omuplugin-obssync
     # via omuplugin-onecomme
     # via omuplugin-translator
 -e file:packages/plugin-provider
 -e file:packages/plugin-chat
 -e file:packages/plugin-emoji
 -e file:packages/plugin-nyanya
+-e file:packages/plugin-obssync
 -e file:packages/plugin-onecomme
 -e file:packages/plugin-translator
 -e file:packages/server
@@ -69,6 +71,7 @@ multidict==6.0.5
 packaging==24.0
     # via omuserver
 psutil==5.9.8
+    # via omuplugin-obssync
     # via omuserver
 soupsieve==2.5
     # via beautifulsoup4
