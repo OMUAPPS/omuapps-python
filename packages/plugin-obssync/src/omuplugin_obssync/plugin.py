@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, List, TypedDict
 
@@ -75,17 +77,14 @@ def script_unload():
 """
 
 
-def get_scene_folder():
-    import os
-    import sys
-
+def get_obs_path():
     if sys.platform == "win32":
         APP_DATA = os.getenv("APPDATA")
         if not APP_DATA:
             raise Exception("APPDATA not found")
-        return Path(APP_DATA) / "obs-studio" / "basic" / "scenes"
+        return Path(APP_DATA) / "obs-studio"
     else:
-        return Path("~/.config/obs-studio/basic/scenes").expanduser()
+        return Path("~/.config/obs-studio").expanduser()
 
 
 def install(launcher: Path, scene: Path):
@@ -99,11 +98,12 @@ def install(launcher: Path, scene: Path):
 
 
 def install_all_scene():
-    launcher = Path(__file__).parent / "_launcher.py"
-    launcher.write_text(generate_launcher_code())
-    scene_folder = get_scene_folder()
-    for scene in scene_folder.glob("*.json"):
-        install(launcher, scene)
+    obs_path = get_obs_path()
+    scenes_path = obs_path / "basic" / "scenes"
+    launcher_path = obs_path / "scripts" / "run_omuserver.py"
+    launcher_path.write_text(generate_launcher_code())
+    for scene in scenes_path.glob("*.json"):
+        install(launcher_path, scene)
 
 
 class SceneJson(TypedDict):
