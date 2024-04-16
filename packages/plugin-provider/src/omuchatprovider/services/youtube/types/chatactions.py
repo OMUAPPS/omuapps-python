@@ -1,141 +1,10 @@
-from typing import List, Literal, NotRequired, TypedDict, Union
+from typing import List, Literal, NotRequired, TypedDict
 
-
-class Param(TypedDict):
-    key: str
-    value: str
-
-
-class ServiceTrackingParams(TypedDict):
-    service: str
-    params: List[Param]
-
-
-class MainAppWebResponseContext(TypedDict):
-    loggedOut: bool
-    trackingParam: str
-
-
-class WebResponseContextExtensionData(TypedDict):
-    hasDecorated: bool
-
-
-class ResponseContext(TypedDict):
-    serviceTrackingParams: List[ServiceTrackingParams]
-    mainAppWebResponseContext: MainAppWebResponseContext
-    webResponseContextExtensionData: WebResponseContextExtensionData
-
-
-class InvalidationId(TypedDict):
-    objectSource: int
-    objectId: str
-    topic: str
-    subscribeToGcmTopics: bool
-    protoCreationTimestampMs: str
-
-
-class InvalidationContinuationData(TypedDict):
-    invalidationId: InvalidationId
-    timeoutMs: int
-    continuation: str
-
-
-class Continuation(TypedDict):
-    invalidationContinuationData: NotRequired[InvalidationContinuationData]
-
-
-class Thumbnail(TypedDict):
-    url: str
-    width: int
-    height: int
-
-
-class Thumbnails(TypedDict):
-    thumbnails: List[Thumbnail]
-
-
-class AccessibilityData(TypedDict):
-    label: str
-
-
-class Accessibility(TypedDict):
-    accessibilityData: AccessibilityData
-
-
-class Image(TypedDict):
-    thumbnails: List[Thumbnail]
-    accessibility: NotRequired[Accessibility]
-
-
-class Emoji(TypedDict):
-    emojiId: str
-    shortcuts: List[str]
-    searchTerms: List[str]
-    image: Image
-    isCustomEmoji: bool
-
-
-class TextRun(TypedDict):
-    text: str
-
-
-class UrlEndpoint(TypedDict):
-    url: str
-    target: Literal["TARGET_NEW_WINDOW"]
-    nofollow: bool
-
-
-class WebCommandMetadata(TypedDict):
-    ignoreNavigation: bool
-
-
-class CommandMetadata(TypedDict):
-    webCommandMetadata: WebCommandMetadata
-
-
-class NavigationEndpoint(TypedDict):
-    clickTrackingParams: str
-    commandMetadata: NotRequired[CommandMetadata]
-    urlEndpoint: NotRequired[UrlEndpoint]
-
-
-class LinkRun(TypedDict):
-    """{
-        "text": "https://shop.hololivepro.com/products...",
-        "navigationEndpoint": {
-            "clickTrackingParams": "CAEQl98BIhMIpPTD9bu_hAMVqdA0Bx0ZlAlV",
-            "commandMetadata": {
-                "webCommandMetadata": {
-                    "url": "https://www.youtube.com/redirect?event=live_chat\u0026redir_token=QUFFLUhqbnZxMDlGNUhELWo0MGNCTWRqVE00X2ZSVFRZZ3xBQ3Jtc0tuNlB5UG4waDhiZzZUcFVpNV96Y3JnczBmQ3N6b0dLRlRibnhiWmR5T1lhdzVHYXExR2dDb3hzNnZkT2VvWkFTdXFnS0sxN25EUTBwVXlPR1RNSnY2Y21BQktVS01fMlloNkhDYWdyeVhCc2JMdzJDMA\u0026q=https%3A%2F%2Fshop.hololivepro.com%2Fproducts%2Fnekomataokayu_bd2024",
-                    "webPageType": "WEB_PAGE_TYPE_UNKNOWN",
-                    "rootVe": 83769,
-                }
-            },
-            "urlEndpoint": {
-                "url": "https://www.youtube.com/redirect?event=live_chat\u0026redir_token=QUFFLUhqbnZxMDlGNUhELWo0MGNCTWRqVE00X2ZSVFRZZ3xBQ3Jtc0tuNlB5UG4waDhiZzZUcFVpNV96Y3JnczBmQ3N6b0dLRlRibnhiWmR5T1lhdzVHYXExR2dDb3hzNnZkT2VvWkFTdXFnS0sxN25EUTBwVXlPR1RNSnY2Y21BQktVS01fMlloNkhDYWdyeVhCc2JMdzJDMA\u0026q=https%3A%2F%2Fshop.hololivepro.com%2Fproducts%2Fnekomataokayu_bd2024",
-                "target": "TARGET_NEW_WINDOW",
-                "nofollow": true,
-            },
-        },
-    }"""
-
-    text: str
-    navigationEndpoint: NotRequired[NavigationEndpoint]
-
-
-class EmojiRun(TypedDict):
-    emoji: Emoji
-
-
-type Run = Union[TextRun, LinkRun, EmojiRun]
-
-
-class Runs(TypedDict):
-    runs: List[Run]
-
-
-class SimpleText(TypedDict):
-    simpleText: str
+from .accessibility import Accessibility
+from .image import Image, Thumbnails
+from .runs import Runs
+from .simpletext import SimpleText
+from .urlendpoint import CommandMetadata
 
 
 class LiveChatItemContextMenuEndpoint(TypedDict):
@@ -364,9 +233,7 @@ class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRender
             "id": "ChwKGkNPWEU1OERlcW9RREZhekV3Z1FkVGdNS013",
             "timestampUsec": "1707910568302677",
             "authorExternalChannelId": "UCJcRzyF_5IqKwuezuzid5eQ",
-            "header": {
-
-            }
+            "header": LiveChatSponsorshipsGiftPurchaseAnnouncementRendererHeader
         }
     }
     """
@@ -374,7 +241,7 @@ class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRender
     header: LiveChatSponsorshipsGiftPurchaseAnnouncementRendererHeader
 
 
-class MessageItemData(TypedDict):
+class AddChatItemActionItem(TypedDict):
     liveChatTextMessageRenderer: NotRequired[LiveChatTextMessageRenderer]
     liveChatPaidMessageRenderer: NotRequired[LiveChatPaidMessageRenderer]
     liveChatPaidStickerRenderer: NotRequired[LiveChatPaidStickerRenderer]
@@ -387,140 +254,28 @@ class MessageItemData(TypedDict):
     ]
 
 
-class MessageItem(TypedDict):
-    item: MessageItemData
-
-
 class AddChatItemAction(TypedDict):
-    addChatItemAction: MessageItem
+    item: AddChatItemActionItem
 
 
-class MarkChatItemAsDeletedActionData(TypedDict):
+class MarkChatItemAsDeletedAction(TypedDict):
     deletedStateMessage: Runs
     targetItemId: str
 
 
-class MarkChatItemAsDeletedAction(TypedDict):
-    markChatItemAsDeletedAction: MarkChatItemAsDeletedActionData
+class AddLiveChatTickerItemActionItem(TypedDict):
+    liveChatTickerPaidMessageItemRenderer: dict
 
 
-type ChatAction = Union[AddChatItemAction, MarkChatItemAsDeletedAction]
+class AddLiveChatTickerItemAction(TypedDict):
+    item: AddLiveChatTickerItemActionItem
 
 
-class LiveChatContinuation(TypedDict):
-    continuations: List[Continuation]
-    actions: List[ChatAction]
+class ChatActionsItem(TypedDict):
+    clickTrackingParams: str
+    addChatItemAction: NotRequired[AddChatItemAction]
+    markChatItemAsDeletedAction: NotRequired[MarkChatItemAsDeletedAction]
+    addLiveChatTickerItemAction: NotRequired[AddLiveChatTickerItemAction]
 
 
-class ContinuationContents(TypedDict):
-    liveChatContinuation: LiveChatContinuation
-
-
-class Reaction(TypedDict):
-    key: str
-    value: int
-
-
-class ReactionData(TypedDict):
-    unicodeEmojiId: str
-    reactionCount: int
-
-
-class ReactionBucket(TypedDict):
-    reactions: NotRequired[List[Reaction]]
-    reactionsData: NotRequired[List[ReactionData]]
-
-
-class EmojiFountainDataEntity(TypedDict):
-    reactionBuckets: List[ReactionBucket]
-
-
-class Payload(TypedDict):
-    emojiFountainDataEntity: NotRequired[EmojiFountainDataEntity]
-
-
-class Mutation(TypedDict):
-    payload: Payload
-
-
-class EntityBatchUpdate(TypedDict):
-    mutations: List[Mutation]
-
-
-class FrameworkUpdates(TypedDict):
-    entityBatchUpdate: EntityBatchUpdate
-
-
-class Response(TypedDict):
-    responseContext: ResponseContext
-    continuationContents: ContinuationContents
-    frameworkUpdates: NotRequired[FrameworkUpdates]  # reactions
-
-
-# metadata
-
-
-class TimedContinuationData(TypedDict):
-    continuation: str
-    timeoutMs: int
-
-
-class MetadataContinuation(TypedDict):
-    timedContinuationData: TimedContinuationData
-
-
-class VideoViewCountRenderer(TypedDict):
-    viewCount: SimpleText
-    extraShortViewCount: SimpleText
-    unlabeledViewCountValue: SimpleText
-    viewCountLabel: SimpleText
-    originalViewCount: str
-
-
-class ViewCount(TypedDict):
-    videoViewCountRenderer: VideoViewCountRenderer
-
-
-class UpdateViewershipActionData(TypedDict):
-    viewCount: ViewCount
-
-
-class UpdateViewershipAction(TypedDict):
-    updateViewershipAction: UpdateViewershipActionData
-
-
-class UpdateDateTextActionData(TypedDict):
-    dateText: SimpleText
-
-
-class UpdateDateTextAction(TypedDict):
-    updateDateTextAction: UpdateDateTextActionData
-
-
-class UpdateTitleActionData(TypedDict):
-    title: Runs
-
-
-class UpdateTitleAction(TypedDict):
-    updateTitleAction: UpdateTitleActionData
-
-
-class UpdateDescriptionActionData(TypedDict):
-    description: Runs
-
-
-class UpdateDescriptionAction(TypedDict):
-    updateDescriptionAction: UpdateDescriptionActionData
-
-
-type MetadataAction = Union[
-    UpdateViewershipAction,
-    UpdateDateTextAction,
-    UpdateTitleAction,
-    UpdateDescriptionAction,
-]
-
-
-class UpdatedMetadata(TypedDict):
-    continuation: MetadataContinuation
-    actions: List[MetadataAction]
+type ChatActions = List[ChatActionsItem]
