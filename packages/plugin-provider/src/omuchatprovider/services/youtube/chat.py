@@ -334,6 +334,9 @@ class YoutubeChatService(ChatService):
 
     async def fetch_authors_task(self):
         while not self._closed:
+            if len(self.author_fetch_queue) == 0:
+                await asyncio.sleep(1)
+                continue
             for author in self.author_fetch_queue:
                 await asyncio.sleep(3)
                 author_channel = await YOUTUBE_VISITOR.visit_url(
