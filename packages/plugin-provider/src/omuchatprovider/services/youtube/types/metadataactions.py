@@ -4,12 +4,16 @@ from .chatactions import SimpleText
 from .runs import Runs
 
 
-class ViewCount(TypedDict):
+class VideoViewCountRenderer(TypedDict):
     viewCount: SimpleText
     isLive: bool
     extraShortViewCount: SimpleText
     unlabeledViewCountValue: SimpleText
     originalViewCount: str
+
+
+class ViewCount(TypedDict):
+    videoViewCountRenderer: VideoViewCountRenderer
 
 
 class UpdateViewershipAction(TypedDict):

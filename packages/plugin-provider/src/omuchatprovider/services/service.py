@@ -2,10 +2,18 @@ from __future__ import annotations
 
 import abc
 import typing
+from dataclasses import dataclass
 
+from omu.helper import Coro
 from omuchat import Channel, Client, Provider, Room
 
-type ChatSupplier = typing.Callable[[], typing.Coroutine[None, None, ChatService]]
+type ChatServiceFactory = Coro[[], ChatService]
+
+
+@dataclass(frozen=True)
+class FetchedRoom:
+    room: Room
+    create: ChatServiceFactory
 
 
 class ProviderService(abc.ABC):
@@ -14,12 +22,10 @@ class ProviderService(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def info(self) -> Provider: ...
+    def provider(self) -> Provider: ...
 
     @abc.abstractmethod
-    async def fetch_rooms(
-        self, channel: Channel
-    ) -> typing.Mapping[Room, ChatSupplier]: ...
+    async def fetch_rooms(self, channel: Channel) -> typing.List[FetchedRoom]: ...
 
     @abc.abstractmethod
     async def is_online(self, room: Room) -> bool: ...

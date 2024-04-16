@@ -1,3 +1,5 @@
 from .youtube import YoutubeService
 
-__all__ = ["YoutubeService"]
+__all__ = [
+    "YoutubeService",
+]

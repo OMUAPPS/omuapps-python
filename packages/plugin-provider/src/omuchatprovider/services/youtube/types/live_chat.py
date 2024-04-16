@@ -16,4 +16,4 @@ class ContinuationContents(TypedDict):
 
 
 class live_chat(YoutubeResponse):
-    trackingParams: str
+    continuationContents: ContinuationContents

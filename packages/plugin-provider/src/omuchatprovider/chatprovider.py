@@ -9,9 +9,9 @@ from omuchatprovider.errors import ProviderError
 
 from .services import ChatService, ProviderService, get_services
 
-IDENTIFIER = Identifier("cc.omuchat", "chatprovider")
+BASE_PROVIDER_IDENTIFIER = Identifier("cc.omuchat", "chatprovider")
 APP = App(
-    identifier=IDENTIFIER,
+    identifier=BASE_PROVIDER_IDENTIFIER,
     version="0.1.0",
 )
 
@@ -24,22 +24,22 @@ chats: dict[str, ChatService] = {}
 async def register_services():
     for service_class in get_services():
         service = service_class(client)
-        services[service.info.key()] = service
-        await client.chat.providers.add(service.info)
+        services[service.provider.key()] = service
+        await client.chat.providers.add(service.provider)
 
 
 async def update_channel(channel: Channel, service: ProviderService):
     try:
         if not channel.active:
             return
-        available_rooms = await service.fetch_rooms(channel)
-        for room, create_chat in available_rooms.items():
-            if room.key() in chats:
+        fetched_rooms = await service.fetch_rooms(channel)
+        for item in fetched_rooms:
+            if item.room.key() in chats:
                 continue
-            chat = await create_chat()
-            chats[room.key()] = chat
+            chat = await item.create()
+            chats[item.room.key()] = chat
             asyncio.create_task(chat.start())
-            logger.info(f"Started chat for {room.key()}")
+            logger.info(f"Started chat for {item.room.key()}")
     except ProviderError as e:
         logger.error(f"Failed to update channel {channel.id}: {e}")
 
