@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Dict
 
 from loguru import logger
 from omu.identifier import Identifier
@@ -17,8 +18,9 @@ APP = App(
 
 
 client = Client(APP)
-services: dict[str, ProviderService] = {}
-chats: dict[str, ChatService] = {}
+
+services: Dict[str, ProviderService] = {}
+chat_services: Dict[Identifier, ChatService] = {}
 
 
 async def register_services():
@@ -34,10 +36,10 @@ async def update_channel(channel: Channel, service: ProviderService):
             return
         fetched_rooms = await service.fetch_rooms(channel)
         for item in fetched_rooms:
-            if item.room.key() in chats:
+            if item.room.id in chat_services:
                 continue
             chat = await item.create()
-            chats[item.room.key()] = chat
+            chat_services[item.room.id] = chat
             asyncio.create_task(chat.start())
             logger.info(f"Started chat for {item.room.key()}")
     except ProviderError as e:
@@ -83,9 +85,9 @@ async def recheck_task():
 
 
 async def recheck_rooms():
-    for chat in tuple(chats.values()):
+    for chat in tuple(chat_services.values()):
         if chat.closed:
-            del chats[chat.room.key()]
+            del chat_services[chat.room.id]
     rooms = await client.chat.rooms.fetch_items()
     for room in filter(lambda r: r.connected, rooms.values()):
         if room.provider_id not in services:
@@ -99,10 +101,10 @@ async def stop_room(room: Room):
     room.status = "offline"
     room.connected = False
     await client.chat.rooms.update(room)
-    for key, chat in tuple(chats.items()):
+    for key, chat in tuple(chat_services.items()):
         if chat.room.key() == room.key():
             await chat.stop()
-            del chats[key]
+            del chat_services[key]
 
 
 async def should_remove(room: Room, provider_service: ProviderService):
