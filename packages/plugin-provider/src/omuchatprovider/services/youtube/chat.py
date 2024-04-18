@@ -570,7 +570,7 @@ def _get_accessibility_label(data: Accessibility | None) -> str | None:
 def _get_best_thumbnail(thumbnails: List[Thumbnail]) -> str:
     if len(thumbnails) == 0:
         raise ProviderError("No thumbnails found")
-    best = max(thumbnails, key=lambda x: x["width"] * x["height"])
+    best = max(thumbnails, key=lambda x: x.get("width", 0) * x.get("height", 0))
     return normalize_yt_url(best["url"])
 
 
