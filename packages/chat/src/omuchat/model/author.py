@@ -20,7 +20,7 @@ class AuthorMetadata(TypedDict):
 class AuthorJson(TypedDict):
     provider_id: str
     id: str
-    name: str
+    name: NotRequired[str] | None
     avatar_url: NotRequired[str] | None
     roles: NotRequired[List[RoleJson]] | None
     metadata: NotRequired[AuthorMetadata] | None
@@ -32,7 +32,7 @@ class Author(Keyable, Model[AuthorJson]):
         *,
         provider_id: str,
         id: str,
-        name: str,
+        name: str | None = None,
         avatar_url: str | None = None,
         roles: List[Role] | None = None,
         metadata: AuthorMetadata | None = None,

@@ -17,7 +17,7 @@ PROVIDER = Provider(
     url="youtube.com",
     name="Youtube",
     version="0.1.0",
-    repository_url="https://github.com/OMUCHAT/provider",
+    repository_url="https://github.com/OMUCHAT/omuchat-python/tree/master/packages/plugin-provider/src/omuchatprovider/services/youtube",
     regex=YOUTUBE_REGEX,
 )
 BASE_HEADERS = {
@@ -31,7 +31,7 @@ BASE_PAYLOAD = dict(
         "context": {
             "client": {
                 "clientName": "WEB",
-                "clientVersion": "2.20230622.06.00",
+                "clientVersion": "2.20240416.05.00",
             }
         }
     }

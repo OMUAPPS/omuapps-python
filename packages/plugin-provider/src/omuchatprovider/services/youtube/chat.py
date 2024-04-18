@@ -19,6 +19,7 @@ from omuchat.model import (
     OWNER,
     VERIFIED,
     Author,
+    AuthorMetadata,
     Gift,
     Message,
     Paid,
@@ -27,24 +28,23 @@ from omuchat.model import (
     RoomMetadata,
     content,
 )
-from omuchat.model.author import AuthorMetadata
+
+from omuchatprovider.helper import traverse
 
 from ...errors import ProviderError
 from ...tasks import Tasks
 from .. import ChatService
 from . import types
 from .const import (
-    BASE_HEADERS,
-    BASE_PAYLOAD,
     YOUTUBE_URL,
 )
-from .extractor import YoutubeExtractor, YoutubePage
 from .types.accessibility import Accessibility
 from .types.chatactions import (
     AddChatItemActionItem,
+    AuthorInfo,
     ChatActions,
-    LiveChatMessageRenderer,
     LiveChatPaidMessageRenderer,
+    LiveChatRenderer,
     MarkChatItemAsDeletedAction,
 )
 from .types.frameworkupdates import (
@@ -53,6 +53,7 @@ from .types.frameworkupdates import (
 from .types.image import Thumbnail
 from .types.metadataactions import MetadataActions
 from .types.runs import Runs
+from .youtubeapi import YoutubeAPI, YoutubePage
 
 if TYPE_CHECKING:
     from .youtube import YoutubeService
@@ -64,24 +65,24 @@ class YoutubeChat:
     def __init__(
         self,
         video_id: str,
-        extractor: YoutubeExtractor,
+        extractor: YoutubeAPI,
         response: YoutubePage,
         continuation: str | None = None,
     ):
         self.video_id = video_id
-        self.extractor = extractor
+        self.api = extractor
         self.response = response
         self.api_key = response.INNERTUBE_API_KEY
         self.chat_continuation = continuation
         self.metadata_continuation: str | None = None
 
     @classmethod
-    async def from_video_id(cls, extractor: YoutubeExtractor, video_id: str):
+    async def from_video_id(cls, extractor: YoutubeAPI, video_id: str):
         page = await extractor.get(
             f"{YOUTUBE_URL}/live_chat",
             params={"v": video_id},
         )
-        continuation = cls.extract_continuation(page)
+        continuation = cls.extract_chat_continuation(page)
         if continuation is None:
             raise ProviderError("Could not find continuation")
         return cls(
@@ -92,16 +93,20 @@ class YoutubeChat:
         )
 
     @classmethod
-    def extract_continuation(cls, page: YoutubePage) -> str | None:
-        initial_data = page.ytinitialdata
+    def extract_chat_continuation(cls, page: YoutubePage) -> str | None:
+        initial_data = page.get_ytinitialdata()
         if initial_data is None:
             return None
-        contents = initial_data["contents"]
-        if "liveChatRenderer" not in contents:
-            return None
-        return contents["liveChatRenderer"]["continuations"][0][
-            "invalidationContinuationData"
-        ]["continuation"]
+        return (
+            traverse(initial_data)
+            .map(lambda x: x.get("contents"))
+            .map(lambda x: x.get("liveChatRenderer"))
+            .map(lambda x: x.get("continuations"))
+            .map(lambda x: x[0])
+            .map(lambda x: x.get("invalidationContinuationData"))
+            .map(lambda x: x.get("continuation"))
+            .get()
+        )
 
     @classmethod
     def extract_script(cls, soup: bs4.BeautifulSoup, startswith: str) -> Dict | None:
@@ -119,58 +124,26 @@ class YoutubeChat:
 
     async def is_online(self) -> bool:
         live_chat_params = {"v": self.video_id}
-        live_chat_page = await self.extractor.get(
+        live_chat_page = await self.api.get(
             f"{YOUTUBE_URL}/live_chat",
             params=live_chat_params,
         )
-        continuation = self.extract_continuation(live_chat_page)
+        continuation = self.extract_chat_continuation(live_chat_page)
         if continuation is None:
             return False
-        live_chat_request_params = {"key": self.api_key}
-        live_chat_request_json = {
-            **BASE_PAYLOAD,
-            "continuation": continuation,
-        }
-        live_chat_request = await self.extractor.session.post(
-            f"{YOUTUBE_URL}/youtubei/v1/live_chat/get_live_chat",
-            params=live_chat_request_params,
-            json=live_chat_request_json,
-            headers=BASE_HEADERS,
+        live_chat_response_data = await self.api.get_live_chat(
+            video_id=self.video_id,
+            key=self.api_key,
+            continuation=continuation,
         )
-        if live_chat_request.status // 100 != 2:
-            return False
-        live_chat_response_data = await live_chat_request.json()
         return "continuationContents" in live_chat_response_data
 
     async def fetch(self, retry: int = 3) -> types.live_chat:
-        url = f"{YOUTUBE_URL}/youtubei/v1/live_chat/get_live_chat"
-        params = {"key": self.api_key}
-        json_payload = {
-            **BASE_PAYLOAD,
-            "continuation": self.chat_continuation,
-        }
-
-        response = await self.extractor.session.post(
-            url,
-            params=params,
-            json=json_payload,
-            headers=BASE_HEADERS,
+        data = await self.api.get_live_chat(
+            video_id=self.video_id,
+            key=self.api_key,
+            continuation=self.chat_continuation,
         )
-        if response.status // 100 != 2:
-            logger.warning(
-                f"Could not fetch chat: {response.status=}: {await response.text()}"
-            )
-            if retry <= 0:
-                raise ProviderError("Could not fetch chat: too many retries")
-            logger.warning("Retrying fetch chat")
-            await asyncio.sleep(1)
-            return await self.fetch(retry - 1)
-        if not response.headers["content-type"].startswith("application/json"):
-            raise ProviderError(
-                f"Invalid content type: {response.headers["content-type"]}"
-            )
-        data = await response.json()
-
         return data
 
     async def next(self) -> ChatData | None:
@@ -187,9 +160,12 @@ class YoutubeChat:
             self.chat_continuation = continuation_data["continuation"]
         chat_actions = live_chat_continuation.get("actions", [])
         mutations = (
-            data.get("frameworkUpdates", {})
-            .get("entityBatchUpdate", {})
-            .get("mutations", [])
+            traverse(data)
+            .map(lambda x: x.get("frameworkUpdates"))
+            .map(lambda x: x.get("entityBatchUpdate"))
+            .map(lambda x: x.get("mutations"))
+            .get()
+            or []
         )
         return ChatData(
             chat_actions=chat_actions,
@@ -198,24 +174,17 @@ class YoutubeChat:
         )
 
     async def fetch_metadata(self) -> RoomMetadata:
-        url = f"{YOUTUBE_URL}/youtubei/v1/updated_metadata"
-        params = {"key": self.api_key}
-        json_payload = dict(**BASE_PAYLOAD)
-        if self.metadata_continuation:
-            json_payload["continuation"] = self.metadata_continuation
-        else:
-            json_payload["videoId"] = self.video_id
-        response = await self.extractor.session.post(
-            url,
-            params=params,
-            json=json_payload,
-            headers=BASE_HEADERS,
+        data = await self.api.updated_metadata(
+            video_id=self.video_id,
+            key=self.api_key,
+            continuation=self.metadata_continuation,
         )
-        data: types.updated_metadata = await response.json()
         self.metadata_continuation = (
-            data.get("continuation", {})
-            .get("timedContinuationData", {})
-            .get("continuation", {})
+            traverse(data)
+            .map(lambda x: x["continuation"])
+            .map(lambda x: x["timedContinuationData"])
+            .map(lambda x: x["continuation"])
+            .get()
         )
         viewer_count: int | None = None
         title: content.Component | None = None
@@ -412,9 +381,9 @@ class YoutubeChatService(ChatService):
             return message, author
         elif "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer" in item:
             data = item["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"]
-            author = self._parse_author(data)
             created_at = self._parse_created_at(data)
             header = data["header"]["liveChatSponsorshipsHeaderRenderer"]
+            author = self._parse_author(header, id=data["authorExternalChannelId"])
             component = content.System.of(_parse_runs(header["primaryText"]))
 
             gift_image = header["image"]
@@ -502,10 +471,24 @@ class YoutubeChatService(ChatService):
             },
         )
 
-    def _parse_author(self, message: LiveChatMessageRenderer) -> Author:
-        name = message.get("authorName", {}).get("simpleText")
-        id = message.get("authorExternalChannelId")
-        avatar_url = message.get("authorPhoto", {}).get("thumbnails", [])[0].get("url")
+    def _parse_author(self, message: AuthorInfo, id: str | None = None) -> Author:
+        name = (
+            traverse(message)
+            .map(lambda x: x.get("authorName"))
+            .map(lambda x: x.get("simpleText"))
+            .get()
+        )
+        id = message.get("authorExternalChannelId") or id
+        if id is None:
+            raise ProviderError("Could not find author id")
+        avatar_url = (
+            traverse(message)
+            .map(lambda x: x.get("authorPhoto"))
+            .map(lambda x: x.get("thumbnails"))
+            .map(lambda x: x[0])
+            .map(lambda x: x.get("url"))
+            .get()
+        )
         roles: List[Role] = []
         for badge in message.get("authorBadges", []):
             if "icon" in badge["liveChatAuthorBadgeRenderer"]:
@@ -546,7 +529,8 @@ class YoutubeChatService(ChatService):
         )
         if currency_match is None:
             raise ProviderError(
-                f"Could not parse currency: {message['purchaseAmountText']['simpleText']}"
+                "Could not parse currency: "
+                f"{message['purchaseAmountText']['simpleText']}"
             )
         currency = currency_match.group(0)
         amount_match = re.search(
@@ -563,7 +547,7 @@ class YoutubeChatService(ChatService):
             amount=amount,
         )
 
-    def _parse_created_at(self, message: LiveChatMessageRenderer) -> datetime:
+    def _parse_created_at(self, message: LiveChatRenderer) -> datetime:
         timestamp_usec = int(message["timestampUsec"])
         return datetime.fromtimestamp(
             timestamp_usec / 1000000,
@@ -584,16 +568,10 @@ def _get_accessibility_label(data: Accessibility | None) -> str | None:
 
 
 def _get_best_thumbnail(thumbnails: List[Thumbnail]) -> str:
-    best_size: int | None = None
-    url: str | None = None
-    for thumbnail in thumbnails:
-        size = thumbnail.get("width", 0) * thumbnail.get("height", 0)
-        if best_size is None or size > best_size:
-            best_size = size
-            url = thumbnail["url"]
-    if url is None:
-        raise ProviderError(f"Could not select thumbnail: {thumbnails=}")
-    return normalize_yt_url(url)
+    if len(thumbnails) == 0:
+        raise ProviderError("No thumbnails found")
+    best = max(thumbnails, key=lambda x: x["width"] * x["height"])
+    return normalize_yt_url(best["url"])
 
 
 def _parse_runs(runs: Runs | None) -> content.Component:

@@ -15,6 +15,15 @@ class CommandMetadata(TypedDict):
     webCommandMetadata: WebCommandMetadata
 
 
+class LiveChatItemContextMenuEndpoint(TypedDict):
+    params: str
+
+
+class ContextMenuEndpoint(TypedDict):
+    commandMetadata: CommandMetadata
+    liveChatItemContextMenuEndpoint: LiveChatItemContextMenuEndpoint
+
+
 class NavigationEndpoint(TypedDict):
     clickTrackingParams: str
     commandMetadata: NotRequired[CommandMetadata]

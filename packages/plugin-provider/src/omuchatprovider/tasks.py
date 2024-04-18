@@ -23,7 +23,7 @@ class Tasks:
             start_time = time.time()
             try:
                 await coro
-            except Exception as e:
+            except BaseException as e:
                 traceback.print_exc()
                 raise Exception(f"Task {name} failed") from e
             finally:

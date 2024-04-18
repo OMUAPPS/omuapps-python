@@ -4,16 +4,7 @@ from .accessibility import Accessibility
 from .image import Image, Thumbnails
 from .runs import Runs
 from .simpletext import SimpleText
-from .urlendpoint import CommandMetadata
-
-
-class LiveChatItemContextMenuEndpoint(TypedDict):
-    params: str
-
-
-class ContextMenuEndpoint(TypedDict):
-    commandMetadata: CommandMetadata
-    liveChatItemContextMenuEndpoint: LiveChatItemContextMenuEndpoint
+from .urlendpoint import ContextMenuEndpoint
 
 
 class Icon(TypedDict):
@@ -74,22 +65,28 @@ class CreatorHeartButton(TypedDict):
     creatorHeartViewModel: CreatorHeartViewModel
 
 
-class LiveChatMessageRenderer(TypedDict):
+class LiveChatRenderer(TypedDict):
     id: str
     timestampUsec: str
     authorExternalChannelId: str
-    authorName: SimpleText
-    authorPhoto: Thumbnails
-    authorBadges: NotRequired[List[AuthorBadge]]
+    # authorName: SimpleText
+    # authorPhoto: Thumbnails
+    # authorBadges: NotRequired[List[AuthorBadge]]
     message: Runs
 
 
-class LiveChatTextMessageRenderer(LiveChatMessageRenderer):
+class AuthorInfo(TypedDict):
+    authorName: SimpleText
+    authorPhoto: Thumbnails
+    authorBadges: NotRequired[List[AuthorBadge]]
+
+
+class LiveChatTextMessageRenderer(LiveChatRenderer, AuthorInfo):
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
 
 
-class LiveChatPaidMessageRenderer(LiveChatMessageRenderer):
+class LiveChatPaidMessageRenderer(LiveChatRenderer, AuthorInfo):
     purchaseAmountText: SimpleText
     headerBackgroundColor: int
     headerTextColor: int
@@ -105,7 +102,7 @@ class LiveChatPaidMessageRenderer(LiveChatMessageRenderer):
     isV2Style: bool
 
 
-class LiveChatPaidStickerRenderer(LiveChatMessageRenderer):
+class LiveChatPaidStickerRenderer(LiveChatRenderer, AuthorInfo):
     sticker: Image
     purchaseAmountText: SimpleText
     contextMenuEndpoint: ContextMenuEndpoint
@@ -113,11 +110,11 @@ class LiveChatPaidStickerRenderer(LiveChatMessageRenderer):
     trackingParams: str
 
 
-class LiveChatMembershipItemRenderer(LiveChatMessageRenderer):
+class LiveChatMembershipItemRenderer(LiveChatRenderer, AuthorInfo):
     headerSubtext: Runs
 
 
-class LiveChatSponsorshipsHeaderRenderer(TypedDict):
+class LiveChatSponsorshipsHeaderRenderer(AuthorInfo):
     """
     "liveChatSponsorshipsHeaderRenderer": {
         "authorName": {
@@ -213,10 +210,7 @@ class LiveChatSponsorshipsHeaderRenderer(TypedDict):
     }
     """
 
-    authorName: SimpleText
-    authorPhoto: Thumbnails
     primaryText: Runs
-    authorBadges: NotRequired[List[AuthorBadge]]
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
     image: Image
@@ -226,7 +220,7 @@ class LiveChatSponsorshipsGiftPurchaseAnnouncementRendererHeader(TypedDict):
     liveChatSponsorshipsHeaderRenderer: LiveChatSponsorshipsHeaderRenderer
 
 
-class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatMessageRenderer):
+class LiveChatSponsorshipsGiftPurchaseAnnouncementRenderer(LiveChatRenderer):
     """
     {
         "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": {

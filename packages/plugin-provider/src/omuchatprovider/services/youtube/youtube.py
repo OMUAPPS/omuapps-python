@@ -10,14 +10,14 @@ from omuchatprovider.services import FetchedRoom, ProviderService
 
 from .chat import YoutubeChatService
 from .const import PROVIDER, REACTION_MESSAGE_TYPE
-from .extractor import YoutubeExtractor
+from .youtubeapi import YoutubeAPI
 
 
 class YoutubeService(ProviderService):
     def __init__(self, client: Client):
         self.client = client
         self.session = get_session(PROVIDER)
-        self.extractor = YoutubeExtractor(client, self.session)
+        self.extractor = YoutubeAPI(client, self.session)
         self.reaction_message = client.message.get(REACTION_MESSAGE_TYPE)
 
     @property

@@ -13,7 +13,6 @@ class ProviderJson(TypedDict):
     version: str
     repository_url: str
     image_url: str | None
-    description: str
     regex: str
 
 
@@ -26,7 +25,6 @@ class Provider(Keyable, Model[ProviderJson]):
         name: str,
         version: str,
         repository_url: str,
-        description: str,
         regex: str,
         image_url: str | None = None,
     ) -> None:
@@ -36,7 +34,6 @@ class Provider(Keyable, Model[ProviderJson]):
         self.version = version
         self.repository_url = repository_url
         self.image_url = image_url
-        self.description = description
         self.regex = regex
 
     @classmethod
@@ -48,7 +45,6 @@ class Provider(Keyable, Model[ProviderJson]):
             version=json["version"],
             repository_url=json["repository_url"],
             image_url=json["image_url"],
-            description=json["description"],
             regex=json["regex"],
         )
 
@@ -60,12 +56,8 @@ class Provider(Keyable, Model[ProviderJson]):
             version=self.version,
             repository_url=self.repository_url,
             image_url=self.image_url,
-            description=self.description,
             regex=self.regex,
         )
 
     def key(self) -> str:
         return self.id
-
-    def __repr__(self) -> str:
-        return f"Provider({self.key()})"
