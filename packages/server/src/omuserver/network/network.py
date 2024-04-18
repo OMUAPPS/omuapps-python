@@ -102,7 +102,7 @@ class Network:
     async def _handle_start(self, app: web.Application) -> None:
         await self._listeners.start.emit()
 
-    def is_port_available(self) -> bool:
+    def is_port_free(self) -> bool:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.bind(
@@ -122,7 +122,7 @@ class Network:
         return None
 
     async def start(self) -> None:
-        if not self.is_port_available():
+        if not self.is_port_free():
             process = self.get_process_by_port(self._server.address.port)
             if process is None:
                 raise OSError(f"Port {self._server.address.port} already in use")
