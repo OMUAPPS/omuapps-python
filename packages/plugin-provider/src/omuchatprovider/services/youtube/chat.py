@@ -245,9 +245,13 @@ class YoutubeChatService(ChatService):
     @classmethod
     async def create(cls, youtube_service: YoutubeService, client: Client, room: Room):
         await client.chat.rooms.update(room)
+        video_id = room.id.path[-1]
         chat = await YoutubeChat.from_video_id(
             youtube_service.extractor,
-            room.id.path[-1],
+            video_id,
+        )
+        room.metadata = RoomMetadata(
+            thumbnail=f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
         )
         instance = cls(youtube_service, client, room, chat)
         await client.chat.rooms.add(room)
