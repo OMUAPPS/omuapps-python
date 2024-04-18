@@ -2,7 +2,6 @@ import asyncio
 import io
 import sys
 import tracemalloc
-from pathlib import Path
 
 import click
 from loguru import logger
@@ -41,7 +40,6 @@ def main(debug: bool, token: str | None):
 
     if debug:
         logger.warning("Debug mode enabled")
-        config.directories.plugins = (Path.cwd() / ".." / "plugins").resolve()
         config.strict_origin = False
         tracemalloc.start()
 
