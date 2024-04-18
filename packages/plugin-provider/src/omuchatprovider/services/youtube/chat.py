@@ -472,7 +472,7 @@ class YoutubeChatService(ChatService):
                 )
         if not reaction_counts:
             return
-        await self.youtube.reaction_message.broadcast(
+        await self.youtube.reaction_signal.broadcast(
             {
                 "room_id": self._room.key(),
                 "reactions": dict(reaction_counts),

@@ -9,7 +9,7 @@ from omuchatprovider.helper import get_session
 from omuchatprovider.services import FetchedRoom, ProviderService
 
 from .chat import YoutubeChatService
-from .const import PROVIDER, REACTION_MESSAGE_TYPE, YOUTUBE_IDENTIFIER
+from .const import PROVIDER, REACTION_SIGNAL_TYPE, YOUTUBE_IDENTIFIER
 from .youtubeapi import YoutubeAPI
 
 
@@ -18,7 +18,7 @@ class YoutubeService(ProviderService):
         self.client = client
         self.session = get_session(PROVIDER)
         self.extractor = YoutubeAPI(client, self.session)
-        self.reaction_message = client.message.get(REACTION_MESSAGE_TYPE)
+        self.reaction_signal = client.signal.get(REACTION_SIGNAL_TYPE)
 
     @property
     def provider(self) -> Provider:

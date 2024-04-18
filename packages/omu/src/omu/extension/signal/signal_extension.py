@@ -11,84 +11,84 @@ from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
 from omu.serializer import Serializer
 
-from .message import Message, MessageType
+from .signal import Signal, SignalType
 
-MESSAGE_EXTENSION_TYPE = ExtensionType(
-    "message",
-    lambda client: MessageExtension(client),
+SIGNAL_EXTENSION_TYPE = ExtensionType(
+    "signal",
+    lambda client: SignalExtension(client),
     lambda: [],
 )
 
 
 @dataclass
-class MessagePacket:
+class SignalPacket:
     id: Identifier
     body: bytes
 
 
-class MessageSerializer:
+class SignalSerializer:
     @classmethod
-    def serialize(cls, item: MessagePacket) -> bytes:
+    def serialize(cls, item: SignalPacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.id.key())
         writer.write_byte_array(item.body)
         return writer.finish()
 
     @classmethod
-    def deserialize(cls, item: bytes) -> MessagePacket:
+    def deserialize(cls, item: bytes) -> SignalPacket:
         with ByteReader(item) as reader:
             key = Identifier.from_key(reader.read_string())
             body = reader.read_byte_array()
-        return MessagePacket(id=key, body=body)
+        return SignalPacket(id=key, body=body)
 
 
-MESSAGE_LISTEN_PACKET = PacketType[Identifier].create_json(
-    MESSAGE_EXTENSION_TYPE,
+SIGNAL_LISTEN_PACKET = PacketType[Identifier].create_json(
+    SIGNAL_EXTENSION_TYPE,
     "listen",
     serializer=Serializer.model(Identifier),
 )
-MESSAGE_BROADCAST_PACKET = PacketType[MessagePacket].create_serialized(
-    MESSAGE_EXTENSION_TYPE,
+SIGNAL_BROADCAST_PACKET = PacketType[SignalPacket].create_serialized(
+    SIGNAL_EXTENSION_TYPE,
     "broadcast",
-    MessageSerializer,
+    SignalSerializer,
 )
 
 
-class MessageExtension(Extension):
+class SignalExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self._message_identifiers: List[Identifier] = []
+        self.signals: List[Identifier] = []
         client.network.register_packet(
-            MESSAGE_LISTEN_PACKET,
-            MESSAGE_BROADCAST_PACKET,
+            SIGNAL_LISTEN_PACKET,
+            SIGNAL_BROADCAST_PACKET,
         )
 
-    def create[T](self, name: str, _t: type[T] | None = None) -> Message[T]:
+    def create[T](self, name: str, _t: type[T] | None = None) -> Signal[T]:
         identifier = self.client.app.identifier / name
-        if identifier in self._message_identifiers:
-            raise Exception(f"Message {identifier} already exists")
-        self._message_identifiers.append(identifier)
-        type = MessageType.create_json(identifier, name)
-        return MessageImpl(self.client, type)
+        if identifier in self.signals:
+            raise Exception(f"Signal {identifier} already exists")
+        self.signals.append(identifier)
+        type = SignalType.create_json(identifier, name)
+        return SignalImpl(self.client, type)
 
-    def get[T](self, message_type: MessageType[T]) -> Message[T]:
-        return MessageImpl(self.client, message_type)
+    def get[T](self, signal_type: SignalType[T]) -> Signal[T]:
+        return SignalImpl(self.client, signal_type)
 
 
-class MessageImpl[T](Message):
-    def __init__(self, client: Client, message_type: MessageType[T]):
+class SignalImpl[T](Signal):
+    def __init__(self, client: Client, signal_type: SignalType[T]):
         self.client = client
-        self.identifier = message_type.identifier
-        self.serializer = message_type.serializer
+        self.identifier = signal_type.identifier
+        self.serializer = signal_type.serializer
         self.listeners = []
         self.listening = False
-        client.network.add_packet_handler(MESSAGE_BROADCAST_PACKET, self._on_broadcast)
+        client.network.add_packet_handler(SIGNAL_BROADCAST_PACKET, self._on_broadcast)
 
     async def broadcast(self, body: T) -> None:
         data = self.serializer.serialize(body)
         await self.client.send(
-            MESSAGE_BROADCAST_PACKET,
-            MessagePacket(id=self.identifier, body=data),
+            SIGNAL_BROADCAST_PACKET,
+            SignalPacket(id=self.identifier, body=data),
         )
 
     def listen(self, listener: Coro[[T], None]) -> Callable[[], None]:
@@ -100,9 +100,9 @@ class MessageImpl[T](Message):
         return lambda: self.listeners.remove(listener)
 
     async def _send_listen(self) -> None:
-        await self.client.send(MESSAGE_LISTEN_PACKET, self.identifier)
+        await self.client.send(SIGNAL_LISTEN_PACKET, self.identifier)
 
-    async def _on_broadcast(self, data: MessagePacket) -> None:
+    async def _on_broadcast(self, data: SignalPacket) -> None:
         if data.id != self.identifier:
             return
 

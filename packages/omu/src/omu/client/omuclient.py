@@ -22,10 +22,6 @@ from omu.extension.i18n import (
     I18N_EXTENSION_TYPE,
     I18nExtension,
 )
-from omu.extension.message import (
-    MESSAGE_EXTENSION_TYPE,
-    MessageExtension,
-)
 from omu.extension.permission import (
     PERMISSION_EXTENSION_TYPE,
     PermissionExtension,
@@ -37,6 +33,10 @@ from omu.extension.registry import (
 from omu.extension.server import (
     SERVER_EXTENSION_TYPE,
     ServerExtension,
+)
+from omu.extension.signal import (
+    SIGNAL_EXTENSION_TYPE,
+    SignalExtension,
 )
 from omu.extension.table import (
     TABLE_EXTENSION_TYPE,
@@ -73,7 +73,7 @@ class OmuClient(Client):
         self._endpoints = self.extensions.register(ENDPOINT_EXTENSION_TYPE)
         self._tables = self.extensions.register(TABLE_EXTENSION_TYPE)
         self._registry = self.extensions.register(REGISTRY_EXTENSION_TYPE)
-        self._message = self.extensions.register(MESSAGE_EXTENSION_TYPE)
+        self._signal = self.extensions.register(SIGNAL_EXTENSION_TYPE)
         self._assets = self.extensions.register(ASSET_EXTENSION_TYPE)
         self._server = self.extensions.register(SERVER_EXTENSION_TYPE)
         self._permissions = self.extensions.register(PERMISSION_EXTENSION_TYPE)
@@ -111,8 +111,8 @@ class OmuClient(Client):
         return self._registry
 
     @property
-    def message(self) -> MessageExtension:
-        return self._message
+    def signal(self) -> SignalExtension:
+        return self._signal
 
     @property
     def assets(self) -> AssetExtension:

@@ -14,11 +14,11 @@ from omuserver.directories import Directories
 from omuserver.extension.asset import AssetExtension
 from omuserver.extension.dashboard import DashboardExtension
 from omuserver.extension.endpoint import EndpointExtension
-from omuserver.extension.message import MessageExtension
 from omuserver.extension.permission import PermissionExtension
 from omuserver.extension.plugin import PluginExtension
 from omuserver.extension.registry import RegistryExtension
 from omuserver.extension.server import ServerExtension
+from omuserver.extension.signal import SignalExtension
 from omuserver.extension.table import TableExtension
 from omuserver.helper import safe_path_join
 from omuserver.network import Network
@@ -67,7 +67,7 @@ class OmuServer(Server):
         self._tables = TableExtension(self)
         self._registry = RegistryExtension(self)
         self._server = ServerExtension(self)
-        self._messages = MessageExtension(self)
+        self._signal = SignalExtension(self)
         self._plugins = PluginExtension(self)
         self._assets = AssetExtension(self)
 
@@ -198,8 +198,8 @@ class OmuServer(Server):
         return self._registry
 
     @property
-    def messages(self) -> MessageExtension:
-        return self._messages
+    def signal(self) -> SignalExtension:
+        return self._signal
 
     @property
     def plugins(self) -> PluginExtension:
