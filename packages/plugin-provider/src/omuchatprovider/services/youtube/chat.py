@@ -290,6 +290,8 @@ class YoutubeChatService(ChatService):
                     authors.append(author)
             elif "markChatItemAsDeletedAction" in action:
                 await self.process_deleted_item(action["markChatItemAsDeletedAction"])
+            elif "removeChatItemAction" in action:
+                await self.process_deleted_item(action["removeChatItemAction"])
             else:
                 logger.warning(f"Unknown chat action: {action}")
         if len(authors) > 0:
