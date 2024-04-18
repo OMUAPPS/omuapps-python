@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import List, NotRequired, TypedDict
 
 from omu.helper import map_optional
+from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
 
@@ -22,27 +24,15 @@ class MessageJson(TypedDict):
     created_at: NotRequired[str] | None  # ISO 8601 date string
 
 
+@dataclass
 class Message(Keyable, Model[MessageJson]):
-    def __init__(
-        self,
-        *,
-        room_id: str,
-        id: str,
-        author_id: str | None = None,
-        content: content.Component | None = None,
-        paid: Paid | None = None,
-        gifts: List[Gift] | None = None,
-        created_at: datetime | None = None,
-    ) -> None:
-        if created_at and not isinstance(created_at, datetime):
-            raise TypeError(f"created_at must be datetime, not {type(created_at)}")
-        self.room_id = room_id
-        self.id = id
-        self.content = content
-        self.author_id = author_id
-        self.paid = paid
-        self.gifts = gifts
-        self.created_at = created_at
+    room_id: str
+    id: Identifier
+    author_id: str | None = None
+    content: content.Component | None = None
+    paid: Paid | None = None
+    gifts: List[Gift] | None = None
+    created_at: datetime | None = None
 
     @classmethod
     def from_json(cls, json: MessageJson) -> Message:
@@ -52,7 +42,7 @@ class Message(Keyable, Model[MessageJson]):
 
         return cls(
             room_id=json["room_id"],
-            id=json["id"],
+            id=Identifier.from_key(json["id"]),
             author_id=json.get("author_id"),
             content=map_optional(json.get("content"), content.deserialize),
             paid=map_optional(json.get("paid"), Paid.from_json),
@@ -64,19 +54,10 @@ class Message(Keyable, Model[MessageJson]):
             created_at=created_at,
         )
 
-    @property
-    def text(self) -> str:
-        if not self.content:
-            return ""
-        return str(self.content)
-
-    def key(self) -> str:
-        return f"{self.room_id}#{self.id}"
-
     def to_json(self) -> MessageJson:
         return MessageJson(
             room_id=self.room_id,
-            id=self.id,
+            id=self.id.key(),
             author_id=self.author_id,
             content=content.serialize(self.content) if self.content else None,
             paid=self.paid.to_json() if self.paid else None,
@@ -84,5 +65,11 @@ class Message(Keyable, Model[MessageJson]):
             created_at=self.created_at.isoformat() if self.created_at else None,
         )
 
-    def __str__(self) -> str:
-        return f"Message({self.room_id}, {self.id}, {self.author_id}, {self.content}, {self.paid}, {self.gifts}, {self.created_at})"
+    @property
+    def text(self) -> str:
+        if not self.content:
+            return ""
+        return str(self.content)
+
+    def key(self) -> str:
+        return self.id.key()

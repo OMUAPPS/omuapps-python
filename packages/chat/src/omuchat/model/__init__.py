@@ -1,5 +1,5 @@
 from . import content
-from .author import Author
+from .author import Author, AuthorMetadata
 from .channel import Channel
 from .gift import Gift
 from .message import Message
@@ -10,6 +10,7 @@ from .room import Room, RoomMetadata
 
 __all__ = [
     "Author",
+    "AuthorMetadata",
     "Channel",
     "Gift",
     "Message",

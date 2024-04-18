@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Hashable, Literal, NotRequired, TypedDict
 
 from omu.helper import map_optional
+from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
 
@@ -36,8 +37,8 @@ class Room(Keyable, Model[RoomJson], Hashable):
     def __init__(
         self,
         *,
-        id: str,
-        provider_id: str,
+        id: Identifier,
+        provider_id: Identifier,
         connected: bool,
         status: Status,
         metadata: RoomMetadata | None = None,
@@ -55,8 +56,8 @@ class Room(Keyable, Model[RoomJson], Hashable):
     @classmethod
     def from_json(cls, json: RoomJson) -> Room:
         return Room(
-            id=json["id"],
-            provider_id=json["provider_id"],
+            id=Identifier.from_key(json["id"]),
+            provider_id=Identifier.from_key(json["provider_id"]),
             connected=json["connected"],
             status=json["status"],
             metadata=json.get("metadata"),
@@ -66,8 +67,8 @@ class Room(Keyable, Model[RoomJson], Hashable):
 
     def to_json(self) -> RoomJson:
         return RoomJson(
-            id=self.id,
-            provider_id=self.provider_id,
+            id=self.id.key(),
+            provider_id=self.provider_id.key(),
             connected=self.connected,
             status=self.status,
             metadata=self.metadata,
@@ -76,7 +77,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
         )
 
     def key(self) -> str:
-        return f"{self.id}@{self.provider_id}"
+        return self.id.key()
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Room):

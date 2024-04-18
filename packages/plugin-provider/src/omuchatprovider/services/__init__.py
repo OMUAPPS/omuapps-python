@@ -1,4 +1,4 @@
-from .service import ChatService, ChatSupplier, ProviderService
+from .service import ChatService, FetchedRoom, ProviderService
 
 
 def get_services():
@@ -9,4 +9,4 @@ def get_services():
     ]
 
 
-__all__ = ["ProviderService", "ChatService", "ChatSupplier", "get_services"]
+__all__ = ["ProviderService", "ChatService", "FetchedRoom", "get_services"]

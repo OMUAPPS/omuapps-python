@@ -1,5 +1,6 @@
 import asyncio
 import time
+from typing import Dict
 
 from loguru import logger
 from omu.identifier import Identifier
@@ -9,37 +10,38 @@ from omuchatprovider.errors import ProviderError
 
 from .services import ChatService, ProviderService, get_services
 
-IDENTIFIER = Identifier("cc.omuchat", "chatprovider")
+BASE_PROVIDER_IDENTIFIER = Identifier("cc.omuchat", "chatprovider")
 APP = App(
-    identifier=IDENTIFIER,
+    identifier=BASE_PROVIDER_IDENTIFIER,
     version="0.1.0",
 )
 
 
 client = Client(APP)
-services: dict[str, ProviderService] = {}
-chats: dict[str, ChatService] = {}
+
+services: Dict[str, ProviderService] = {}
+chat_services: Dict[Identifier, ChatService] = {}
 
 
 async def register_services():
     for service_class in get_services():
         service = service_class(client)
-        services[service.info.key()] = service
-        await client.chat.providers.add(service.info)
+        services[service.provider.key()] = service
+        await client.chat.providers.add(service.provider)
 
 
 async def update_channel(channel: Channel, service: ProviderService):
     try:
         if not channel.active:
             return
-        available_rooms = await service.fetch_rooms(channel)
-        for room, create_chat in available_rooms.items():
-            if room.key() in chats:
+        fetched_rooms = await service.fetch_rooms(channel)
+        for item in fetched_rooms:
+            if item.room.id in chat_services:
                 continue
-            chat = await create_chat()
-            chats[room.key()] = chat
+            chat = await item.create()
+            chat_services[item.room.id] = chat
             asyncio.create_task(chat.start())
-            logger.info(f"Started chat for {room.key()}")
+            logger.info(f"Started chat for {item.room.key()}")
     except ProviderError as e:
         logger.error(f"Failed to update channel {channel.id}: {e}")
 
@@ -83,9 +85,9 @@ async def recheck_task():
 
 
 async def recheck_rooms():
-    for chat in tuple(chats.values()):
+    for chat in tuple(chat_services.values()):
         if chat.closed:
-            del chats[chat.room.key()]
+            del chat_services[chat.room.id]
     rooms = await client.chat.rooms.fetch_items()
     for room in filter(lambda r: r.connected, rooms.values()):
         if room.provider_id not in services:
@@ -99,10 +101,10 @@ async def stop_room(room: Room):
     room.status = "offline"
     room.connected = False
     await client.chat.rooms.update(room)
-    for key, chat in tuple(chats.items()):
+    for key, chat in tuple(chat_services.items()):
         if chat.room.key() == room.key():
             await chat.stop()
-            del chats[key]
+            del chat_services[key]
 
 
 async def should_remove(room: Room, provider_service: ProviderService):
