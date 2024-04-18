@@ -9,7 +9,7 @@ from omuchatprovider.helper import get_session
 from omuchatprovider.services import FetchedRoom, ProviderService
 
 from .chat import YoutubeChatService
-from .const import PROVIDER, REACTION_MESSAGE_TYPE
+from .const import PROVIDER, REACTION_MESSAGE_TYPE, YOUTUBE_IDENTIFIER
 from .youtubeapi import YoutubeAPI
 
 
@@ -29,8 +29,8 @@ class YoutubeService(ProviderService):
         rooms: List[FetchedRoom] = []
         for video_id in videos:
             room = Room(
-                id=video_id,
-                provider_id=PROVIDER.key(),
+                provider_id=YOUTUBE_IDENTIFIER,
+                id=YOUTUBE_IDENTIFIER / video_id,
                 connected=False,
                 status="offline",
                 channel_id=channel.key(),
@@ -44,4 +44,4 @@ class YoutubeService(ProviderService):
         return rooms
 
     async def is_online(self, room: Room) -> bool:
-        return await self.extractor.is_online(video_id=room.id)
+        return await self.extractor.is_online(video_id=room.id.path[-1])

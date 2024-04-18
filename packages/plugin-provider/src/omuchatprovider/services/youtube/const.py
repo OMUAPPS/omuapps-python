@@ -13,7 +13,7 @@ YOUTUBE_REGEX = (
     + r"(youtu\.be\/(?P<video_id_short>[\w-]+))|(m\.)?youtube\.com\/(watch\?v=(?P<video_id>[\w_-]+|)|@(?P<channel_id_vanity>[\w_-]+|)|channel\/(?P<channel_id>[\w_-]+|)|user\/(?P<channel_id_user>[\w_-]+|)|c\/(?P<channel_id_c>[\w_-]+|))"
 )
 PROVIDER = Provider(
-    id="youtube",
+    id=YOUTUBE_IDENTIFIER,
     url="youtube.com",
     name="Youtube",
     version="0.1.0",

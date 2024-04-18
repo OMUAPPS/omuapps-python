@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
 
@@ -20,7 +21,7 @@ class Provider(Keyable, Model[ProviderJson]):
     def __init__(
         self,
         *,
-        id: str,
+        id: Identifier,
         url: str,
         name: str,
         version: str,
@@ -39,7 +40,7 @@ class Provider(Keyable, Model[ProviderJson]):
     @classmethod
     def from_json(cls, json: ProviderJson) -> Provider:
         return cls(
-            id=json["id"],
+            id=Identifier.from_key(json["id"]),
             url=json["url"],
             name=json["name"],
             version=json["version"],
@@ -50,7 +51,7 @@ class Provider(Keyable, Model[ProviderJson]):
 
     def to_json(self) -> ProviderJson:
         return ProviderJson(
-            id=self.id,
+            id=self.id.key(),
             url=self.url,
             name=self.name,
             version=self.version,
@@ -60,4 +61,4 @@ class Provider(Keyable, Model[ProviderJson]):
         )
 
     def key(self) -> str:
-        return self.id
+        return self.id.key()

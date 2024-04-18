@@ -18,7 +18,7 @@ def get_session(provider: Provider) -> aiohttp.ClientSession:
         [
             "OmuChat",
             {
-                "id": provider.id,
+                "id": provider.id.key(),
                 "version": provider.version,
                 "repository_url": provider.repository_url,
             },

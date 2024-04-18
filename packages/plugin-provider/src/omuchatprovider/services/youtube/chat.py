@@ -245,7 +245,10 @@ class YoutubeChatService(ChatService):
     @classmethod
     async def create(cls, youtube_service: YoutubeService, client: Client, room: Room):
         await client.chat.rooms.update(room)
-        chat = await YoutubeChat.from_video_id(youtube_service.extractor, room.id)
+        chat = await YoutubeChat.from_video_id(
+            youtube_service.extractor,
+            room.id.path[-1],
+        )
         instance = cls(youtube_service, client, room, chat)
         await client.chat.rooms.add(room)
         return instance
@@ -331,7 +334,7 @@ class YoutubeChatService(ChatService):
             message = _parse_runs(data["message"])
             created_at = self._parse_created_at(data)
             message = Message(
-                id=data["id"],
+                id=self.room.id / data["id"],
                 room_id=self._room.key(),
                 author_id=author.key(),
                 content=message,
@@ -345,7 +348,7 @@ class YoutubeChatService(ChatService):
             paid = self._parse_paid(data)
             created_at = self._parse_created_at(data)
             message = Message(
-                id=data["id"],
+                id=self.room.id / data["id"],
                 room_id=self._room.key(),
                 author_id=author.key(),
                 content=message,
@@ -359,7 +362,7 @@ class YoutubeChatService(ChatService):
             created_at = self._parse_created_at(data)
             component = content.System.of(_parse_runs(data["headerSubtext"]))
             message = Message(
-                id=data["id"],
+                id=self.room.id / data["id"],
                 room_id=self._room.key(),
                 author_id=author.key(),
                 content=component,
@@ -372,7 +375,7 @@ class YoutubeChatService(ChatService):
             created_at = self._parse_created_at(data)
             component = content.System.of(_parse_runs(data["message"]))
             message = Message(
-                id=data["id"],
+                id=self.room.id / data["id"],
                 room_id=self._room.key(),
                 author_id=author.key(),
                 content=component,
@@ -397,7 +400,7 @@ class YoutubeChatService(ChatService):
                 image_url=image_url,
             )
             message = Message(
-                id=data["id"],
+                id=self.room.id / data["id"],
                 room_id=self._room.key(),
                 author_id=author.key(),
                 content=component,
@@ -424,7 +427,7 @@ class YoutubeChatService(ChatService):
                 image_url=sticker_image,
             )
             message = Message(
-                id=data["id"],
+                id=self.room.id / data["id"],
                 room_id=self._room.key(),
                 author_id=author.key(),
                 gifts=[sticker],
@@ -436,9 +439,8 @@ class YoutubeChatService(ChatService):
         return None, None
 
     async def process_deleted_item(self, item: MarkChatItemAsDeletedAction):
-        message = await self.client.chat.messages.get(
-            f"{self._room.key()}#{item["targetItemId"]}"
-        )
+        id = self._room.id / item["targetItemId"]
+        message = await self.client.chat.messages.get(id.key())
         if message:
             await self.client.chat.messages.remove(message)
 
