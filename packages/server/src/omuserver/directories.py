@@ -7,7 +7,6 @@ from typing import LiteralString
 class Directories:
     data: pathlib.Path
     assets: pathlib.Path
-    plugins: pathlib.Path
 
     @classmethod
     def default(cls):
@@ -15,13 +14,11 @@ class Directories:
         return Directories(
             data=cwd / "data",
             assets=cwd / "assets",
-            plugins=cwd / "plugins",
         )
 
     def mkdir(self):
         self.data.mkdir(parents=True, exist_ok=True)
         self.assets.mkdir(parents=True, exist_ok=True)
-        self.plugins.mkdir(parents=True, exist_ok=True)
 
     def get(self, name: LiteralString):
         path = self.data / name
