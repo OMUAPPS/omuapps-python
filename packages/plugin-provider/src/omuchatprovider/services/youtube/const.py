@@ -1,6 +1,6 @@
 from typing import Dict, TypedDict
 
-from omu.extension.message import MessageType
+from omu.extension.signal import SignalType
 from omuchat.model import Provider
 
 from omuchatprovider.chatprovider import BASE_PROVIDER_IDENTIFIER
@@ -43,7 +43,7 @@ class ReactionMessage(TypedDict):
     reactions: Dict[str, int]
 
 
-REACTION_MESSAGE_TYPE = MessageType[ReactionMessage].create_json(
+REACTION_SIGNAL_TYPE = SignalType[ReactionMessage].create_json(
     identifier=YOUTUBE_IDENTIFIER,
     name="reaction",
 )

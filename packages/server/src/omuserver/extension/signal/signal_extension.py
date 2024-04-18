@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, DefaultDict, List
 
-from omu.extension.message.message_extension import (
-    MESSAGE_BROADCAST_PACKET,
-    MESSAGE_LISTEN_PACKET,
-    MessagePacket,
+from omu.extension.signal.signal_extension import (
+    SIGNAL_BROADCAST_PACKET,
+    SIGNAL_LISTEN_PACKET,
+    SignalPacket,
 )
 
 if TYPE_CHECKING:
@@ -16,18 +16,16 @@ if TYPE_CHECKING:
     from omuserver.session import Session
 
 
-class MessageExtension:
+class SignalExtension:
     def __init__(self, server: Server):
         self._server = server
         self.messages: DefaultDict[Identifier, List[Session]] = defaultdict(list)
-        server.packet_dispatcher.register(
-            MESSAGE_LISTEN_PACKET, MESSAGE_BROADCAST_PACKET
+        server.packet_dispatcher.register(SIGNAL_LISTEN_PACKET, SIGNAL_BROADCAST_PACKET)
+        server.packet_dispatcher.add_packet_handler(
+            SIGNAL_LISTEN_PACKET, self.handle_listen
         )
         server.packet_dispatcher.add_packet_handler(
-            MESSAGE_LISTEN_PACKET, self.handle_listen
-        )
-        server.packet_dispatcher.add_packet_handler(
-            MESSAGE_BROADCAST_PACKET, self.handle_broadcast
+            SIGNAL_BROADCAST_PACKET, self.handle_broadcast
         )
 
     def has(self, key):
@@ -41,7 +39,7 @@ class MessageExtension:
         listeners.append(session)
         session.listeners.disconnected += lambda session: listeners.remove(session)
 
-    async def handle_broadcast(self, session: Session, data: MessagePacket) -> None:
+    async def handle_broadcast(self, session: Session, data: SignalPacket) -> None:
         listeners = self.messages[data.id]
         for listener in listeners:
-            await listener.send(MESSAGE_BROADCAST_PACKET, data)
+            await listener.send(SIGNAL_BROADCAST_PACKET, data)

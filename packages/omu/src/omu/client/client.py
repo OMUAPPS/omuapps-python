@@ -12,10 +12,10 @@ if TYPE_CHECKING:
     from omu.extension.dashboard import DashboardExtension
     from omu.extension.endpoint import EndpointExtension
     from omu.extension.i18n import I18nExtension
-    from omu.extension.message import MessageExtension
     from omu.extension.permission import PermissionExtension
     from omu.extension.registry import RegistryExtension
     from omu.extension.server import ServerExtension
+    from omu.extension.signal import SignalExtension
     from omu.extension.table import TableExtension
     from omu.network import Network
     from omu.network.packet import PacketType
@@ -60,7 +60,7 @@ class Client(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def message(self) -> MessageExtension: ...
+    def signal(self) -> SignalExtension: ...
 
     @property
     @abc.abstractmethod

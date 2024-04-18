@@ -8,7 +8,7 @@ from omu.serializer import Serializable, Serializer
 
 
 @dataclass(frozen=True)
-class MessageType[T]:
+class SignalType[T]:
     identifier: Identifier
     serializer: Serializable[T, bytes]
 
@@ -36,7 +36,7 @@ class MessageType[T]:
         )
 
 
-class Message[T](abc.ABC):
+class Signal[T](abc.ABC):
     @abc.abstractmethod
     def listen(self, listener: Coro[[T], None]) -> Callable[[], None]: ...
 

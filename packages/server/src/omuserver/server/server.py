@@ -14,10 +14,10 @@ if TYPE_CHECKING:
     from omuserver.extension.asset import AssetExtension
     from omuserver.extension.dashboard import DashboardExtension
     from omuserver.extension.endpoint import EndpointExtension
-    from omuserver.extension.message import MessageExtension
     from omuserver.extension.permission import PermissionExtension
     from omuserver.extension.plugin import PluginExtension
     from omuserver.extension.registry import RegistryExtension
+    from omuserver.extension.signal import SignalExtension
     from omuserver.extension.table import TableExtension
     from omuserver.network import Network
     from omuserver.network.packet_dispatcher import ServerPacketDispatcher
@@ -81,7 +81,7 @@ class Server(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def messages(self) -> MessageExtension: ...
+    def signal(self) -> SignalExtension: ...
 
     @property
     @abc.abstractmethod
