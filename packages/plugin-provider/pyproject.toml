@@ -6,11 +6,10 @@ authors = [
     { name = "am230", email = "111672334+am230@users.noreply.github.com" },
 ]
 dependencies = [
+    "loguru>=0.7.2",
     "aiohttp>=3.9.1",
     "beautifulsoup4>=4.12.2",
     "lxml>=5.0.0",
-    "iwashi>=2.2.0",
-    "loguru>=0.7.2",
     "omuchat>=0.1.9",
 ]
 readme = "README.md"
