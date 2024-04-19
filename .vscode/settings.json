@@ -4,6 +4,9 @@
     "python.defaultInterpreterPath": "${workspaceFolder}/.venv/",
     "files.exclude": {
         "**/__pycache__": true,
+        "**/.mypy_cache": true,
+        "**/.ruff_cache": true,
+        "**/.pytest_cache": true,
     },
     "github.copilot.chat.localeOverride": "ja",
     "python.testing.pytestArgs": [
