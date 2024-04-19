@@ -25,6 +25,7 @@ jobs:
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          rye config --set-bool behavior.use-uv=true
           rye sync
       - name: Run tests
         run: |
