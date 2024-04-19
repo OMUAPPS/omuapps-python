@@ -1,7 +1,2 @@
-# python
 **/__pycache__/**
 /dist
-
-# pytest
-.coverage
-coverage.xml
