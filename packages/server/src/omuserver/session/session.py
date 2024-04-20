@@ -4,6 +4,7 @@ import abc
 import asyncio
 from typing import TYPE_CHECKING, Tuple
 
+from loguru import logger
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
 from omu.network.packet.packet_types import ConnectPacket
@@ -82,7 +83,9 @@ class Session:
                 connect_packet.app, token
             )
             if not verified:
-                raise RuntimeError("Invalid token")
+                logger.warning(f"Invalid token: {token}")
+                logger.info(f"Generating new token for {connect_packet.app}")
+                token = await server.security.generate_app_token(connect_packet.app)
         return token, False
 
     @property
