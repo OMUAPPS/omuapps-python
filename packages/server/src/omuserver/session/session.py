@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import abc
 import asyncio
-from typing import TYPE_CHECKING, Tuple
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from loguru import logger
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
 from omu.network.packet.packet_types import ConnectPacket
@@ -31,21 +31,20 @@ class SessionConnection(abc.ABC):
     def closed(self) -> bool: ...
 
 
+class SessionListeners:
+    def __init__(self) -> None:
+        self.packet = EventEmitter[Session, Packet]()
+        self.disconnected = EventEmitter[Session]()
+
+
+@dataclass(frozen=True)
 class Session:
-    def __init__(
-        self,
-        packet_mapper: PacketMapper,
-        app: App,
-        token: str,
-        is_dashboard: bool,
-        connection: SessionConnection,
-    ) -> None:
-        self.serializer = packet_mapper
-        self.app = app
-        self.token = token
-        self.is_dashboard = is_dashboard
-        self._connection = connection
-        self._listeners = SessionListeners()
+    packet_mapper: PacketMapper
+    app: App
+    token: str
+    is_dashboard: bool
+    connection: SessionConnection
+    _listeners: SessionListeners = field(default_factory=SessionListeners)
 
     @classmethod
     async def from_connection(
@@ -64,42 +63,32 @@ class Session:
         if not isinstance(packet.data, ConnectPacket):
             raise RuntimeError(f"Invalid packet data: {packet.data}")
         event = packet.data
+        app = event.app
         token = event.token
-        token, is_dashboard = await cls.verify_app_token(server, event, token)
+
+        is_dashboard = False
+        if server.config.dashboard_token and server.config.dashboard_token == token:
+            is_dashboard = True
+        else:
+            token = await server.security.verify_app_token(app, token)
+        if token is None:
+            raise RuntimeError("Token is None")
         session = Session(packet_mapper, event.app, token, is_dashboard, connection)
         await session.send(PACKET_TYPES.TOKEN, token)
         return session
 
-    @classmethod
-    async def verify_app_token(
-        cls, server: Server, connect_packet: ConnectPacket, token: str | None
-    ) -> Tuple[str, bool]:
-        if token is None:
-            token = await server.security.generate_app_token(connect_packet.app)
-        if token == server.config.dashboard_token:
-            return token, True
-        else:
-            verified = await server.security.validate_app_token(
-                connect_packet.app, token
-            )
-            if not verified:
-                logger.warning(f"Invalid token: {token}")
-                logger.info(f"Generating new token for {connect_packet.app}")
-                token = await server.security.generate_app_token(connect_packet.app)
-        return token, False
-
     @property
     def closed(self) -> bool:
-        return self._connection.closed
+        return self.connection.closed
 
     async def disconnect(self) -> None:
-        await self._connection.close()
+        await self.connection.close()
         await self._listeners.disconnected.emit(self)
 
     async def listen(self) -> None:
         try:
-            while not self._connection.closed:
-                packet = await self._connection.receive(self.serializer)
+            while not self.connection.closed:
+                packet = await self.connection.receive(self.packet_mapper)
                 if packet is None:
                     break
                 asyncio.create_task(self._dispatch_packet(packet))
@@ -110,14 +99,8 @@ class Session:
         await self._listeners.packet.emit(self, packet)
 
     async def send[T](self, packet_type: PacketType[T], data: T) -> None:
-        await self._connection.send(Packet(packet_type, data), self.serializer)
+        await self.connection.send(Packet(packet_type, data), self.packet_mapper)
 
     @property
     def listeners(self) -> SessionListeners:
         return self._listeners
-
-
-class SessionListeners:
-    def __init__(self) -> None:
-        self.packet = EventEmitter[Session, Packet]()
-        self.disconnected = EventEmitter[Session]()

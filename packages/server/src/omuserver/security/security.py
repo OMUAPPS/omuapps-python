@@ -4,6 +4,7 @@ import random
 import sqlite3
 import string
 
+from loguru import logger
 from omu import App
 
 from omuserver.server import Server
@@ -17,6 +18,12 @@ class Security(abc.ABC):
 
     @abc.abstractmethod
     async def validate_app_token(self, app: App, token: Token) -> bool: ...
+
+    @abc.abstractmethod
+    async def verify_app_token(self, app: App, token: Token | None) -> Token: ...
+
+    @abc.abstractmethod
+    async def is_dashboard_token(self, token: Token) -> bool: ...
 
 
 class TokenGenerator:
@@ -85,3 +92,19 @@ class ServerAuthenticator(Security):
             (datetime.datetime.now(), token),
         )
         return True
+
+    async def verify_app_token(self, app: App, token: str | None) -> str:
+        if token is None:
+            token = await self.generate_app_token(app)
+        verified = await self.validate_app_token(app, token)
+        if not verified:
+            logger.warning(f"Invalid token: {token}")
+            logger.info(f"Generating new token for {app}")
+            token = await self.generate_app_token(app)
+        return token
+
+    async def is_dashboard_token(self, token: Token) -> bool:
+        dashboard_token = self._server.config.dashboard_token
+        if dashboard_token is None:
+            return False
+        return dashboard_token == token
