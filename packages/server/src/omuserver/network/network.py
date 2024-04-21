@@ -11,7 +11,7 @@ from omu import App, Identifier
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES, PacketType
-from omu.network.packet.packet_types import ConnectPacket
+from omu.network.packet.packet_types import ConnectPacket, DisconnectType
 
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.session import Session
@@ -34,7 +34,7 @@ class Network:
         self._server = server
         self._packet_dispatcher = packet_dispatcher
         self._listeners = NetworkListeners()
-        self._sessions: Dict[str, Session] = {}
+        self._sessions: Dict[Identifier, Session] = {}
         self._app = web.Application()
         self.add_websocket_route("/ws")
         self.register_packet(PACKET_TYPES.CONNECT, PACKET_TYPES.READY)
@@ -48,7 +48,7 @@ class Network:
     ) -> None:
         self._app.router.add_get(path, handle)
 
-    def _validate_origin(self, request: web.Request, session: Session) -> None:
+    async def _validate_origin(self, request: web.Request, session: Session) -> None:
         origin = request.headers.get("origin")
         if origin is None:
             return
@@ -58,6 +58,10 @@ class Network:
             return
 
         if self._server.config.strict_origin:
+            await session.disconnect(
+                DisconnectType.INVALID_ORIGIN,
+                f"Invalid origin: {origin_namespace} != {namespace}",
+            )
             raise ValueError(f"Invalid origin: {origin_namespace} != {namespace}")
         else:
             logger.warning(f"Invalid origin: {origin_namespace} != {namespace}")
@@ -73,7 +77,7 @@ class Network:
                 connection,
             )
             if not session.is_dashboard:
-                self._validate_origin(request, session)
+                await self._validate_origin(request, session)
             await self.process_session(session)
             return ws
 
@@ -82,21 +86,25 @@ class Network:
     async def process_session(self, session: Session) -> None:
         if self.is_connected(session.app):
             logger.warning(f"Session {session.app} already connected")
-            await self._sessions[session.app.key()].disconnect()
+            old_session = self._sessions[session.app.identifier]
+            await old_session.disconnect(
+                DisconnectType.ANOTHER_CONNECTION,
+                f"Another connection from {session.app}",
+            )
             return
-        self._sessions[session.app.key()] = session
+        self._sessions[session.app.identifier] = session
         session.listeners.disconnected += self.handle_disconnection
         await self._listeners.connected.emit(session)
         await session.send(PACKET_TYPES.CONNECT, ConnectPacket(app=session.app))
         await session.listen()
 
     def is_connected(self, app: App) -> bool:
-        return app.key() in self._sessions
+        return app.identifier in self._sessions
 
     async def handle_disconnection(self, session: Session) -> None:
-        if session.app.key() not in self._sessions:
+        if session.app.identifier not in self._sessions:
             return
-        self._sessions.pop(session.app.key())
+        del self._sessions[session.app.identifier]
         await self._listeners.disconnected.emit(session)
 
     async def _handle_start(self, app: web.Application) -> None:

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Mapping
+from enum import Enum
+from typing import TypedDict
 
-from omu.app import App
+from omu.app import App, AppJson
 from omu.identifier import Identifier
 from omu.model import Model
 from omu.serializer import Serializer
@@ -10,41 +11,76 @@ from omu.serializer import Serializer
 from .packet import PacketType
 
 
-class ConnectPacket(Model):
-    def __init__(self, app: App, token: str | None = None):
+class ConnectPacketData(TypedDict):
+    app: AppJson
+    token: str | None
+
+
+class ConnectPacket(Model[ConnectPacketData]):
+    def __init__(
+        self,
+        app: App,
+        token: str | None = None,
+    ):
         self.app = app
         self.token = token
 
-    def to_json(self) -> Mapping:
+    def to_json(self) -> ConnectPacketData:
         return {
             "app": self.app.to_json(),
             "token": self.token,
         }
 
     @classmethod
-    def from_json(cls, json: Mapping) -> ConnectPacket:
+    def from_json(cls, json: ConnectPacketData) -> ConnectPacket:
         return cls(
             app=App.from_json(json["app"]),
             token=json["token"],
         )
 
 
-class DisconnectPacket(Model):
-    def __init__(self, reason: str):
-        self.reason = reason
+class DisconnectType(str, Enum):
+    INVALID_TOKEN = "invalid_token"
+    INVALID_APP = "invalid_app"
+    INVALID_ORIGIN = "invalid_origin"
+    INVALID_VERSION = "invalid_version"
+    INVALID_PACKET_TYPE = "invalid_packet_type"
+    INVALID_PACKET_DATA = "invalid_packet_data"
+    INVALID_PACKET = "invalid_packet"
+    ANOTHER_CONNECTION = "another_connection"
+    PERMISSION_DENIED = "permission_denied"
+    SHUTDOWN = "shutdown"
+    CLOSE = "close"
 
-    def to_json(self) -> Mapping:
-        return {"reason": self.reason}
+
+class DisconnectPacketData(TypedDict):
+    type: str
+    message: str | None
+
+
+class DisconnectPacket(Model[DisconnectPacketData]):
+    def __init__(self, type: DisconnectType, message: str | None = None):
+        self.type: DisconnectType = type
+        self.message = message
+
+    def to_json(self) -> DisconnectPacketData:
+        return {
+            "type": self.type.value,
+            "message": self.message,
+        }
 
     @classmethod
-    def from_json(cls, json: Mapping) -> DisconnectPacket:
+    def from_json(cls, json: DisconnectPacketData) -> DisconnectPacket:
         return cls(
-            reason=json["reason"],
+            type=DisconnectType(json["type"]),
+            message=json["message"],
         )
 
 
+IDENTIFIER = Identifier("core", "packet")
+
+
 class PACKET_TYPES:
-    IDENTIFIER = Identifier("core", "packet")
     CONNECT = PacketType.create_json(
         IDENTIFIER,
         "connect",
@@ -58,10 +94,8 @@ class PACKET_TYPES:
     TOKEN = PacketType[str].create_json(
         IDENTIFIER,
         "token",
-        Serializer.noop(),
     )
     READY = PacketType[None].create_json(
         IDENTIFIER,
         "ready",
-        Serializer.noop(),
     )

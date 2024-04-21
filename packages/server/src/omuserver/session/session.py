@@ -7,7 +7,11 @@ from typing import TYPE_CHECKING
 
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
-from omu.network.packet.packet_types import ConnectPacket
+from omu.network.packet.packet_types import (
+    ConnectPacket,
+    DisconnectPacket,
+    DisconnectType,
+)
 
 if TYPE_CHECKING:
     from omu import App
@@ -57,10 +61,30 @@ class Session:
         if packet is None:
             raise RuntimeError("Socket closed before connect")
         if packet.type != PACKET_TYPES.CONNECT:
+            await connection.send(
+                Packet(
+                    PACKET_TYPES.DISCONNECT,
+                    DisconnectPacket(
+                        DisconnectType.INVALID_PACKET_TYPE, "Expected connect"
+                    ),
+                ),
+                packet_mapper,
+            )
+            await connection.close()
             raise RuntimeError(
                 f"Expected {PACKET_TYPES.CONNECT.identifier} but got {packet.type}"
             )
         if not isinstance(packet.data, ConnectPacket):
+            await connection.send(
+                Packet(
+                    PACKET_TYPES.DISCONNECT,
+                    DisconnectPacket(
+                        DisconnectType.INVALID_PACKET_TYPE, "Expected connect"
+                    ),
+                ),
+                packet_mapper,
+            )
+            await connection.close()
             raise RuntimeError(f"Invalid packet data: {packet.data}")
         event = packet.data
         app = event.app
@@ -72,7 +96,15 @@ class Session:
         else:
             token = await server.security.verify_app_token(app, token)
         if token is None:
-            raise RuntimeError("Token is None")
+            await connection.send(
+                Packet(
+                    PACKET_TYPES.DISCONNECT,
+                    DisconnectPacket(DisconnectType.INVALID_TOKEN, "Invalid token"),
+                ),
+                packet_mapper,
+            )
+            await connection.close()
+            raise RuntimeError("Invalid token")
         session = Session(packet_mapper, event.app, token, is_dashboard, connection)
         await session.send(PACKET_TYPES.TOKEN, token)
         return session
@@ -81,7 +113,12 @@ class Session:
     def closed(self) -> bool:
         return self.connection.closed
 
-    async def disconnect(self) -> None:
+    async def disconnect(
+        self, disconnect_type: DisconnectType, message: str | None = None
+    ) -> None:
+        await self.send(
+            PACKET_TYPES.DISCONNECT, DisconnectPacket(disconnect_type, message)
+        )
         await self.connection.close()
         await self._listeners.disconnected.emit(self)
 
@@ -93,7 +130,7 @@ class Session:
                     break
                 asyncio.create_task(self._dispatch_packet(packet))
         finally:
-            await self.disconnect()
+            await self.disconnect(DisconnectType.CLOSE)
 
     async def _dispatch_packet(self, packet: Packet) -> None:
         await self._listeners.packet.emit(self, packet)
