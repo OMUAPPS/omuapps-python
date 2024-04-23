@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from omu.extension.extension import ExtensionType
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
@@ -16,7 +17,7 @@ class EndpointType[Req, Res]:
     @classmethod
     def create_json(
         cls,
-        identifier: Identifier,
+        identifier: Identifier | ExtensionType,
         name: str,
         request_serializer: Serializable[Req, Any] | None = None,
         response_serializer: Serializable[Res, Any] | None = None,
@@ -34,7 +35,7 @@ class EndpointType[Req, Res]:
     @classmethod
     def create_serialized(
         cls,
-        identifier: Identifier,
+        identifier: Identifier | ExtensionType,
         name: str,
         request_serializer: Serializable[Req, bytes],
         response_serializer: Serializable[Res, bytes],

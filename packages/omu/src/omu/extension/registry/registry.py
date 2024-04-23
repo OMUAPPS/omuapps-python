@@ -4,6 +4,7 @@ import abc
 from dataclasses import dataclass
 from typing import Callable
 
+from omu.extension.extension import ExtensionType
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
@@ -18,7 +19,7 @@ class RegistryType[T]:
     @classmethod
     def create_json(
         cls,
-        identifier: Identifier,
+        identifier: Identifier | ExtensionType,
         name: str,
         default_value: T,
     ) -> RegistryType[T]:

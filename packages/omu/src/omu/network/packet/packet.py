@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from omu.extension.extension import ExtensionType
 from omu.identifier import Identifier
 from omu.serializer import Serializer
 
@@ -30,7 +31,7 @@ class PacketType[T]:
     @classmethod
     def create_json[_T](
         cls,
-        identifier: Identifier,
+        identifier: Identifier | ExtensionType,
         name: str,
         serializer: Serializable[_T, Any] | None = None,
     ) -> PacketType[_T]:
@@ -44,7 +45,7 @@ class PacketType[T]:
     @classmethod
     def create_serialized[_T](
         cls,
-        identifier: Identifier,
+        identifier: Identifier | ExtensionType,
         name: str,
         serializer: Serializable[_T, bytes],
     ) -> PacketType[_T]:

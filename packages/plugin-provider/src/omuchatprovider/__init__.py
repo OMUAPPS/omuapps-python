@@ -9,6 +9,6 @@ def get_client():
 
 plugin = Plugin(
     get_client,
-    isolated=True,
+    isolated=False,
 )
 __all__ = ["plugin"]

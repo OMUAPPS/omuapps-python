@@ -5,39 +5,40 @@ import urllib.parse
 from pathlib import Path
 from typing import Final, Tuple
 
-from omu.helper import generate_md5_hash, sanitize_filename
-from omu.model import Model
+from pydantic import (
+    BaseModel,
+    field_validator,
+)
 
-from .interface import Keyable
+from omu.helper import generate_md5_hash, sanitize_filename
 
 NAMESPACE_REGEX = re.compile(r"^(\.[^/:.]|[\w-])+$")
 NAME_REGEX = re.compile(r"^[^/:.]+$")
 
 
-class Identifier(Model[str], Keyable):
-    def __init__(self, namespace: str, *path: str) -> None:
-        self.validate(namespace, *path)
-        self.namespace: Final[str] = namespace
-        self.path: Final[Tuple[str, ...]] = path
+class Identifier(BaseModel):
+    namespace: Final[str]
+    path: Tuple[str, ...]
 
-    @classmethod
-    def validate(cls, namespace: str, *path: str) -> None:
-        if not namespace:
-            raise Exception("Invalid namespace: Namespace cannot be empty")
-        if len(path) == 0:
-            raise Exception("Invalid path: Path must have at least one name")
-        if not NAMESPACE_REGEX.match(namespace):
-            raise Exception(
+    def key(self) -> str:
+        return f"{self.namespace}:{'/'.join(self.path)}"
+
+    @field_validator("namespace")
+    def validate_namespace(cls, value: str) -> str:
+        if not NAMESPACE_REGEX.match(value):
+            raise ValueError(
                 f"Invalid namespace: Namespace must match {NAMESPACE_REGEX.pattern}"
             )
-        for name in path:
-            if not NAME_REGEX.match(name):
-                raise Exception(f"Invalid name: Name must match {NAME_REGEX.pattern}")
+        return value
 
-    @classmethod
-    def format(cls, namespace: str, *path: str) -> str:
-        cls.validate(namespace, *path)
-        return f"{namespace}:{'/'.join(path)}"
+    @field_validator("path")
+    def validate_path(cls, value: Tuple[str, ...]) -> Tuple[str, ...]:
+        if not value:
+            raise ValueError("Invalid path: Path must have at least one name")
+        for name in value:
+            if not NAME_REGEX.match(name):
+                raise ValueError(f"Invalid name: Name must match {NAME_REGEX.pattern}")
+        return value
 
     @classmethod
     def from_key(cls, key: str) -> Identifier:
@@ -49,29 +50,19 @@ class Identifier(Model[str], Keyable):
         namespace, path = key[:separator], key[separator + 1 :]
         if not namespace or not path:
             raise Exception("Invalid key: Namespace and path cannot be empty")
-        return cls(namespace, *path.split("/"))
+        return cls(namespace=namespace, path=tuple(path.split("/")))
 
     @classmethod
     def from_url(cls, url: str) -> Identifier:
         parsed = urllib.parse.urlparse(url)
         namespace = cls.namespace_from_url(url)
         path = parsed.path.split("/")[1:]
-        return cls(namespace, *path)
+        return cls(namespace=namespace, path=tuple(path))
 
     @classmethod
     def namespace_from_url(cls, url: str) -> str:
         parsed = urllib.parse.urlparse(url)
         return ".".join(reversed(parsed.netloc.split(".")))
-
-    def to_json(self) -> str:
-        return self.key()
-
-    @classmethod
-    def from_json(cls, json: str) -> Identifier:
-        return cls.from_key(json)
-
-    def key(self) -> str:
-        return self.format(self.namespace, *self.path)
 
     def get_sanitized_path(self) -> Path:
         namespace = (
@@ -86,7 +77,7 @@ class Identifier(Model[str], Keyable):
         )
 
     def join(self, *path: str) -> Identifier:
-        return Identifier(self.namespace, *self.path, *path)
+        return Identifier(namespace=self.namespace, path=(*self.path, *path))
 
     def __truediv__(self, name: str) -> Identifier:
         return self.join(name)

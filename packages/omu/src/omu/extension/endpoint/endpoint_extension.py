@@ -14,9 +14,9 @@ from omu.serializer import Serializer
 from .endpoint import EndpointType
 
 ENDPOINT_EXTENSION_TYPE = ExtensionType(
-    "endpoint",
-    lambda client: EndpointExtension(client),
-    lambda: [],
+    name="endpoint",
+    create=lambda client: EndpointExtension(client),
+    dependencies=lambda: [],
 )
 
 
@@ -164,7 +164,7 @@ class ENDPOINT_DATA_SERIALIZER:
 ENDPOINT_REGISTER_PACKET = PacketType[List[Identifier]].create_json(
     ENDPOINT_EXTENSION_TYPE,
     "register",
-    Serializer.model(Identifier).to_array(),
+    Serializer.pydantic(Identifier).to_array(),
 )
 ENDPOINT_CALL_PACKET = PacketType[EndpointDataPacket].create_serialized(
     ENDPOINT_EXTENSION_TYPE,

@@ -1,7 +1,8 @@
 import abc
+from typing import Protocol
 
 
-class Keyable(abc.ABC):
+class Keyable(Protocol):
     @abc.abstractmethod
     def key(self) -> str: ...
 

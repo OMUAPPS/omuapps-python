@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import NotRequired, TypedDict
 
-from omu.interface import Keyable
 from omu.model import Model
 
 
@@ -15,7 +14,7 @@ class RoleJson(TypedDict):
     color: NotRequired[str] | None
 
 
-class Role(Keyable, Model[RoleJson]):
+class Role(Model[RoleJson]):
     def __init__(
         self,
         *,

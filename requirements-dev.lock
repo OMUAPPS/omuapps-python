@@ -34,6 +34,8 @@ aiohttp==3.9.5
     # via omuserver
 aiosignal==1.3.1
     # via aiohttp
+annotated-types==0.6.0
+    # via pydantic
 attrs==23.2.0
     # via aiohttp
 beautifulsoup4==4.12.3
@@ -90,6 +92,10 @@ pluggy==1.4.0
 psutil==5.9.8
     # via omuplugin-obssync
     # via omuserver
+pydantic==2.7.0
+    # via omu
+pydantic-core==2.18.1
+    # via pydantic
 pyright==1.1.359
 pytest==8.1.1
     # via pytest-asyncio
@@ -104,6 +110,9 @@ setuptools==69.5.1
     # via nodeenv
 soupsieve==2.5
     # via beautifulsoup4
+typing-extensions==4.11.0
+    # via pydantic
+    # via pydantic-core
 win32-setctime==1.1.0
     # via loguru
 yarl==1.9.4

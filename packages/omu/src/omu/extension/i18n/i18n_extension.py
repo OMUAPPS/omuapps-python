@@ -6,7 +6,9 @@ from omu.extension.registry import RegistryType
 from omu.localization import Locale, LocalizedText
 
 I18N_EXTENSION_TYPE = ExtensionType(
-    "i18n", lambda client: I18nExtension(client), lambda: []
+    name="i18n",
+    create=lambda client: I18nExtension(client),
+    dependencies=lambda: [],
 )
 
 LOCALES_REGISTRY = RegistryType[List[Locale]].create_json(

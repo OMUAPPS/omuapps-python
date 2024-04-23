@@ -14,9 +14,9 @@ from omu.serializer import Serializer
 from .signal import Signal, SignalType
 
 SIGNAL_EXTENSION_TYPE = ExtensionType(
-    "signal",
-    lambda client: SignalExtension(client),
-    lambda: [],
+    name="signal",
+    create=lambda client: SignalExtension(client),
+    dependencies=lambda: [],
 )
 
 
@@ -45,7 +45,7 @@ class SignalSerializer:
 SIGNAL_LISTEN_PACKET = PacketType[Identifier].create_json(
     SIGNAL_EXTENSION_TYPE,
     "listen",
-    serializer=Serializer.model(Identifier),
+    serializer=Serializer.pydantic(Identifier),
 )
 SIGNAL_BROADCAST_PACKET = PacketType[SignalPacket].create_serialized(
     SIGNAL_EXTENSION_TYPE,

@@ -7,9 +7,9 @@ from omu.extension.permission.permission import PermissionType
 from omu.network.packet.packet import PacketType
 
 PLUGIN_EXTENSION_TYPE = ExtensionType(
-    "plugin",
-    lambda client: PluginExtension(client),
-    lambda: [],
+    name="plugin",
+    create=lambda client: PluginExtension(client),
+    dependencies=lambda: [],
 )
 
 

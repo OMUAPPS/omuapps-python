@@ -23,7 +23,7 @@ class WebsocketsConnection(Connection):
     @property
     def _ws_endpoint(self) -> str:
         protocol = "wss" if self._address.secure else "ws"
-        host = self._address.host or "localhost"
+        host = self._address.host or "127.0.0.1"
         port = self._address.port
         return f"{protocol}://{host}:{port}/ws"
 

@@ -16,7 +16,7 @@ from omuchat.chat import (
 from omuchat.model.channel import Channel
 
 app = App(
-    IDENTIFIER,
+    identifier=IDENTIFIER,
     version="0.1.0",
 )
 address = Address("127.0.0.1", 26423)

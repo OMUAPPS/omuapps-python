@@ -4,16 +4,15 @@ from typing import List, Literal, Mapping, Tuple, TypedDict
 
 from omu.extension.table.table import TableType
 from omu.identifier import Identifier
-from omu.interface.keyable import Keyable
-from omu.model import Model
 from omuchat import App, Client
 from omuchat.event.event_types import events
 from omuchat.model import content
 from omuchat.model.message import Message
+from pydantic import BaseModel
 
-IDENTIFIER = Identifier("cc.omuchat", "emoji", "plugin")
+IDENTIFIER = Identifier.from_key("cc.omuchat:emoji/plugin")
 APP = App(
-    IDENTIFIER,
+    identifier=IDENTIFIER,
     version="0.1.0",
 )
 client = Client(APP)
@@ -37,40 +36,13 @@ class RegexPattern(TypedDict):
 type Pattern = TextPattern | ImagePattern | RegexPattern
 
 
-class EmojiData(TypedDict):
+class Emoji(BaseModel):
     id: str
-    asset: str
+    asset: Identifier
     patterns: List[Pattern]
-
-
-class Emoji(Model[EmojiData], Keyable):
-    def __init__(
-        self,
-        id: str,
-        asset: Identifier,
-        patterns: List[Pattern],
-    ) -> None:
-        self.id = id
-        self.asset = asset
-        self.patterns = patterns
 
     def key(self) -> str:
         return self.id
-
-    @classmethod
-    def from_json(cls, json: EmojiData):
-        return cls(
-            json["id"],
-            Identifier.from_key(json["asset"]),
-            json["patterns"],
-        )
-
-    def to_json(self) -> EmojiData:
-        return {
-            "id": self.id,
-            "asset": self.asset.key(),
-            "patterns": self.patterns,
-        }
 
 
 EMOJI_TABLE_TYPE = TableType.create_model(

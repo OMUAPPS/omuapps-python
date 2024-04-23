@@ -13,6 +13,7 @@ from typing import (
 )
 
 from omu.event_emitter import EventEmitter
+from omu.extension.extension import ExtensionType
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.serializer import Serializer
@@ -132,14 +133,14 @@ class TableType[T]:
     @classmethod
     def create_model[_T: Keyable, _D](
         cls,
-        identifier: Identifier,
+        identifier: Identifier | ExtensionType,
         name: str,
         model_type: type[ModelEntry[_T, _D]],
     ) -> TableType[_T]:
         return TableType(
             identifier=identifier / name,
-            serializer=Serializer.model(model_type).to_json(),
-            key_func=lambda item: item.key(),
+            serializer=Serializer.pydantic(model_type),
+            key_func=lambda item: item.key(),  # type: ignore
         )
 
     @classmethod

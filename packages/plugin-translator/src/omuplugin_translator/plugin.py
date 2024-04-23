@@ -8,9 +8,9 @@ from omu.identifier import Identifier
 from omuchat import App, Client, content, model
 from omuchat.event.event_types import events
 
-IDENTIFIER = Identifier("cc.omuchat", "plugin-translator")
+IDENTIFIER = Identifier.from_key("cc.omuchat:plugin-translator")
 APP = App(
-    IDENTIFIER,
+    identifier=IDENTIFIER,
     version="0.1.0",
 )
 client = Client(APP)

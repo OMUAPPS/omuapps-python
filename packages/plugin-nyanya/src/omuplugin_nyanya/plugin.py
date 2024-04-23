@@ -3,9 +3,9 @@ from __future__ import annotations
 from omu.identifier import Identifier
 from omuchat import App, Client, content, model
 
-IDENTIFIER = Identifier("cc.omuchat", "plugin-nyanya")
+IDENTIFIER = Identifier.from_key("cc.omuchat:plugin-nyanya")
 APP = App(
-    IDENTIFIER,
+    identifier=IDENTIFIER,
     version="0.1.0",
 )
 client = Client(APP)

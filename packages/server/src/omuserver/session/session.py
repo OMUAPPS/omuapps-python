@@ -66,7 +66,8 @@ class Session:
                 Packet(
                     PACKET_TYPES.DISCONNECT,
                     DisconnectPacket(
-                        DisconnectType.INVALID_PACKET_TYPE, "Expected connect"
+                        type=DisconnectType.INVALID_PACKET_TYPE,
+                        message="Expected connect",
                     ),
                 ),
                 packet_mapper,
@@ -80,7 +81,8 @@ class Session:
                 Packet(
                     PACKET_TYPES.DISCONNECT,
                     DisconnectPacket(
-                        DisconnectType.INVALID_PACKET_TYPE, "Expected connect"
+                        type=DisconnectType.INVALID_PACKET_TYPE,
+                        message="Expected connect",
                     ),
                 ),
                 packet_mapper,
@@ -100,7 +102,9 @@ class Session:
             await connection.send(
                 Packet(
                     PACKET_TYPES.DISCONNECT,
-                    DisconnectPacket(DisconnectType.INVALID_TOKEN, "Invalid token"),
+                    DisconnectPacket(
+                        type=DisconnectType.INVALID_TOKEN, message="Invalid token"
+                    ),
                 ),
                 packet_mapper,
             )
@@ -119,7 +123,8 @@ class Session:
     ) -> None:
         if not self.connection.closed:
             await self.send(
-                PACKET_TYPES.DISCONNECT, DisconnectPacket(disconnect_type, message)
+                PACKET_TYPES.DISCONNECT,
+                DisconnectPacket(type=disconnect_type, message=message),
             )
         await self.connection.close()
         await self._listeners.disconnected.emit(self)

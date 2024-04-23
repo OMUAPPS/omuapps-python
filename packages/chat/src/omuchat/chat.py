@@ -43,7 +43,7 @@ ROOM_TABLE = TableType.create_model(
 CREATE_CHANNEL_TREE_ENDPOINT = EndpointType[str, List[Channel]].create_json(
     IDENTIFIER,
     "create_channel_tree",
-    response_serializer=Serializer.model(Channel).to_array(),
+    response_serializer=Serializer.pydantic(Channel).to_array(),
 )
 
 

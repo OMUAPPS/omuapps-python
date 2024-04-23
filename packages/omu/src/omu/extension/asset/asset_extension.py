@@ -9,9 +9,9 @@ from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.serializer import Serializer
 
 ASSET_EXTENSION_TYPE = ExtensionType(
-    "asset",
-    lambda client: AssetExtension(client),
-    lambda: [],
+    name="asset",
+    create=lambda client: AssetExtension(client),
+    dependencies=lambda: [],
 )
 
 
@@ -63,7 +63,7 @@ ASSET_UPLOAD_ENDPOINT = EndpointType[File, Identifier].create_serialized(
     ASSET_EXTENSION_TYPE,
     "upload",
     request_serializer=FileSerializer,
-    response_serializer=Serializer.model(Identifier).to_json(),
+    response_serializer=Serializer.pydantic(Identifier).to_json(),
 )
 ASSET_UPLOAD_MANY_ENDPOINT = EndpointType[
     List[File], List[Identifier]
@@ -71,12 +71,12 @@ ASSET_UPLOAD_MANY_ENDPOINT = EndpointType[
     ASSET_EXTENSION_TYPE,
     "upload_many",
     request_serializer=FileArraySerializer,
-    response_serializer=Serializer.model(Identifier).to_array().to_json(),
+    response_serializer=Serializer.pydantic(Identifier).to_array().to_json(),
 )
 ASSET_DOWNLOAD_ENDPOINT = EndpointType[Identifier, File].create_serialized(
     ASSET_EXTENSION_TYPE,
     "download",
-    request_serializer=Serializer.model(Identifier).to_json(),
+    request_serializer=Serializer.pydantic(Identifier).to_json(),
     response_serializer=FileSerializer,
 )
 ASSET_DOWNLOAD_MANY_ENDPOINT = EndpointType[
@@ -84,7 +84,7 @@ ASSET_DOWNLOAD_MANY_ENDPOINT = EndpointType[
 ].create_serialized(
     ASSET_EXTENSION_TYPE,
     "download_many",
-    request_serializer=Serializer.model(Identifier).to_array().to_json(),
+    request_serializer=Serializer.pydantic(Identifier).to_array().to_json(),
     response_serializer=FileArraySerializer,
 )
 

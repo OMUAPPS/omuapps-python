@@ -15,9 +15,9 @@ from omu.serializer import Serializable, SerializeError, Serializer
 from .registry import Registry, RegistryType
 
 REGISTRY_EXTENSION_TYPE = ExtensionType(
-    "registry",
-    lambda client: RegistryExtension(client),
-    lambda: [],
+    name="registry",
+    create=lambda client: RegistryExtension(client),
+    dependencies=lambda: [],
 )
 
 
@@ -54,12 +54,12 @@ REGISTRY_UPDATE_PACKET = PacketType[RegistryPacket].create_serialized(
 REGISTRY_LISTEN_PACKET = PacketType[Identifier].create_json(
     REGISTRY_EXTENSION_TYPE,
     "listen",
-    Serializer.model(Identifier),
+    Serializer.pydantic(Identifier),
 )
 REGISTRY_GET_ENDPOINT = EndpointType[Identifier, RegistryPacket].create_serialized(
     REGISTRY_EXTENSION_TYPE,
     "get",
-    request_serializer=Serializer.model(Identifier).to_json(),
+    request_serializer=Serializer.pydantic(Identifier),
     response_serializer=REGISTRY_DATA_SERIALIZER,
 )
 

@@ -10,9 +10,9 @@ from omu.serializer import Serializer
 from .permission import PermissionType
 
 PERMISSION_EXTENSION_TYPE = ExtensionType(
-    "permission",
-    lambda client: PermissionExtension(client),
-    lambda: [],
+    name="permission",
+    create=lambda client: PermissionExtension(client),
+    dependencies=lambda: [],
 )
 
 
@@ -64,15 +64,15 @@ class PermissionExtension(Extension):
 PERMISSION_REGISTER_PACKET = PacketType.create_json(
     PERMISSION_EXTENSION_TYPE,
     "register",
-    Serializer.model(PermissionType).to_array(),
+    Serializer.pydantic(PermissionType).to_array(),
 )
 PERMISSION_REQUEST_ENDPOINT = EndpointType[List[Identifier], None].create_json(
     PERMISSION_EXTENSION_TYPE,
     "request",
-    request_serializer=Serializer.model(Identifier).to_array(),
+    request_serializer=Serializer.pydantic(Identifier).to_array(),
 )
 PERMISSION_GRANT_PACKET = PacketType.create_json(
     PERMISSION_EXTENSION_TYPE,
     "grant",
-    Serializer.model(PermissionType).to_array(),
+    Serializer.pydantic(PermissionType).to_array(),
 )

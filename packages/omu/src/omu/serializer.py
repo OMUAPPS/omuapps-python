@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import Callable, Mapping, Protocol
+from typing import Any, Callable, Mapping, Protocol
 
 
 class SerializeError(Exception):
@@ -18,10 +18,16 @@ class Serializable[T, D](Protocol):
 
 
 class JsonSerializable[T, D](Protocol):
-    def to_json(self) -> D: ...
+    def model_dump_json(self) -> str: ...
 
     @classmethod
-    def from_json(cls, json: D) -> T: ...
+    def model_validate_json(
+        cls,
+        json_data: str | bytes | bytearray,
+        *,
+        strict: bool | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> T: ...
 
 
 class Serializer[T, D](Serializable[T, D]):
@@ -44,12 +50,12 @@ class Serializer[T, D](Serializable[T, D]):
         return NoopSerializer()
 
     @classmethod
-    def model[_T, _D](cls, model: type[JsonSerializable[_T, _D]]) -> Serializer[_T, _D]:
-        return ModelSerializer(model)
-
-    @classmethod
     def json(cls) -> Serializer[T, bytes]:
         return JsonSerializer()
+
+    @classmethod
+    def pydantic[_T: JsonSerializable](cls, model: type[_T]) -> Serializer[_T, bytes]:
+        return PydanticSerializer(model)
 
     def to_json(self) -> Serializer[T, bytes]:
         return self.pipe(JsonSerializer())
@@ -72,17 +78,6 @@ class NoopSerializer[T](Serializer[T, T]):
         return "NoopSerializer()"
 
 
-class ModelSerializer[M: JsonSerializable, D](Serializer[M, D]):
-    def __init__(self, model: type[JsonSerializable[M, D]]):
-        self._model = model
-        super().__init__(
-            lambda item: item.to_json(), lambda item: model.from_json(item)
-        )
-
-    def __repr__(self) -> str:
-        return f"ModelSerializer({self._model})"
-
-
 class JsonSerializer[T](Serializer[T, bytes]):
     def __init__(self):
         super().__init__(
@@ -102,6 +97,26 @@ class JsonSerializer[T](Serializer[T, bytes]):
 
     def __repr__(self) -> str:
         return "JsonSerializer()"
+
+
+class PydanticSerializer[T: JsonSerializable](Serializer[T, bytes]):
+    def __init__(self, model: type[T]):
+        super().__init__(
+            self._serialize,
+            self._deserialize,
+        )
+        self._model = model
+
+    def _serialize(self, item: T) -> bytes:
+        dumped = item.model_dump_json()
+        return dumped.encode("utf-8")
+
+    def _deserialize(self, item: bytes) -> T:
+        decoded = item.decode("utf-8")
+        return self._model.model_validate_json(decoded)
+
+    def __repr__(self) -> str:
+        return f"PydanticSerializer({self._model})"
 
 
 class ArraySerializer[T, D](Serializer[list[T], list[D]]):

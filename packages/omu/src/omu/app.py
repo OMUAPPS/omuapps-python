@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Final, List, NotRequired, TypedDict
 
+from pydantic import BaseModel
+
 from omu.identifier import Identifier
-from omu.interface import Keyable
 from omu.localization import LocalizedText
 from omu.localization.locale import Locale
-from omu.model import Model
 
 
 class AppMetadata(TypedDict):
@@ -21,46 +21,11 @@ class AppMetadata(TypedDict):
     tags: NotRequired[List[str]]
 
 
-class AppJson(TypedDict):
-    identifier: str
-    version: NotRequired[str] | None
-    url: NotRequired[str] | None
-    metadata: NotRequired[AppMetadata] | None
-
-
-class App(Keyable, Model[AppJson]):
-    def __init__(
-        self,
-        identifier: Identifier | str,
-        *,
-        version: str | None = None,
-        url: str | None = None,
-        metadata: AppMetadata | None = None,
-    ) -> None:
-        if isinstance(identifier, str):
-            identifier = Identifier.from_key(identifier)
-        self.identifier: Final[Identifier] = identifier
-        self.version = version
-        self.url = url
-        self.metadata = metadata
-
-    @classmethod
-    def from_json(cls, json: AppJson) -> App:
-        identifier = Identifier.from_key(json["identifier"])
-        return cls(
-            identifier,
-            version=json.get("version"),
-            url=json.get("url"),
-            metadata=json.get("metadata"),
-        )
-
-    def to_json(self) -> AppJson:
-        return AppJson(
-            identifier=self.key(),
-            version=self.version,
-            url=self.url,
-            metadata=self.metadata,
-        )
+class App(BaseModel):
+    identifier: Final[Identifier]
+    version: str | None = None
+    url: str | None = None
+    metadata: AppMetadata | None = None
 
     def key(self) -> str:
         return self.identifier.key()

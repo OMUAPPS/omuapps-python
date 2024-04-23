@@ -65,7 +65,9 @@ class PermissionExtension:
                 permissions.append(permission)
 
         accepted = await self.server.dashboard.request_permissions(
-            PermissionRequest(request_id, session.app, permissions)
+            PermissionRequest(
+                request_id=request_id, app=session.app, permissions=permissions
+            )
         )
         if accepted:
             self.session_permissions[session] = permissions

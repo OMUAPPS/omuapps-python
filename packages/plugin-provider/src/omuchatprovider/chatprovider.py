@@ -10,7 +10,7 @@ from omuchatprovider.errors import ProviderError
 
 from .services import ChatService, ProviderService, get_services
 
-BASE_PROVIDER_IDENTIFIER = Identifier("cc.omuchat", "chatprovider")
+BASE_PROVIDER_IDENTIFIER = Identifier.from_key("cc.omuchat:chatprovider")
 APP = App(
     identifier=BASE_PROVIDER_IDENTIFIER,
     version="0.1.0",

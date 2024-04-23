@@ -6,7 +6,9 @@ from omu.extension.registry import RegistryType
 from omu.extension.table import TABLE_EXTENSION_TYPE, TableType
 
 SERVER_EXTENSION_TYPE = ExtensionType(
-    "server", lambda client: ServerExtension(client), lambda: []
+    name="server",
+    create=lambda client: ServerExtension(client),
+    dependencies=lambda: [],
 )
 
 APPS_TABLE_TYPE = TableType.create_model(

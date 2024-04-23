@@ -3,40 +3,18 @@ from __future__ import annotations
 from enum import Enum
 from typing import TypedDict
 
-from omu.app import App, AppJson
+from pydantic import BaseModel
+
+from omu.app import App
 from omu.identifier import Identifier
-from omu.model import Model
 from omu.serializer import Serializer
 
 from .packet import PacketType
 
 
-class ConnectPacketData(TypedDict):
-    app: AppJson
-    token: str | None
-
-
-class ConnectPacket(Model[ConnectPacketData]):
-    def __init__(
-        self,
-        app: App,
-        token: str | None = None,
-    ):
-        self.app = app
-        self.token = token
-
-    def to_json(self) -> ConnectPacketData:
-        return {
-            "app": self.app.to_json(),
-            "token": self.token,
-        }
-
-    @classmethod
-    def from_json(cls, json: ConnectPacketData) -> ConnectPacket:
-        return cls(
-            app=App.from_json(json["app"]),
-            token=json["token"],
-        )
+class ConnectPacket(BaseModel):
+    app: App
+    token: str | None = None
 
 
 class DisconnectType(str, Enum):
@@ -57,38 +35,24 @@ class DisconnectPacketData(TypedDict):
     message: str | None
 
 
-class DisconnectPacket(Model[DisconnectPacketData]):
-    def __init__(self, type: DisconnectType, message: str | None = None):
-        self.type: DisconnectType = type
-        self.message = message
-
-    def to_json(self) -> DisconnectPacketData:
-        return {
-            "type": self.type.value,
-            "message": self.message,
-        }
-
-    @classmethod
-    def from_json(cls, json: DisconnectPacketData) -> DisconnectPacket:
-        return cls(
-            type=DisconnectType(json["type"]),
-            message=json["message"],
-        )
+class DisconnectPacket(BaseModel):
+    type: DisconnectType
+    message: str | None = None
 
 
-IDENTIFIER = Identifier("core", "packet")
+IDENTIFIER = Identifier.from_key("core:packet")
 
 
 class PACKET_TYPES:
     CONNECT = PacketType.create_json(
         IDENTIFIER,
         "connect",
-        Serializer.model(ConnectPacket),
+        Serializer.pydantic(ConnectPacket),
     )
     DISCONNECT = PacketType.create_json(
         IDENTIFIER,
         "disconnect",
-        Serializer.model(DisconnectPacket),
+        Serializer.pydantic(DisconnectPacket),
     )
     TOKEN = PacketType[str].create_json(
         IDENTIFIER,

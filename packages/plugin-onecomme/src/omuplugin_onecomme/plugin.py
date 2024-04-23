@@ -8,9 +8,9 @@ from loguru import logger
 from omu.identifier import Identifier
 from omuchat import App, Client, events, model
 
-IDENTIFIER = Identifier("cc.omuchat", "plugin-onesync")
+IDENTIFIER = Identifier.from_key("cc.omuchat:plugin-onesync")
 APP = App(
-    IDENTIFIER,
+    identifier=IDENTIFIER,
     version="0.1.0",
 )
 client = Client(APP)

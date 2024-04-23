@@ -13,9 +13,9 @@ from omu.serializer import Serializer
 from .dashboard import DashboardOpenAppResponse, PermissionRequest
 
 DASHBOARD_EXTENSION_TYPE = ExtensionType(
-    "dashboard",
-    lambda client: DashboardExtension(client),
-    lambda: [],
+    name="dashboard",
+    create=lambda client: DashboardExtension(client),
+    dependencies=lambda: [],
 )
 
 
@@ -26,12 +26,12 @@ class DashboardSetResponse(TypedDict):
 DASHBOARD_SET_ENDPOINT = EndpointType[Identifier, DashboardSetResponse].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "set",
-    request_serializer=Serializer.model(Identifier),
+    request_serializer=Serializer.pydantic(Identifier),
 )
 DASHBOARD_PERMISSION_REQUEST_PACKET = PacketType[PermissionRequest].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "permission_request",
-    Serializer.model(PermissionRequest),
+    Serializer.pydantic(PermissionRequest),
 )
 DASHBOARD_PERMISSION_ACCEPT_PACKET = PacketType[str].create_json(
     DASHBOARD_EXTENSION_TYPE,
@@ -44,12 +44,12 @@ DASHBOARD_PERMISSION_DENY_PACKET = PacketType[str].create_json(
 DASHBOARD_OPEN_APP_ENDPOINT = EndpointType[App, DashboardOpenAppResponse].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "open_app",
-    request_serializer=Serializer.model(App),
+    request_serializer=Serializer.pydantic(App),
 )
 DASHBOARD_OPEN_APP_PACKET = PacketType[App].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "open_app",
-    Serializer.model(App),
+    Serializer.pydantic(App),
 )
 
 

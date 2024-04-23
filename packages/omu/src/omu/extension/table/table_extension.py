@@ -9,6 +9,8 @@ from typing import (
     TypedDict,
 )
 
+from pydantic import BaseModel
+
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
@@ -17,7 +19,7 @@ from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
-from omu.serializer import JsonSerializable, Serializable, Serializer
+from omu.serializer import Serializable, Serializer
 
 from .table import (
     Table,
@@ -26,7 +28,10 @@ from .table import (
     TableType,
 )
 
-type ModelType[T: Keyable, D] = JsonSerializable[T, D]
+# type ModelType[T: Keyable, D] = JsonSerializable[T, D]
+# class ModelType(BaseModel, Keyable):
+#     pass
+type ModelType[T: Keyable, D] = BaseModel
 
 
 class TableExtension(Extension):
@@ -72,10 +77,11 @@ class TableExtension(Extension):
         identifier = identifier / name
         if self.has(identifier):
             return self._tables[identifier]
+        serializer = Serializer.pydantic(model_type)
         return self.create(
             identifier,
-            Serializer.model(model_type).to_json(),
-            lambda item: item.key(),
+            serializer,  # type: ignore
+            lambda item: item.key(),  # type: ignore
         )
 
     def has(self, identifier: Identifier) -> bool:
@@ -83,7 +89,9 @@ class TableExtension(Extension):
 
 
 TABLE_EXTENSION_TYPE = ExtensionType(
-    "table", lambda client: TableExtension(client), lambda: []
+    name="table",
+    create=lambda client: TableExtension(client),
+    dependencies=lambda: [],
 )
 
 
