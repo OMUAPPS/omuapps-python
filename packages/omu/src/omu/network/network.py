@@ -5,6 +5,15 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Literal
 
 from omu.client import Client
+from omu.errors import (
+    AnotherConnection,
+    InvalidOrigin,
+    InvalidPacket,
+    InvalidToken,
+    InvalidVersion,
+    OmuError,
+    PermissionDenied,
+)
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.identifier import Identifier
@@ -12,7 +21,12 @@ from omu.identifier import Identifier
 from .address import Address
 from .connection import Connection
 from .packet import Packet, PacketType
-from .packet.packet_types import PACKET_TYPES, ConnectPacket
+from .packet.packet_types import (
+    PACKET_TYPES,
+    ConnectPacket,
+    DisconnectPacket,
+    DisconnectType,
+)
 from .packet_mapper import PacketMapper
 
 
@@ -31,7 +45,6 @@ class Network:
         self._listeners = NetworkListeners()
         self._tasks: List[Coro[[], None]] = []
         self._token: str | None = None
-        self._closed_event = asyncio.Event()
         self._packet_mapper = PacketMapper()
         self._packet_handlers: Dict[Identifier, PacketListeners] = {}
         self._packet_mapper.register(
@@ -99,25 +112,46 @@ class Network:
                 ),
             )
         )
-        self._closed_event.clear()
-        self._client.loop.create_task(self._listen())
+        listen_task = self._client.loop.create_task(self._listen_task())
 
         await self._listeners.status.emit("connected")
         await self._listeners.connected.emit()
         await self._dispatch_tasks()
 
-        await self._closed_event.wait()
-
-        if reconnect:
+        disconnect_packet = await listen_task
+        can_reconnect = await self.handle_disconnect(disconnect_packet)
+        if can_reconnect and reconnect:
             await asyncio.sleep(1)
             await self.connect(token=self._token, reconnect=True)
+
+    async def handle_disconnect(self, reason: DisconnectPacket | None) -> bool:
+        if reason is None:
+            return False
+        if reason.type in {
+            DisconnectType.SHUTDOWN,
+            DisconnectType.CLOSE,
+        }:
+            return True
+        ERROR_MAP: Dict[DisconnectType, type[OmuError]] = {
+            DisconnectType.ANOTHER_CONNECTION: AnotherConnection,
+            DisconnectType.PERMISSION_DENIED: PermissionDenied,
+            DisconnectType.INVALID_TOKEN: InvalidToken,
+            DisconnectType.INVALID_ORIGIN: InvalidOrigin,
+            DisconnectType.INVALID_VERSION: InvalidVersion,
+            DisconnectType.INVALID_PACKET: InvalidPacket,
+            DisconnectType.INVALID_PACKET_TYPE: InvalidPacket,
+            DisconnectType.INVALID_PACKET_DATA: InvalidPacket,
+        }
+        error = ERROR_MAP.get(reason.type)
+        if error:
+            raise error(reason.message)
+        return False
 
     async def disconnect(self) -> None:
         if self._connection.closed:
             return
         self._connected = False
         await self._connection.close()
-        self._closed_event.set()
         await self._listeners.status.emit("disconnected")
         await self._listeners.disconnected.emit()
 
@@ -126,13 +160,12 @@ class Network:
             raise RuntimeError("Not connected")
         await self._connection.send(packet, self._packet_mapper)
 
-    async def _listen(self) -> None:
-        try:
-            while not self._connection.closed:
-                packet = await self._connection.receive(self._packet_mapper)
-                self._client.loop.create_task(self.dispatch_packet(packet))
-        finally:
-            await self.disconnect()
+    async def _listen_task(self) -> DisconnectPacket | None:
+        while not self._connection.closed:
+            packet = await self._connection.receive(self._packet_mapper)
+            if packet.type == PACKET_TYPES.DISCONNECT:
+                return packet.data
+            self._client.loop.create_task(self.dispatch_packet(packet))
 
     async def dispatch_packet(self, packet: Packet) -> None:
         await self._listeners.packet.emit(packet)

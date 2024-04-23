@@ -41,7 +41,6 @@ class ConnectPacket(Model[ConnectPacketData]):
 
 class DisconnectType(str, Enum):
     INVALID_TOKEN = "invalid_token"
-    INVALID_APP = "invalid_app"
     INVALID_ORIGIN = "invalid_origin"
     INVALID_VERSION = "invalid_version"
     INVALID_PACKET_TYPE = "invalid_packet_type"

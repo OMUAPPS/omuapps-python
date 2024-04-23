@@ -59,7 +59,8 @@ class Session:
     ) -> Session:
         packet = await connection.receive(packet_mapper)
         if packet is None:
-            raise RuntimeError("Socket closed before connect")
+            await connection.close()
+            raise RuntimeError("Connection closed")
         if packet.type != PACKET_TYPES.CONNECT:
             await connection.send(
                 Packet(
@@ -116,24 +117,24 @@ class Session:
     async def disconnect(
         self, disconnect_type: DisconnectType, message: str | None = None
     ) -> None:
-        await self.send(
-            PACKET_TYPES.DISCONNECT, DisconnectPacket(disconnect_type, message)
-        )
+        if not self.connection.closed:
+            await self.send(
+                PACKET_TYPES.DISCONNECT, DisconnectPacket(disconnect_type, message)
+            )
         await self.connection.close()
         await self._listeners.disconnected.emit(self)
 
     async def listen(self) -> None:
-        try:
-            while not self.connection.closed:
-                packet = await self.connection.receive(self.packet_mapper)
-                if packet is None:
-                    break
-                asyncio.create_task(self._dispatch_packet(packet))
-        finally:
-            await self.disconnect(DisconnectType.CLOSE)
+        while not self.connection.closed:
+            packet = await self.connection.receive(self.packet_mapper)
+            if packet is None:
+                await self.disconnect(DisconnectType.CLOSE)
+                return
+            await self.dispatch_packet(packet)
 
-    async def _dispatch_packet(self, packet: Packet) -> None:
-        await self._listeners.packet.emit(self, packet)
+    async def dispatch_packet(self, packet: Packet) -> None:
+        coro = self._listeners.packet.emit(self, packet)
+        asyncio.create_task(coro)
 
     async def send[T](self, packet_type: PacketType[T], data: T) -> None:
         await self.connection.send(Packet(packet_type, data), self.packet_mapper)
