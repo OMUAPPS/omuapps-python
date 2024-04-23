@@ -26,7 +26,7 @@ class ServerPacketDispatcher:
     async def process_packet(self, session: Session, packet: Packet) -> None:
         listeners = self._packet_listeners.get(packet.type.identifier)
         if not listeners:
-            logger.warning(f"Received unknown event type {packet.type}")
+            logger.warning(f"Received unknown packet type {packet.type}")
             return
         await listeners.listeners.emit(session, packet.data)
 
@@ -34,19 +34,19 @@ class ServerPacketDispatcher:
         self.packet_mapper.register(*types)
         for type in types:
             if self._packet_listeners.get(type.identifier):
-                raise ValueError(f"Event id {type.identifier} already registered")
+                raise ValueError(f"Packet id {type.identifier} already registered")
             self._packet_listeners[type.identifier] = PacketListeners(type)
 
     def add_packet_handler[T](
         self,
-        event_type: PacketType[T],
+        packet_type: PacketType[T],
         listener: Coro[[Session, T], None] | None = None,
     ) -> Callable[[Coro[[Session, T], None]], None]:
-        if not self._packet_listeners.get(event_type.identifier):
-            raise ValueError(f"Event type {event_type.identifier} not registered")
+        if not self._packet_listeners.get(packet_type.identifier):
+            raise ValueError(f"Packet type {packet_type.identifier} not registered")
 
         def decorator(func: Coro[[Session, T], None]) -> None:
-            self._packet_listeners[event_type.identifier].listeners.subscribe(func)
+            self._packet_listeners[packet_type.identifier].listeners.subscribe(func)
 
         if listener:
             decorator(listener)
@@ -55,5 +55,5 @@ class ServerPacketDispatcher:
 
 @dataclass(frozen=True)
 class PacketListeners[T]:
-    event_type: PacketType[T]
+    packet_type: PacketType[T]
     listeners: EventEmitter[Session, T] = field(default_factory=EventEmitter)
