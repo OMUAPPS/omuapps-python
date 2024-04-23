@@ -91,7 +91,6 @@ class Network:
                 DisconnectType.ANOTHER_CONNECTION,
                 f"Another connection from {session.app}",
             )
-            return
         self._sessions[session.app.identifier] = session
         session.listeners.disconnected += self.handle_disconnection
         await self._listeners.connected.emit(session)
