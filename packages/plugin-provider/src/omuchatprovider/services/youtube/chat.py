@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import bs4
-from iwashi.visitors.youtube import Youtube
+from iwashi.service import Youtube
 from loguru import logger
 from omu.helper import map_optional
 from omuchat.client import Client
@@ -318,7 +318,7 @@ class YoutubeChatService(ChatService):
             for author in self.author_fetch_queue:
                 await asyncio.sleep(3)
                 author_channel = await YOUTUBE_VISITOR.visit_url(
-                    f"{YOUTUBE_URL}/channel/{author.id}", self.youtube.session
+                    self.youtube.session, author.id
                 )
                 if author_channel is None:
                     continue

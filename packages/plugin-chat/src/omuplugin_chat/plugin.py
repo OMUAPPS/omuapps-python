@@ -34,7 +34,7 @@ rooms = client.tables.get(ROOM_TABLE)
 
 @client.endpoints.bind(endpoint_type=CREATE_CHANNEL_TREE_ENDPOINT)
 async def create_channel_tree(url: str) -> List[Channel]:
-    results = await iwashi.visit(url)
+    results = await iwashi.tree(url)
     if results is None:
         return []
     found_channels: List[Channel] = []
@@ -50,7 +50,7 @@ async def create_channel_tree(url: str) -> List[Channel]:
                     provider_id=provider.key(),
                     id=result.url,
                     url=result.url,
-                    name=result.title or result.site_name or result.url,
+                    name=result.name or result.id or result.service.name,
                     description=result.description or "",
                     active=True,
                     icon_url=result.profile_picture or "",
