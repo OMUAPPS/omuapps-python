@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Dict, List
 
-from omu.extension.dashboard.dashboard import PermissionRequest
-from omu.extension.permission.permission import PermissionType
+from omu.extension.dashboard import PermissionRequest
+from omu.extension.permission import PermissionType
 from omu.extension.permission.permission_extension import (
     PERMISSION_GRANT_PACKET,
     PERMISSION_REGISTER_PACKET,
@@ -56,7 +57,7 @@ class PermissionExtension:
     async def handle_request(
         self, session: Session, permission_identifiers: List[Identifier]
     ):
-        self.request_id += 1
+        request_id = self.get_next_request_id()
         permissions: List[PermissionType] = []
         for identifier in permission_identifiers:
             permission = self.permission_registry.get(identifier)
@@ -64,7 +65,7 @@ class PermissionExtension:
                 permissions.append(permission)
 
         accepted = await self.server.dashboard.request_permissions(
-            PermissionRequest(self.request_id, session.app, permissions)
+            PermissionRequest(request_id, session.app, permissions)
         )
         if accepted:
             self.session_permissions[session] = permissions
@@ -73,5 +74,9 @@ class PermissionExtension:
         else:
             await session.disconnect(
                 DisconnectType.PERMISSION_DENIED,
-                f"Permission request denied (id={self.request_id})",
+                f"Permission request denied (id={request_id})",
             )
+
+    def get_next_request_id(self) -> str:
+        self.request_id += 1
+        return f"{self.request_id}-{time.time_ns()}"

@@ -33,11 +33,11 @@ DASHBOARD_PERMISSION_REQUEST_PACKET = PacketType[PermissionRequest].create_json(
     "permission_request",
     Serializer.model(PermissionRequest),
 )
-DASHBOARD_PERMISSION_ACCEPT_PACKET = PacketType[int].create_json(
+DASHBOARD_PERMISSION_ACCEPT_PACKET = PacketType[str].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "permission_accept",
 )
-DASHBOARD_PERMISSION_DENY_PACKET = PacketType[int].create_json(
+DASHBOARD_PERMISSION_DENY_PACKET = PacketType[str].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "permission_deny",
 )

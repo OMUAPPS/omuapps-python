@@ -23,8 +23,8 @@ class DashboardExtension:
     def __init__(self, server: Server) -> None:
         self.server = server
         self.dashboard_session: Session | None = None
-        self.pending_permission_requests: Dict[int, PermissionRequest] = {}
-        self.permission_requests: Dict[int, Future[bool]] = {}
+        self.pending_permission_requests: Dict[str, PermissionRequest] = {}
+        self.permission_requests: Dict[str, Future[bool]] = {}
         server.packet_dispatcher.register(
             DASHBOARD_PERMISSION_REQUEST_PACKET,
             DASHBOARD_PERMISSION_ACCEPT_PACKET,
@@ -90,11 +90,11 @@ class DashboardExtension:
             )
         self.pending_permission_requests.clear()
 
-    async def handle_permission_accept(self, session: Session, request_id: int) -> None:
+    async def handle_permission_accept(self, session: Session, request_id: str) -> None:
         future = self.permission_requests.pop(request_id)
         future.set_result(True)
 
-    async def handle_permission_deny(self, session: Session, request_id: int) -> None:
+    async def handle_permission_deny(self, session: Session, request_id: str) -> None:
         future = self.permission_requests.pop(request_id)
         future.set_result(False)
 

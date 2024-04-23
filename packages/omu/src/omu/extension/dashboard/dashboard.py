@@ -9,14 +9,14 @@ from omu.model import Model
 
 
 class PermissionRequestJson(TypedDict):
-    request_id: int
+    request_id: str
     app: AppJson
     permissions: List[PermissionTypeJson]
 
 
 @dataclass(frozen=True)
 class PermissionRequest(Model[PermissionRequestJson]):
-    request_id: int
+    request_id: str
     app: App
     permissions: List[PermissionType]
 
