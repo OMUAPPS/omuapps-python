@@ -7,6 +7,7 @@ from aiohttp import web
 from loguru import logger
 from omu.identifier import Identifier
 from omuchat import App, Client, events, model
+from omuchat.model.author import Author
 
 IDENTIFIER = Identifier("cc.omuchat", "plugin-onesync")
 APP = App(
@@ -96,8 +97,10 @@ def format_content(*components: model.content.Component | None) -> str:
 
 
 async def to_comment(message: model.Message) -> Comment | None:
-    room = await client.chat.rooms.get(message.room_id)
-    author = message.author_id and await client.chat.authors.get(message.author_id)
+    room = await client.chat.rooms.get(message.room_id.key())
+    author: Author | None = None
+    if message.author_id:
+        author = await client.chat.authors.get(message.author_id.key())
     if not room or not author:
         return None
     metadata = room.metadata or {}

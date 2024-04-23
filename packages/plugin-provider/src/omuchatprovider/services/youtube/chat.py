@@ -243,7 +243,12 @@ class YoutubeChatService(ChatService):
         return self._closed
 
     @classmethod
-    async def create(cls, youtube_service: YoutubeService, client: Client, room: Room):
+    async def create(
+        cls,
+        youtube_service: YoutubeService,
+        client: Client,
+        room: Room,
+    ):
         await client.chat.rooms.update(room)
         video_id = room.id.path[-1]
         chat = await YoutubeChat.from_video_id(
@@ -318,7 +323,7 @@ class YoutubeChatService(ChatService):
             for author in self.author_fetch_queue:
                 await asyncio.sleep(3)
                 author_channel = await YOUTUBE_VISITOR.visit_url(
-                    self.youtube.session, author.id
+                    self.youtube.session, author.id.path[-1]
                 )
                 if author_channel is None:
                     continue
@@ -341,8 +346,8 @@ class YoutubeChatService(ChatService):
             created_at = self._parse_created_at(data)
             message = Message(
                 id=self.room.id / data["id"],
-                room_id=self._room.key(),
-                author_id=author.key(),
+                room_id=self._room.id,
+                author_id=author.id,
                 content=message,
                 created_at=created_at,
             )
@@ -355,8 +360,8 @@ class YoutubeChatService(ChatService):
             created_at = self._parse_created_at(data)
             message = Message(
                 id=self.room.id / data["id"],
-                room_id=self._room.key(),
-                author_id=author.key(),
+                room_id=self._room.id,
+                author_id=author.id,
                 content=message,
                 paid=paid,
                 created_at=created_at,
@@ -369,8 +374,8 @@ class YoutubeChatService(ChatService):
             component = content.System.of(_parse_runs(data["headerSubtext"]))
             message = Message(
                 id=self.room.id / data["id"],
-                room_id=self._room.key(),
-                author_id=author.key(),
+                room_id=self._room.id,
+                author_id=author.id,
                 content=component,
                 created_at=created_at,
             )
@@ -382,8 +387,8 @@ class YoutubeChatService(ChatService):
             component = content.System.of(_parse_runs(data["message"]))
             message = Message(
                 id=self.room.id / data["id"],
-                room_id=self._room.key(),
-                author_id=author.key(),
+                room_id=self._room.id,
+                author_id=author.id,
                 content=component,
                 created_at=created_at,
             )
@@ -407,8 +412,8 @@ class YoutubeChatService(ChatService):
             )
             message = Message(
                 id=self.room.id / data["id"],
-                room_id=self._room.key(),
-                author_id=author.key(),
+                room_id=self._room.id,
+                author_id=author.id,
                 content=component,
                 created_at=created_at,
                 gifts=[gift],
@@ -434,8 +439,8 @@ class YoutubeChatService(ChatService):
             )
             message = Message(
                 id=self.room.id / data["id"],
-                room_id=self._room.key(),
-                author_id=author.key(),
+                room_id=self._room.id,
+                author_id=author.id,
                 gifts=[sticker],
                 created_at=created_at,
             )
@@ -524,8 +529,8 @@ class YoutubeChatService(ChatService):
                 )
 
         return Author(
-            provider_id=self.youtube.provider.key(),
-            id=id,
+            provider_id=self.youtube.provider.id,
+            id=self.room.id / id,
             name=name,
             avatar_url=avatar_url,
             roles=roles,

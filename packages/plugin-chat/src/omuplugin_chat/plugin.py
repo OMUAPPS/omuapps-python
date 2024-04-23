@@ -47,8 +47,8 @@ async def create_channel_tree(url: str) -> List[Channel]:
                 continue
             found_channels.append(
                 Channel(
-                    provider_id=provider.key(),
-                    id=result.url,
+                    provider_id=provider.id,
+                    id=provider.id / result.id,
                     url=result.url,
                     name=result.name or result.id or result.service.name,
                     description=result.description or "",

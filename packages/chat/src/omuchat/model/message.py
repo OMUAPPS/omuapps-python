@@ -26,9 +26,9 @@ class MessageJson(TypedDict):
 
 @dataclass
 class Message(Keyable, Model[MessageJson]):
-    room_id: str
+    room_id: Identifier
     id: Identifier
-    author_id: str | None = None
+    author_id: Identifier | None = None
     content: content.Component | None = None
     paid: Paid | None = None
     gifts: List[Gift] | None = None
@@ -41,9 +41,9 @@ class Message(Keyable, Model[MessageJson]):
             created_at = datetime.fromisoformat(json["created_at"])
 
         return cls(
-            room_id=json["room_id"],
+            room_id=Identifier.from_key(json["room_id"]),
             id=Identifier.from_key(json["id"]),
-            author_id=json.get("author_id"),
+            author_id=map_optional(json.get("author_id"), Identifier.from_key),
             content=map_optional(json.get("content"), content.deserialize),
             paid=map_optional(json.get("paid"), Paid.from_json),
             gifts=map_optional(
@@ -56,13 +56,15 @@ class Message(Keyable, Model[MessageJson]):
 
     def to_json(self) -> MessageJson:
         return MessageJson(
-            room_id=self.room_id,
+            room_id=self.room_id.key(),
             id=self.id.key(),
-            author_id=self.author_id,
-            content=content.serialize(self.content) if self.content else None,
-            paid=self.paid.to_json() if self.paid else None,
-            gifts=[gift.to_json() for gift in self.gifts] if self.gifts else None,
-            created_at=self.created_at.isoformat() if self.created_at else None,
+            author_id=map_optional(self.author_id, Identifier.key),
+            content=map_optional(self.content, content.serialize),
+            paid=map_optional(self.paid, Paid.to_json),
+            gifts=map_optional(
+                self.gifts, lambda gifts: [gift.to_json() for gift in gifts]
+            ),
+            created_at=map_optional(self.created_at, lambda x: x.isoformat()),
         )
 
     @property

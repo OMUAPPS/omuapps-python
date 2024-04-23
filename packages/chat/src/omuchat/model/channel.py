@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
 
@@ -20,8 +21,8 @@ class Channel(Keyable, Model[ChannelJson]):
     def __init__(
         self,
         *,
-        provider_id: str,
-        id: str,
+        provider_id: Identifier,
+        id: Identifier,
         url: str,
         name: str,
         description: str,
@@ -39,8 +40,8 @@ class Channel(Keyable, Model[ChannelJson]):
     @classmethod
     def from_json(cls, json: ChannelJson) -> Channel:
         return cls(
-            provider_id=json["provider_id"],
-            id=json["id"],
+            provider_id=Identifier.from_key(json["provider_id"]),
+            id=Identifier.from_key(json["id"]),
             url=json["url"],
             name=json["name"],
             description=json["description"],
@@ -50,8 +51,8 @@ class Channel(Keyable, Model[ChannelJson]):
 
     def to_json(self) -> ChannelJson:
         return ChannelJson(
-            provider_id=self.provider_id,
-            id=self.id,
+            provider_id=self.provider_id.key(),
+            id=self.id.key(),
             url=self.url,
             name=self.name,
             description=self.description,

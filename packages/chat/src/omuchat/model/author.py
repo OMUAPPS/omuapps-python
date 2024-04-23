@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, NotRequired, TypedDict
 
 from omu.helper import map_optional
+from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.model import Model
 
@@ -30,8 +31,8 @@ class Author(Keyable, Model[AuthorJson]):
     def __init__(
         self,
         *,
-        provider_id: str,
-        id: str,
+        provider_id: Identifier,
+        id: Identifier,
         name: str | None = None,
         avatar_url: str | None = None,
         roles: List[Role] | None = None,
@@ -46,8 +47,8 @@ class Author(Keyable, Model[AuthorJson]):
 
     def to_json(self) -> AuthorJson:
         return {
-            "provider_id": self.provider_id,
-            "id": self.id,
+            "provider_id": self.provider_id.key(),
+            "id": self.id.key(),
             "name": self.name,
             "avatar_url": self.avatar_url,
             "roles": [role.to_json() for role in self.roles],
@@ -57,8 +58,8 @@ class Author(Keyable, Model[AuthorJson]):
     @classmethod
     def from_json(cls, json: AuthorJson) -> Author:
         return cls(
-            provider_id=json["provider_id"],
-            id=json["id"],
+            provider_id=Identifier.from_key(json["provider_id"]),
+            id=Identifier.from_key(json["id"]),
             name=json["name"],
             avatar_url=json.get("avatar_url"),
             roles=map_optional(
