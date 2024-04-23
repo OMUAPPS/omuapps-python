@@ -10,6 +10,7 @@ from omu.extension.permission.permission_extension import (
     PERMISSION_REQUEST_ENDPOINT,
 )
 from omu.identifier import Identifier
+from omu.network.packet.packet_types import DisconnectType
 
 from omuserver.session import Session
 
@@ -70,4 +71,7 @@ class PermissionExtension:
             if not session.closed:
                 await session.send(PERMISSION_GRANT_PACKET, permissions)
         else:
-            await session.disconnect()
+            await session.disconnect(
+                DisconnectType.PERMISSION_DENIED,
+                f"Permission request denied (id={self.request_id})",
+            )

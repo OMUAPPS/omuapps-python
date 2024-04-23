@@ -1,5 +1,6 @@
 from typing import Dict
 
+from omu.errors import InvalidPacket
 from omu.identifier import Identifier
 from omu.serializer import Serializable
 
@@ -28,8 +29,12 @@ class PacketMapper(Serializable[Packet, PacketData]):
         identifier = Identifier.from_key(item.type)
         packet_type = self._map.get(identifier)
         if not packet_type:
-            raise ValueError(f"Packet type {identifier} not registered")
+            raise InvalidPacket(identifier, f"Packet type {identifier} not registered")
+        try:
+            data = packet_type.serializer.deserialize(item.data)
+        except Exception as e:
+            raise InvalidPacket(identifier, "Failed to deserialize packet data") from e
         return Packet(
             type=packet_type,
-            data=packet_type.serializer.deserialize(item.data),
+            data=data,
         )

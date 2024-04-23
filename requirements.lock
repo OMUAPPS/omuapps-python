@@ -80,6 +80,9 @@ pip==24.0
 psutil==5.9.8
     # via omuplugin-obssync
     # via omuserver
+result==0.16.1
+    # via omu
+    # via omuserver
 soupsieve==2.5
     # via beautifulsoup4
 win32-setctime==1.1.0
