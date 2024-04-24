@@ -4,6 +4,8 @@ import asyncio
 from dataclasses import dataclass, field
 from typing import Dict, List, Literal
 
+from loguru import logger
+
 from omu.client import Client
 from omu.errors import (
     AnotherConnection,
@@ -101,7 +103,15 @@ class Network:
 
         self._token = token
         await self.disconnect()
-        await self._connection.connect()
+        try:
+            await self._connection.connect()
+        except Exception as e:
+            if reconnect:
+                logger.error(e)
+                await asyncio.sleep(1)
+                await self.connect(token=token, reconnect=True)
+            else:
+                raise e
         self._connected = True
         await self.send(
             Packet(
