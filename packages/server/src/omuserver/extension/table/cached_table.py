@@ -4,7 +4,7 @@ import asyncio
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping
 
 from omu.extension.table import TableConfig
-from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyData
+from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyPacket
 from omu.identifier import Identifier
 
 from .adapters.tableadapter import TableAdapter
@@ -23,7 +23,7 @@ class CachedTable(ServerTable):
         identifier: Identifier,
     ):
         self._server = server
-        self._identifier = identifier
+        self.id = identifier
         self._listeners = ServerTableListeners()
         self._sessions: Dict[Session, SessionTableListener] = {}
         self._proxy_sessions: Dict[str, Session] = {}
@@ -32,7 +32,7 @@ class CachedTable(ServerTable):
         self._save_task: asyncio.Task | None = None
         self._adapter: TableAdapter | None = None
         self._config: TableConfig = {}
-
+        self.permission: Identifier | None = None
         self._cache: Dict[str, bytes] = {}
         self._cache_size: int | None = None
 
@@ -43,6 +43,9 @@ class CachedTable(ServerTable):
     @property
     def cache(self) -> Dict[str, bytes]:
         return self._cache
+
+    def bind_permission(self, permission: Identifier) -> None:
+        self.permission = permission
 
     def set_config(self, config: TableConfig) -> None:
         self._config = config
@@ -62,7 +65,11 @@ class CachedTable(ServerTable):
     def attach_session(self, session: Session) -> None:
         if session in self._sessions:
             return
-        handler = SessionTableListener(self._identifier.key(), session, self)
+        handler = SessionTableListener(
+            id=self.id,
+            session=session,
+            table=self,
+        )
         self._sessions[session] = handler
         session.listeners.disconnected += self.handle_disconnection
 
@@ -123,9 +130,9 @@ class CachedTable(ServerTable):
         self._proxy_id += 1
         await session.send(
             TABLE_PROXY_PACKET,
-            TableProxyData(
+            TableProxyPacket(
+                id=self.id,
                 items=items,
-                type=self._identifier.key(),
                 key=self._proxy_id,
             ),
         )
@@ -152,9 +159,9 @@ class CachedTable(ServerTable):
         session = tuple(self._proxy_sessions.values())[index + 1]
         await session.send(
             TABLE_PROXY_PACKET,
-            TableProxyData(
+            TableProxyPacket(
+                id=self.id,
                 items=items,
-                type=self._identifier.key(),
                 key=self._proxy_id,
             ),
         )

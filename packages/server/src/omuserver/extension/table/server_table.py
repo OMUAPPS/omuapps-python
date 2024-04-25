@@ -4,6 +4,7 @@ import abc
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping, Union
 
 from omu.event_emitter import EventEmitter
+from omu.identifier import Identifier
 
 if TYPE_CHECKING:
     from omu.extension.table import TableConfig
@@ -19,6 +20,9 @@ class ServerTable(abc.ABC):
     @property
     @abc.abstractmethod
     def cache(self) -> Dict[str, bytes]: ...
+
+    @abc.abstractmethod
+    def bind_permission(self, permission: Identifier) -> None: ...
 
     @abc.abstractmethod
     def set_config(self, config: TableConfig) -> None: ...

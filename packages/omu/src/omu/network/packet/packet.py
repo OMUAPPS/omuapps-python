@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from omu.identifier import Identifier
 from omu.serializer import Serializer
@@ -22,6 +22,12 @@ class Packet[T]:
     data: T
 
 
+class PacketClass[T](Protocol):
+    def serialize(self, item: T) -> bytes: ...
+
+    def deserialize(self, item: bytes) -> T: ...
+
+
 @dataclass(frozen=True)
 class PacketType[T]:
     identifier: Identifier
@@ -36,9 +42,7 @@ class PacketType[T]:
     ) -> PacketType[_T]:
         return PacketType(
             identifier=identifier / name,
-            serializer=Serializer.of(serializer or Serializer.noop()).pipe(
-                Serializer.json()
-            ),
+            serializer=Serializer.of(serializer or Serializer.noop()).to_json(),
         )
 
     @classmethod
@@ -51,4 +55,16 @@ class PacketType[T]:
         return PacketType(
             identifier=identifier / name,
             serializer=serializer,
+        )
+
+    @classmethod
+    def create[_T](
+        cls,
+        identifier: Identifier,
+        name: str,
+        type_class: PacketClass[_T],
+    ) -> PacketType[_T]:
+        return PacketType(
+            identifier=identifier / name,
+            serializer=type_class,
         )

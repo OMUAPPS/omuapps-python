@@ -5,24 +5,26 @@ from typing import Dict, List
 
 from omu.extension.table import Table, TableType
 from omu.extension.table.table_extension import (
+    TABLE_BIND_PERMISSION_PACKET,
     TABLE_CONFIG_PACKET,
     TABLE_FETCH_ALL_ENDPOINT,
     TABLE_FETCH_ENDPOINT,
     TABLE_ITEM_ADD_PACKET,
     TABLE_ITEM_CLEAR_PACKET,
     TABLE_ITEM_GET_ENDPOINT,
-    TABLE_ITEM_REMOVE_EVENT,
+    TABLE_ITEM_REMOVE_PACKET,
     TABLE_ITEM_UPDATE_PACKET,
     TABLE_LISTEN_PACKET,
     TABLE_PROXY_LISTEN_PACKET,
     TABLE_PROXY_PACKET,
     TABLE_SIZE_ENDPOINT,
-    SetConfigReq,
-    TableEventData,
-    TableFetchReq,
-    TableItemsData,
-    TableKeysData,
-    TableProxyData,
+    BindPermissionPacket,
+    SetConfigPacket,
+    TableFetchPacket,
+    TableItemsPacket,
+    TableKeysPacket,
+    TablePacket,
+    TableProxyPacket,
 )
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -43,14 +45,19 @@ class TableExtension:
         self._tables: Dict[Identifier, ServerTable] = {}
         self._adapters: List[TableAdapter] = []
         server.packet_dispatcher.register(
+            TABLE_BIND_PERMISSION_PACKET,
             TABLE_CONFIG_PACKET,
             TABLE_LISTEN_PACKET,
             TABLE_PROXY_LISTEN_PACKET,
             TABLE_PROXY_PACKET,
             TABLE_ITEM_ADD_PACKET,
             TABLE_ITEM_UPDATE_PACKET,
-            TABLE_ITEM_REMOVE_EVENT,
+            TABLE_ITEM_REMOVE_PACKET,
             TABLE_ITEM_CLEAR_PACKET,
+        )
+        server.packet_dispatcher.add_packet_handler(
+            TABLE_BIND_PERMISSION_PACKET,
+            self._on_table_set_permission,
         )
         server.packet_dispatcher.add_packet_handler(
             TABLE_CONFIG_PACKET, self._on_table_set_config
@@ -71,7 +78,7 @@ class TableExtension:
             TABLE_ITEM_UPDATE_PACKET, self._on_table_item_update
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_ITEM_REMOVE_EVENT, self._on_table_item_remove
+            TABLE_ITEM_REMOVE_PACKET, self._on_table_item_remove
         )
         server.packet_dispatcher.add_packet_handler(
             TABLE_ITEM_CLEAR_PACKET, self._on_table_item_clear
@@ -85,89 +92,94 @@ class TableExtension:
         server.listeners.stop += self.on_server_stop
 
     async def _on_table_item_get(
-        self, session: Session, req: TableKeysData
-    ) -> TableItemsData:
-        table = await self.get_table(req["type"])
-        items = await table.get_many(*req["keys"])
-        return TableItemsData(
-            type=req["type"],
+        self, session: Session, packet: TableKeysPacket
+    ) -> TableItemsPacket:
+        table = await self.get_table(packet.id)
+        items = await table.get_many(*packet.keys)
+        return TableItemsPacket(
+            id=packet.id,
             items=items,
         )
 
     async def _on_table_item_fetch(
-        self, session: Session, req: TableFetchReq
-    ) -> TableItemsData:
-        table = await self.get_table(req["type"])
+        self, session: Session, packet: TableFetchPacket
+    ) -> TableItemsPacket:
+        table = await self.get_table(packet.id)
         items = await table.fetch_items(
-            before=req.get("before"),
-            after=req.get("after"),
-            cursor=req.get("cursor"),
+            before=packet.before,
+            after=packet.after,
+            cursor=packet.cursor,
         )
-        return TableItemsData(
-            type=req["type"],
+        return TableItemsPacket(
+            id=packet.id,
             items=items,
         )
 
     async def _on_table_item_fetch_all(
-        self, session: Session, req: TableEventData
-    ) -> TableItemsData:
-        table = await self.get_table(req["type"])
+        self, session: Session, req: TablePacket
+    ) -> TableItemsPacket:
+        table = await self.get_table(req.id)
         items = await table.fetch_all()
-        return TableItemsData(
-            type=req["type"],
+        return TableItemsPacket(
+            id=req.id,
             items=items,
         )
 
-    async def _on_table_item_size(self, session: Session, req: TableEventData) -> int:
-        table = await self.get_table(req["type"])
+    async def _on_table_item_size(self, session: Session, packet: TablePacket) -> int:
+        table = await self.get_table(packet.id)
         return await table.size()
 
-    async def _on_table_set_config(
-        self, session: Session, config: SetConfigReq
+    async def _on_table_set_permission(
+        self, session: Session, permission: BindPermissionPacket
     ) -> None:
-        table = await self.get_table(config["type"])
-        table.set_config(config["config"])
+        table = await self.get_table(permission.id)
+        table.bind_permission(permission.permission)
 
-    async def _on_table_listen(self, session: Session, type: str) -> None:
-        table = await self.get_table(type)
+    async def _on_table_set_config(
+        self, session: Session, config: SetConfigPacket
+    ) -> None:
+        table = await self.get_table(config.id)
+        table.set_config(config.config)
+
+    async def _on_table_listen(self, session: Session, id: Identifier) -> None:
+        table = await self.get_table(id)
         table.attach_session(session)
 
-    async def _on_table_proxy_listen(self, session: Session, type: str) -> None:
-        table = await self.get_table(type)
+    async def _on_table_proxy_listen(self, session: Session, id: Identifier) -> None:
+        table = await self.get_table(id)
         table.attach_proxy_session(session)
 
-    async def _on_table_proxy(self, session: Session, event: TableProxyData) -> None:
-        table = await self.get_table(event["type"])
-        await table.proxy(session, event["key"], event["items"])
+    async def _on_table_proxy(self, session: Session, packet: TableProxyPacket) -> None:
+        table = await self.get_table(packet.id)
+        await table.proxy(session, packet.key, packet.items)
 
-    async def _on_table_item_add(self, session: Session, event: TableItemsData) -> None:
-        table = await self.get_table(event["type"])
-        await table.add(event["items"])
+    async def _on_table_item_add(
+        self, session: Session, packet: TableItemsPacket
+    ) -> None:
+        table = await self.get_table(packet.id)
+        await table.add(packet.items)
 
     async def _on_table_item_update(
-        self, session: Session, event: TableItemsData
+        self, session: Session, packet: TableItemsPacket
     ) -> None:
-        table = await self.get_table(event["type"])
-        await table.update(event["items"])
+        table = await self.get_table(packet.id)
+        await table.update(packet.items)
 
     async def _on_table_item_remove(
-        self, session: Session, event: TableItemsData
+        self, session: Session, packet: TableItemsPacket
     ) -> None:
-        table = await self.get_table(event["type"])
-        await table.remove(list(event["items"].keys()))
+        table = await self.get_table(packet.id)
+        await table.remove(list(packet.items.keys()))
 
-    async def _on_table_item_clear(
-        self, session: Session, event: TableEventData
-    ) -> None:
-        table = await self.get_table(event["type"])
+    async def _on_table_item_clear(self, session: Session, packet: TablePacket) -> None:
+        table = await self.get_table(packet.id)
         await table.clear()
 
     async def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
-        table = await self.get_table(table_type.identifier.key())
+        table = await self.get_table(table_type.identifier)
         return SerializedTable(table, table_type)
 
-    async def get_table(self, id: str) -> ServerTable:
-        identifier = Identifier.from_key(id)
+    async def get_table(self, identifier: Identifier) -> ServerTable:
         if identifier in self._tables:
             return self._tables[identifier]
         table = CachedTable(self._server, identifier)

@@ -5,11 +5,12 @@ from typing import TYPE_CHECKING, Any, Mapping
 from omu.extension.table.table_extension import (
     TABLE_ITEM_ADD_PACKET,
     TABLE_ITEM_CLEAR_PACKET,
-    TABLE_ITEM_REMOVE_EVENT,
+    TABLE_ITEM_REMOVE_PACKET,
     TABLE_ITEM_UPDATE_PACKET,
-    TableEventData,
-    TableItemsData,
+    TableItemsPacket,
+    TablePacket,
 )
+from omu.identifier import Identifier
 
 from omuserver.extension.table.server_table import ServerTable
 
@@ -18,9 +19,9 @@ if TYPE_CHECKING:
 
 
 class SessionTableListener:
-    def __init__(self, id: str, session: Session, table: ServerTable) -> None:
-        self._id = id
-        self._session = session
+    def __init__(self, id: Identifier, session: Session, table: ServerTable) -> None:
+        self.id = id
+        self.session = session
         self.table = table
         table.listeners.add += self.on_add
         table.listeners.update += self.on_update
@@ -34,42 +35,42 @@ class SessionTableListener:
         self.table.listeners.clear -= self.on_clear
 
     async def on_add(self, items: Mapping[str, Any]) -> None:
-        if self._session.closed:
+        if self.session.closed:
             return
-        await self._session.send(
+        await self.session.send(
             TABLE_ITEM_ADD_PACKET,
-            TableItemsData(
+            TableItemsPacket(
+                id=self.id,
                 items=items,
-                type=self._id,
             ),
         )
 
     async def on_update(self, items: Mapping[str, Any]) -> None:
-        if self._session.closed:
+        if self.session.closed:
             return
-        await self._session.send(
+        await self.session.send(
             TABLE_ITEM_UPDATE_PACKET,
-            TableItemsData(
+            TableItemsPacket(
+                id=self.id,
                 items=items,
-                type=self._id,
             ),
         )
 
     async def on_remove(self, items: Mapping[str, Any]) -> None:
-        if self._session.closed:
+        if self.session.closed:
             return
-        await self._session.send(
-            TABLE_ITEM_REMOVE_EVENT,
-            TableItemsData(
+        await self.session.send(
+            TABLE_ITEM_REMOVE_PACKET,
+            TableItemsPacket(
+                id=self.id,
                 items=items,
-                type=self._id,
             ),
         )
 
     async def on_clear(self) -> None:
-        if self._session.closed:
+        if self.session.closed:
             return
-        await self._session.send(TABLE_ITEM_CLEAR_PACKET, TableEventData(type=self._id))
+        await self.session.send(TABLE_ITEM_CLEAR_PACKET, TablePacket(id=self.id))
 
     def __repr__(self) -> str:
-        return f"<SessionTableHandler key={self._id} app={self._session.app}>"
+        return f"<SessionTableHandler key={self.id} app={self.session.app}>"

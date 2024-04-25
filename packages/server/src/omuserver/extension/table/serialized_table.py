@@ -1,5 +1,6 @@
 from typing import AsyncGenerator, Callable, Dict, List, Mapping
 
+from omu.extension.permission.permission import PermissionType
 from omu.extension.table import Table, TableConfig, TableListeners, TableType
 from omu.helper import AsyncCallback, Coro
 from omu.interface import Keyable
@@ -35,6 +36,9 @@ class SerializedTable[T: Keyable](Table[T]):
     @property
     def cache(self) -> Mapping[str, T]:
         return SerializeAdapter(self._table.cache, self._type.serializer)
+
+    def bind_permission(self, permission_type: PermissionType) -> None:
+        self._table.bind_permission(permission_type.identifier)
 
     def set_config(self, config: TableConfig) -> None:
         self._table.set_config(config)

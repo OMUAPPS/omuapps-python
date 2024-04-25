@@ -13,6 +13,7 @@ from typing import (
 )
 
 from omu.event_emitter import EventEmitter
+from omu.extension.permission import PermissionType
 from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.serializer import Serializer
@@ -83,6 +84,9 @@ class Table[T](abc.ABC):
 
     @abc.abstractmethod
     def set_config(self, config: TableConfig) -> None: ...
+
+    @abc.abstractmethod
+    def bind_permission(self, permission_type: PermissionType) -> None: ...
 
     @property
     @abc.abstractmethod
