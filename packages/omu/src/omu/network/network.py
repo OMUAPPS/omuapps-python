@@ -44,17 +44,43 @@ class Network:
         self._address = address
         self._connection = connection
         self._connected = False
+        self._closed = False
         self._listeners = NetworkListeners()
         self._tasks: List[Coro[[], None]] = []
         self._token: str | None = None
         self._packet_mapper = PacketMapper()
         self._packet_handlers: Dict[Identifier, PacketListeners] = {}
-        self._packet_mapper.register(
+        self.register_packet(
             PACKET_TYPES.CONNECT,
             PACKET_TYPES.DISCONNECT,
             PACKET_TYPES.TOKEN,
             PACKET_TYPES.READY,
         )
+        self.add_packet_handler(PACKET_TYPES.DISCONNECT, self.handle_disconnect)
+
+    async def handle_disconnect(self, reason: DisconnectPacket):
+        if reason is None:
+            return
+        if reason.type in {
+            DisconnectType.SHUTDOWN,
+            DisconnectType.CLOSE,
+        }:
+            return
+
+        self._closed = True
+        ERROR_MAP: Dict[DisconnectType, type[OmuError]] = {
+            DisconnectType.ANOTHER_CONNECTION: AnotherConnection,
+            DisconnectType.PERMISSION_DENIED: PermissionDenied,
+            DisconnectType.INVALID_TOKEN: InvalidToken,
+            DisconnectType.INVALID_ORIGIN: InvalidOrigin,
+            DisconnectType.INVALID_VERSION: InvalidVersion,
+            DisconnectType.INVALID_PACKET: InvalidPacket,
+            DisconnectType.INVALID_PACKET_TYPE: InvalidPacket,
+            DisconnectType.INVALID_PACKET_DATA: InvalidPacket,
+        }
+        error = ERROR_MAP.get(reason.type)
+        if error:
+            raise error(reason.message)
 
     @property
     def address(self) -> Address:
@@ -100,13 +126,15 @@ class Network:
     ) -> None:
         if self._connected:
             raise RuntimeError("Already connected")
+        if self._closed:
+            raise RuntimeError("Connection closed")
 
         self._token = token
         await self.disconnect()
         try:
             await self._connection.connect()
         except Exception as e:
-            if reconnect:
+            if not self._closed and reconnect:
                 logger.error(e)
                 await asyncio.sleep(1)
                 await self.connect(token=token, reconnect=True)
@@ -127,35 +155,11 @@ class Network:
         await self._listeners.status.emit("connected")
         await self._listeners.connected.emit()
         await self._dispatch_tasks()
+        await listen_task
 
-        disconnect_packet = await listen_task
-        can_reconnect = await self.handle_disconnect(disconnect_packet)
-        if can_reconnect and reconnect:
+        if not self._closed and reconnect:
             await asyncio.sleep(1)
             await self.connect(token=self._token, reconnect=True)
-
-    async def handle_disconnect(self, reason: DisconnectPacket | None) -> bool:
-        if reason is None:
-            return False
-        if reason.type in {
-            DisconnectType.SHUTDOWN,
-            DisconnectType.CLOSE,
-        }:
-            return True
-        ERROR_MAP: Dict[DisconnectType, type[OmuError]] = {
-            DisconnectType.ANOTHER_CONNECTION: AnotherConnection,
-            DisconnectType.PERMISSION_DENIED: PermissionDenied,
-            DisconnectType.INVALID_TOKEN: InvalidToken,
-            DisconnectType.INVALID_ORIGIN: InvalidOrigin,
-            DisconnectType.INVALID_VERSION: InvalidVersion,
-            DisconnectType.INVALID_PACKET: InvalidPacket,
-            DisconnectType.INVALID_PACKET_TYPE: InvalidPacket,
-            DisconnectType.INVALID_PACKET_DATA: InvalidPacket,
-        }
-        error = ERROR_MAP.get(reason.type)
-        if error:
-            raise error(reason.message)
-        return False
 
     async def disconnect(self) -> None:
         if self._connection.closed:
@@ -170,11 +174,9 @@ class Network:
             raise RuntimeError("Not connected")
         await self._connection.send(packet, self._packet_mapper)
 
-    async def _listen_task(self) -> DisconnectPacket | None:
+    async def _listen_task(self):
         while not self._connection.closed:
             packet = await self._connection.receive(self._packet_mapper)
-            if packet.type == PACKET_TYPES.DISCONNECT:
-                return packet.data
             self._client.loop.create_task(self.dispatch_packet(packet))
 
     async def dispatch_packet(self, packet: Packet) -> None:
