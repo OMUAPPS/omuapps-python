@@ -323,7 +323,8 @@ class YoutubeChatService(ChatService):
             for author in self.author_fetch_queue:
                 await asyncio.sleep(3)
                 author_channel = await YOUTUBE_VISITOR.visit_url(
-                    self.youtube.session, author.id.path[-1]
+                    self.youtube.session,
+                    f"https://youtube.com/channel/{author.id.path[-1]}",
                 )
                 if author_channel is None:
                     continue
