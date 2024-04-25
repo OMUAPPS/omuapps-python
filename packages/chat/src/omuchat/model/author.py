@@ -71,7 +71,7 @@ class Author(Keyable, Model[AuthorJson]):
         )
 
     def key(self) -> str:
-        return f"{self.provider_id}:{self.id}"
+        return self.id.key()
 
     def __str__(self) -> str:
         return f"Author(id={self.id}, name={self.name})"

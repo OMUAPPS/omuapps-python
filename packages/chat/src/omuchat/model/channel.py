@@ -61,7 +61,7 @@ class Channel(Keyable, Model[ChannelJson]):
         )
 
     def key(self) -> str:
-        return f"{self.provider_id}:{self.url}"
+        return self.id.key()
 
     def __repr__(self):
         return f"Channel({self.provider_id}, {self.url}, {self.name})"

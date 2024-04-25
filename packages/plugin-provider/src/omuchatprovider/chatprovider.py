@@ -19,14 +19,14 @@ APP = App(
 
 client = Client(APP)
 
-services: Dict[str, ProviderService] = {}
+services: Dict[Identifier, ProviderService] = {}
 chat_services: Dict[Identifier, ChatService] = {}
 
 
 async def register_services():
     for service_class in get_services():
         service = service_class(client)
-        services[service.provider.key()] = service
+        services[service.provider.id] = service
         await client.chat.providers.add(service.provider)
 
 
