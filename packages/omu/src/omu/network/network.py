@@ -132,10 +132,9 @@ class Network:
         try:
             await self._connection.connect()
         except Exception as e:
-            if not self._closed and reconnect:
+            if reconnect:
                 logger.error(e)
-                await asyncio.sleep(1)
-                await self.connect(token=token, reconnect=True)
+                await self.try_reconnect()
             else:
                 raise e
         self._connected = True
@@ -155,9 +154,14 @@ class Network:
         await self._dispatch_tasks()
         await listen_task
 
-        if not self._closed and reconnect:
-            await asyncio.sleep(1)
-            await self.connect(token=self._token, reconnect=True)
+        if reconnect:
+            await self.try_reconnect()
+
+    async def try_reconnect(self) -> None:
+        if self._closed:
+            return
+        await asyncio.sleep(1)
+        await self.connect(token=self._token, reconnect=True)
 
     async def disconnect(self) -> None:
         if self._connection.closed:
