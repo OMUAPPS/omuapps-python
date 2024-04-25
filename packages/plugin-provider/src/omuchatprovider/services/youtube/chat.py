@@ -316,26 +316,34 @@ class YoutubeChatService(ChatService):
         await self.process_reactions(chat_data)
 
     async def fetch_authors_task(self):
-        while not self._closed:
-            if len(self.author_fetch_queue) == 0:
-                await asyncio.sleep(1)
-                continue
-            for author in self.author_fetch_queue:
-                await asyncio.sleep(3)
-                author_channel = await YOUTUBE_VISITOR.visit_url(
-                    self.youtube.session,
-                    f"https://youtube.com/channel/{author.id.path[-1]}",
-                )
-                if author_channel is None:
+        try:
+            while not self._closed:
+                if len(self.author_fetch_queue) == 0:
+                    await asyncio.sleep(1)
                     continue
-                metadata: AuthorMetadata = author.metadata or {}
-                metadata["avatar_url"] = author_channel.profile_picture
-                metadata["url"] = author_channel.url
-                metadata["links"] = list(author_channel.links)
-                if "@" in author_channel.url:
-                    metadata["screen_id"] = author_channel.url.split("@")[-1]
-                author.metadata = metadata
-                await self.client.chat.authors.update(author)
+                for author in self.author_fetch_queue:
+                    await asyncio.sleep(3)
+                    new_metadata = await self.fetch_author_metadata(author)
+                    metadata = author.metadata or {}
+                    metadata |= new_metadata
+                    author.metadata = metadata
+                    await self.client.chat.authors.update(author)
+        except asyncio.CancelledError:
+            return
+
+    async def fetch_author_metadata(self, author: Author) -> AuthorMetadata:
+        author_channel = await YOUTUBE_VISITOR.visit_url(
+            self.youtube.session,
+            f"https://youtube.com/channel/{author.id.path[-1]}",
+        )
+        if author_channel is None:
+            return {}
+        new_metadata: AuthorMetadata = {}
+        new_metadata["avatar_url"] = author_channel.profile_picture
+        new_metadata["url"] = author_channel.url
+        new_metadata["links"] = list(author_channel.links)
+        new_metadata["screen_id"] = author_channel.id
+        return new_metadata
 
     async def process_message_item(
         self, item: AddChatItemActionItem
