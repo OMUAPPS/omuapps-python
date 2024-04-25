@@ -59,8 +59,6 @@ class Network:
         self.add_packet_handler(PACKET_TYPES.DISCONNECT, self.handle_disconnect)
 
     async def handle_disconnect(self, reason: DisconnectPacket):
-        if reason is None:
-            return
         if reason.type in {
             DisconnectType.SHUTDOWN,
             DisconnectType.CLOSE,
