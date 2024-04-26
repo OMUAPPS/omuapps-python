@@ -26,6 +26,10 @@ from omu.extension.permission import (
     PERMISSION_EXTENSION_TYPE,
     PermissionExtension,
 )
+from omu.extension.plugin import (
+    PLUGIN_EXTENSION_TYPE,
+    PluginExtension,
+)
 from omu.extension.registry import (
     REGISTRY_EXTENSION_TYPE,
     RegistryExtension,
@@ -67,10 +71,10 @@ class OmuClient(Client):
             address,
             connection or WebsocketsConnection(self, address),
         )
-        self._network.listeners.connected += self._listeners.ready.emit
         self._extensions = extension_registry or ExtensionRegistry(self)
 
         self._endpoints = self.extensions.register(ENDPOINT_EXTENSION_TYPE)
+        self._plugins = self.extensions.register(PLUGIN_EXTENSION_TYPE)
         self._tables = self.extensions.register(TABLE_EXTENSION_TYPE)
         self._registry = self.extensions.register(REGISTRY_EXTENSION_TYPE)
         self._signal = self.extensions.register(SIGNAL_EXTENSION_TYPE)
@@ -101,6 +105,10 @@ class OmuClient(Client):
     @property
     def endpoints(self) -> EndpointExtension:
         return self._endpoints
+
+    @property
+    def plugins(self) -> PluginExtension:
+        return self._plugins
 
     @property
     def tables(self) -> TableExtension:

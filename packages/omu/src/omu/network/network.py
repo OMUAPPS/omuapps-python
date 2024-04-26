@@ -57,6 +57,7 @@ class Network:
             PACKET_TYPES.READY,
         )
         self.add_packet_handler(PACKET_TYPES.DISCONNECT, self.handle_disconnect)
+        self.add_packet_handler(PACKET_TYPES.READY, self.handle_ready)
 
     async def handle_disconnect(self, reason: DisconnectPacket):
         if reason.type in {
@@ -79,6 +80,9 @@ class Network:
         error = ERROR_MAP.get(reason.type)
         if error:
             raise error(reason.message)
+
+    async def handle_ready(self, packet: None):
+        await self._client.listeners.ready.emit()
 
     @property
     def address(self) -> Address:
@@ -152,6 +156,8 @@ class Network:
         await self._listeners.status.emit("connected")
         await self._listeners.connected.emit()
         await self._dispatch_tasks()
+
+        await self.send(Packet(PACKET_TYPES.READY, None))
         await listen_task
 
         if reconnect:

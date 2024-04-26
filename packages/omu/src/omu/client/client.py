@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from omu.extension.endpoint import EndpointExtension
     from omu.extension.i18n import I18nExtension
     from omu.extension.permission import PermissionExtension
+    from omu.extension.plugin import PluginExtension
     from omu.extension.registry import RegistryExtension
     from omu.extension.server import ServerExtension
     from omu.extension.signal import SignalExtension
@@ -49,6 +50,10 @@ class Client(abc.ABC):
     @property
     @abc.abstractmethod
     def endpoints(self) -> EndpointExtension: ...
+
+    @property
+    @abc.abstractmethod
+    def plugins(self) -> PluginExtension: ...
 
     @property
     @abc.abstractmethod

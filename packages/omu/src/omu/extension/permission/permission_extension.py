@@ -31,8 +31,11 @@ class PermissionExtension(Extension):
             self.handle_grant,
         )
         client.network.listeners.connected += self.on_connected
+        client.network.add_task(self.on_network_task)
 
     def register(self, permission: PermissionType):
+        if permission.identifier in self.registered_permissions:
+            raise ValueError(f"Permission {permission.identifier} already registered")
         base_identifier = self.client.app.identifier
         if not permission.identifier.is_subpart_of(base_identifier):
             raise ValueError(
@@ -51,6 +54,8 @@ class PermissionExtension(Extension):
             PERMISSION_REGISTER_PACKET,
             [*self.registered_permissions.values()],
         )
+
+    async def on_network_task(self):
         if len(self.required_permissions) > 0:
             await self.client.endpoints.call(
                 PERMISSION_REQUEST_ENDPOINT,

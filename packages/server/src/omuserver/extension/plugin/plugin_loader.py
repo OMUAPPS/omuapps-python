@@ -156,9 +156,6 @@ class PluginLoader:
             if plugin.on_stop_server is not None:
                 await plugin.on_stop_server(self._server)
 
-    async def load_plugins(self) -> None:
-        await self.run_plugins()
-
     async def run_plugins(self):
         entry_points = importlib.metadata.entry_points(group=PLUGIN_GROUP)
         for entry_point in entry_points:

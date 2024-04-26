@@ -85,9 +85,6 @@ class Table[T](abc.ABC):
     @abc.abstractmethod
     def set_config(self, config: TableConfig) -> None: ...
 
-    @abc.abstractmethod
-    def bind_permission(self, permission_type: PermissionType) -> None: ...
-
     @property
     @abc.abstractmethod
     def listeners(self) -> TableListeners[T]: ...
@@ -132,6 +129,7 @@ class TableType[T]:
     identifier: Identifier
     serializer: Serializable[T, bytes]
     key_func: Callable[[T], str]
+    permission: PermissionType | None = None
 
     @classmethod
     def create_model[_T: Keyable, _D](
@@ -139,11 +137,13 @@ class TableType[T]:
         identifier: Identifier,
         name: str,
         model_type: type[ModelEntry[_T, _D]],
+        permission: PermissionType | None = None,
     ) -> TableType[_T]:
         return TableType(
             identifier=identifier / name,
             serializer=Serializer.model(model_type).to_json(),
             key_func=lambda item: item.key(),
+            permission=permission,
         )
 
     @classmethod
@@ -152,9 +152,11 @@ class TableType[T]:
         identifier: Identifier,
         name: str,
         serializer: Serializable[_T, bytes],
+        permission: PermissionType | None = None,
     ) -> TableType[_T]:
         return TableType(
             identifier=identifier / name,
             serializer=serializer,
             key_func=lambda item: item.key(),
+            permission=permission,
         )

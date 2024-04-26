@@ -1,20 +1,31 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from asyncio import Future
+from collections import defaultdict
+from typing import TYPE_CHECKING, Dict, List
 
 from loguru import logger
 from omu.extension.server.server_extension import (
     APPS_TABLE_TYPE,
+    REQUIRE_APPS_ENDPOINT_TYPE,
     SHUTDOWN_ENDPOINT_TYPE,
     VERSION_REGISTRY_TYPE,
 )
+from omu.identifier import Identifier
 
 from omuserver import __version__
 from omuserver.helper import get_launch_command
+from omuserver.session.session import SessionTask
 
 if TYPE_CHECKING:
     from omuserver.server import Server
     from omuserver.session import Session
+
+
+class WaitHandle:
+    def __init__(self, ids: List[Identifier]):
+        self.future = Future()
+        self.ids = ids
 
 
 class ServerExtension:
@@ -25,6 +36,26 @@ class ServerExtension:
         server.network.listeners.disconnected += self.on_disconnected
         server.listeners.start += self.on_start
         server.endpoints.bind_endpoint(SHUTDOWN_ENDPOINT_TYPE, self.shutdown)
+        server.endpoints.bind_endpoint(
+            REQUIRE_APPS_ENDPOINT_TYPE, self.handle_require_apps
+        )
+        self._app_waiters: Dict[Identifier, List[WaitHandle]] = defaultdict(list)
+
+    async def handle_require_apps(
+        self, session: Session, app_ids: List[Identifier]
+    ) -> None:
+        for identifier in self._server.network._sessions.keys():
+            if identifier not in app_ids:
+                continue
+            app_ids.remove(identifier)
+        if len(app_ids) == 0:
+            return
+        future = Future()
+        session.add_task(SessionTask(future, f"require_apps({app_ids})"))
+        waiter = WaitHandle(app_ids)
+        for app_id in app_ids:
+            self._app_waiters[app_id].append(waiter)
+        await future
 
     async def shutdown(self, session: Session, restart: bool = False) -> bool:
         await self._server.shutdown()
@@ -48,7 +79,15 @@ class ServerExtension:
     async def on_connected(self, session: Session) -> None:
         logger.info(f"Connected: {session.app.key()}")
         await self.apps.add(session.app)
+        session.listeners.ready += self.on_session_ready
+
+    async def on_session_ready(self, session: Session) -> None:
+        for waiter in self._app_waiters.get(session.app.identifier, []):
+            waiter.ids.remove(session.app.identifier)
+            if len(waiter.ids) == 0:
+                waiter.future.set_result(True)
 
     async def on_disconnected(self, session: Session) -> None:
         logger.info(f"Disconnected: {session.app.key()}")
         await self.apps.remove(session.app)
+        session.listeners.ready -= self.on_session_ready

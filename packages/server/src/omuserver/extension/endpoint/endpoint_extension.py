@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from loguru import logger
 from omu.extension.endpoint.endpoint_extension import (
@@ -63,17 +63,17 @@ class ServerEndpoint[Req, Res](Endpoint):
         if session.closed:
             raise RuntimeError("Session already closed")
         try:
-            req = self._endpoint.request_serializer.deserialize(data["data"])
+            req = self._endpoint.request_serializer.deserialize(data.data)
             res = await self._callback(session, req)
             json = self._endpoint.response_serializer.serialize(res)
             await session.send(
                 ENDPOINT_RECEIVE_PACKET,
-                EndpointDataPacket(type=data["type"], id=data["id"], data=json),
+                EndpointDataPacket(id=data.id, key=data.key, data=json),
             )
         except Exception as e:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
-                EndpointErrorPacket(type=data["type"], id=data["id"], error=str(e)),
+                EndpointErrorPacket(id=data.id, key=data.key, error=str(e)),
             )
             raise e
 
@@ -89,9 +89,7 @@ class EndpointCall:
     async def error(self, error: str) -> None:
         await self._session.send(
             ENDPOINT_ERROR_PACKET,
-            EndpointErrorPacket(
-                type=self._data["type"], id=self._data["id"], error=error
-            ),
+            EndpointErrorPacket(id=self._data.id, key=self._data.key, error=error),
         )
 
 
@@ -99,7 +97,7 @@ class EndpointExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self._endpoints: Dict[Identifier, Endpoint] = {}
-        self._calls: Dict[str, EndpointCall] = {}
+        self._calls: Dict[Tuple[Identifier, int], EndpointCall] = {}
         server.packet_dispatcher.register(
             ENDPOINT_REGISTER_PACKET,
             ENDPOINT_CALL_PACKET,
@@ -142,68 +140,70 @@ class EndpointExtension:
         endpoint = await self._get_endpoint(req, session)
         if endpoint is None:
             logger.warning(
-                f"{session.app.key()} tried to call unknown endpoint {req['type']}"
+                f"{session.app.key()} tried to call unknown endpoint {req.id}"
             )
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointErrorPacket(
-                    type=req["type"],
-                    id=req["id"],
-                    error=f"Endpoint {req['type']} not found",
+                    id=req.id,
+                    key=req.key,
+                    error=f"Endpoint {req.id} not found",
                 ),
             )
             return
         await endpoint.call(req, session)
-        self._calls[f"{req['type']}:{req["id"]}"] = EndpointCall(session, req)
+        key = (req.id, req.key)
+        self._calls[key] = EndpointCall(session, req)
 
     async def _on_endpoint_receive(
         self, session: Session, req: EndpointDataPacket
     ) -> None:
-        call = self._calls.get(f"{req['type']}:{req['id']}")
+        key = (req.id, req.key)
+        call = self._calls.get(key)
         if call is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointErrorPacket(
-                    type=req["type"],
-                    id=req["id"],
-                    error=f"Endpoint not found {req['type']}",
+                    id=req.id,
+                    key=req.key,
+                    error=f"Endpoint not found {req.id}",
                 ),
             )
             return
         await call.receive(req)
 
     async def _on_endpoint_error(
-        self, session: Session, error: EndpointErrorPacket
+        self, session: Session, packet: EndpointErrorPacket
     ) -> None:
-        call = self._calls.get(f"{error['type']}:{error['id']}")
+        key = (packet.id, packet.key)
+        call = self._calls.get(key)
         if call is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointErrorPacket(
-                    type=error["type"],
-                    id=error["id"],
-                    error=f"Endpoint {error['type']} not found",
+                    id=packet.id,
+                    key=packet.key,
+                    error=f"Endpoint {packet.id} not found",
                 ),
             )
         else:
-            await call.error(error["error"])
+            await call.error(packet.error)
 
     async def _get_endpoint(
-        self, req: EndpointDataPacket, session: Session
+        self, packet: EndpointDataPacket, session: Session
     ) -> Endpoint | None:
-        identifier = Identifier.from_key(req["type"])
-        endpoint = self._endpoints.get(identifier)
+        endpoint = self._endpoints.get(packet.id)
         if endpoint is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointErrorPacket(
-                    type=req["type"],
-                    id=req["id"],
-                    error=f"Endpoint {req['type']} not found",
+                    id=packet.id,
+                    key=packet.key,
+                    error=f"Endpoint {packet.id} not found",
                 ),
             )
             logger.warning(
-                f"{session.app.key()} tried to call unconnected endpoint {req['type']}"
+                f"{session.app.key()} tried to call unconnected endpoint {packet.id}"
             )
             return
         return endpoint

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass
 from typing import (
     AsyncGenerator,
     Callable,
@@ -9,20 +7,26 @@ from typing import (
     Iterable,
     List,
     Mapping,
-    Sequence,
 )
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
-from omu.extension.endpoint import EndpointType
-from omu.extension.permission import PermissionType
+from omu.extension.endpoint.endpoint import EndpointType
 from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
 from omu.interface import Keyable
-from omu.network.bytebuffer import ByteReader, ByteWriter
-from omu.network.packet import PacketType
-from omu.serializer import JsonSerializable, Serializable, Serializer
+from omu.network.packet.packet import PacketType
+from omu.serializer import JsonSerializable, Serializer
 
+from .packets import (
+    BindPermissionPacket,
+    SetConfigPacket,
+    TableFetchPacket,
+    TableItemsPacket,
+    TableKeysPacket,
+    TablePacket,
+    TableProxyPacket,
+)
 from .table import (
     Table,
     TableConfig,
@@ -60,8 +64,7 @@ class TableExtension(Extension):
             )
         table = TableImpl(
             self._client,
-            identifier=table_type.identifier,
-            serializer=table_type.serializer,
+            table_type=table_type,
             key_function=key_function,
         )
         self._tables[table_type.identifier] = table
@@ -91,195 +94,6 @@ class TableExtension(Extension):
 TABLE_EXTENSION_TYPE = ExtensionType(
     "table", lambda client: TableExtension(client), lambda: []
 )
-
-
-@dataclass
-class TablePacket:
-    id: Identifier
-
-    @classmethod
-    def serialize(cls, item: TablePacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> TablePacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-        return TablePacket(id=Identifier.from_key(id))
-
-
-@dataclass
-class TableItemsPacket:
-    id: Identifier
-    items: Mapping[str, bytes]
-
-    @classmethod
-    def serialize(cls, item: TableItemsPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_int(len(item.items))
-        for key, value in item.items.items():
-            writer.write_string(key)
-            writer.write_byte_array(value)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> TableItemsPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            item_count = reader.read_int()
-            items: Mapping[str, bytes] = {}
-            for _ in range(item_count):
-                item_key = reader.read_string()
-                value = reader.read_byte_array()
-                items[item_key] = value
-        return TableItemsPacket(id=Identifier.from_key(id), items=items)
-
-
-@dataclass
-class TableKeysPacket:
-    id: Identifier
-    keys: Sequence[str]
-
-    @classmethod
-    def serialize(cls, item: TableKeysPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_int(len(item.keys))
-        for key in item.keys:
-            writer.write_string(key)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> TableKeysPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            key_count = reader.read_int()
-            keys = [reader.read_string() for _ in range(key_count)]
-        return TableKeysPacket(id=Identifier.from_key(id), keys=keys)
-
-
-@dataclass
-class TableProxyPacket:
-    id: Identifier
-    items: Mapping[str, bytes]
-    key: int
-
-    @classmethod
-    def serialize(cls, item: TableProxyPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_int(item.key)
-        writer.write_int(len(item.items))
-        for key, value in item.items.items():
-            writer.write_string(key)
-            writer.write_byte_array(value)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> TableProxyPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            key = reader.read_int()
-            item_count = reader.read_int()
-            items: Mapping[str, bytes] = {}
-            for _ in range(item_count):
-                item_key = reader.read_string()
-                value = reader.read_byte_array()
-                items[item_key] = value
-        return TableProxyPacket(
-            id=Identifier.from_key(id),
-            key=key,
-            items=items,
-        )
-
-
-@dataclass
-class TableFetchPacket:
-    id: Identifier
-    before: int | None
-    after: int | None
-    cursor: str | None
-
-    @classmethod
-    def serialize(cls, item: TableFetchPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        flags = 0
-        if item.before is not None:
-            flags |= 0b1
-        if item.after is not None:
-            flags |= 0b10
-        if item.cursor is not None:
-            flags |= 0b100
-        writer.write_byte(flags)
-        if item.before is not None:
-            writer.write_int(item.before)
-        if item.after is not None:
-            writer.write_int(item.after)
-        if item.cursor is not None:
-            writer.write_string(item.cursor)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> TableFetchPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            flags = reader.read_byte()
-            before = reader.read_int() if flags & 0b1 else None
-            after = reader.read_int() if flags & 0b10 else None
-            cursor = reader.read_string() if flags & 0b100 else None
-        return TableFetchPacket(
-            id=Identifier.from_key(id),
-            before=before,
-            after=after,
-            cursor=cursor,
-        )
-
-
-@dataclass
-class SetConfigPacket:
-    id: Identifier
-    config: TableConfig
-
-    @classmethod
-    def serialize(cls, item: SetConfigPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_string(json.dumps(item.config))
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> SetConfigPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            config = json.loads(reader.read_string())
-        return SetConfigPacket(id=Identifier.from_key(id), config=config)
-
-
-@dataclass
-class BindPermissionPacket:
-    id: Identifier
-    permission: Identifier
-
-    @staticmethod
-    def serialize(item: BindPermissionPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_string(item.permission.key())
-        return writer.finish()
-
-    @staticmethod
-    def deserialize(item: bytes) -> BindPermissionPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            permission = reader.read_string()
-        return BindPermissionPacket(
-            id=Identifier.from_key(id),
-            permission=Identifier.from_key(permission),
-        )
 
 
 TABLE_BIND_PERMISSION_PACKET = PacketType[BindPermissionPacket].create(
@@ -363,13 +177,13 @@ class TableImpl[T](Table[T]):
     def __init__(
         self,
         client: Client,
-        identifier: Identifier,
-        serializer: Serializable[T, bytes],
+        table_type: TableType,
         key_function: Callable[[T], str],
     ):
         self._client = client
-        self._identifier = identifier
-        self._serializer = serializer
+        self._id = table_type.identifier
+        self._serializer = table_type.serializer
+        self._permission = table_type.permission
         self._key_function = key_function
         self._cache: Dict[str, T] = {}
         self._listeners = TableListeners[T](self)
@@ -378,19 +192,29 @@ class TableImpl[T](Table[T]):
         self._cache_size: int | None = None
         self._listening = False
         self._config: TableConfig | None = None
-        self._permission: PermissionType | None = None
-        self.id = identifier
 
-        client.network.add_packet_handler(TABLE_PROXY_PACKET, self._on_proxy)
-        client.network.add_packet_handler(TABLE_ITEM_ADD_PACKET, self._on_item_add)
         client.network.add_packet_handler(
-            TABLE_ITEM_UPDATE_PACKET, self._on_item_update
+            TABLE_PROXY_PACKET,
+            self._on_proxy,
         )
         client.network.add_packet_handler(
-            TABLE_ITEM_REMOVE_PACKET, self._on_item_remove
+            TABLE_ITEM_ADD_PACKET,
+            self._on_item_add,
         )
-        client.network.add_packet_handler(TABLE_ITEM_CLEAR_PACKET, self._on_item_clear)
-        client.network.add_task(self.on_connected)
+        client.network.add_packet_handler(
+            TABLE_ITEM_UPDATE_PACKET,
+            self._on_item_update,
+        )
+        client.network.add_packet_handler(
+            TABLE_ITEM_REMOVE_PACKET,
+            self._on_item_remove,
+        )
+        client.network.add_packet_handler(
+            TABLE_ITEM_CLEAR_PACKET,
+            self._on_item_clear,
+        )
+        client.network.add_task(self._connect_task)
+        client.listeners.ready += self._on_connected
 
     @property
     def cache(self) -> Mapping[str, T]:
@@ -400,7 +224,7 @@ class TableImpl[T](Table[T]):
         if key in self._cache:
             return self._cache[key]
         res = await self._client.endpoints.call(
-            TABLE_ITEM_GET_ENDPOINT, TableKeysPacket(id=self.id, keys=[key])
+            TABLE_ITEM_GET_ENDPOINT, TableKeysPacket(id=self._id, keys=[key])
         )
         items = self._parse_items(res.items)
         self._cache.update(items)
@@ -410,7 +234,7 @@ class TableImpl[T](Table[T]):
 
     async def get_many(self, *keys: str) -> Dict[str, T]:
         res = await self._client.endpoints.call(
-            TABLE_ITEM_GET_ENDPOINT, TableKeysPacket(id=self.id, keys=keys)
+            TABLE_ITEM_GET_ENDPOINT, TableKeysPacket(id=self._id, keys=keys)
         )
         items = self._parse_items(res.items)
         self._cache.update(items)
@@ -419,23 +243,23 @@ class TableImpl[T](Table[T]):
     async def add(self, *items: T) -> None:
         data = self._serialize_items(items)
         await self._client.send(
-            TABLE_ITEM_ADD_PACKET, TableItemsPacket(id=self.id, items=data)
+            TABLE_ITEM_ADD_PACKET, TableItemsPacket(id=self._id, items=data)
         )
 
     async def update(self, *items: T) -> None:
         data = self._serialize_items(items)
         await self._client.send(
-            TABLE_ITEM_UPDATE_PACKET, TableItemsPacket(id=self.id, items=data)
+            TABLE_ITEM_UPDATE_PACKET, TableItemsPacket(id=self._id, items=data)
         )
 
     async def remove(self, *items: T) -> None:
         data = self._serialize_items(items)
         await self._client.send(
-            TABLE_ITEM_REMOVE_PACKET, TableItemsPacket(id=self.id, items=data)
+            TABLE_ITEM_REMOVE_PACKET, TableItemsPacket(id=self._id, items=data)
         )
 
     async def clear(self) -> None:
-        await self._client.send(TABLE_ITEM_CLEAR_PACKET, TablePacket(id=self.id))
+        await self._client.send(TABLE_ITEM_CLEAR_PACKET, TablePacket(id=self._id))
 
     async def fetch_items(
         self,
@@ -445,7 +269,7 @@ class TableImpl[T](Table[T]):
     ) -> Dict[str, T]:
         items_response = await self._client.endpoints.call(
             TABLE_FETCH_ENDPOINT,
-            TableFetchPacket(id=self.id, before=before, after=after, cursor=cursor),
+            TableFetchPacket(id=self._id, before=before, after=after, cursor=cursor),
         )
         items = self._parse_items(items_response.items)
         await self.update_cache(items)
@@ -453,7 +277,7 @@ class TableImpl[T](Table[T]):
 
     async def fetch_all(self) -> Dict[str, T]:
         items_response = await self._client.endpoints.call(
-            TABLE_FETCH_ALL_ENDPOINT, TablePacket(id=self.id)
+            TABLE_FETCH_ALL_ENDPOINT, TablePacket(id=self._id)
         )
         items = self._parse_items(items_response.items)
         await self.update_cache(items)
@@ -484,7 +308,7 @@ class TableImpl[T](Table[T]):
 
     async def size(self) -> int:
         res = await self._client.endpoints.call(
-            TABLE_SIZE_ENDPOINT, TablePacket(id=self.id)
+            TABLE_SIZE_ENDPOINT, TablePacket(id=self._id)
         )
         return res
 
@@ -504,31 +328,32 @@ class TableImpl[T](Table[T]):
     def set_config(self, config: TableConfig) -> None:
         self._config = config
 
-    def bind_permission(self, permission_type: PermissionType) -> None:
-        self._permission = permission_type
-        self._client.permissions.register(self._permission)
+    async def _connect_task(self) -> None:
+        if self._permission is None:
+            return
+        if not self._permission.identifier.is_subpart_of(self._client.app.identifier):
+            return
+        await self._client.send(
+            TABLE_BIND_PERMISSION_PACKET,
+            BindPermissionPacket(
+                id=self._id,
+                permission=self._permission.identifier,
+            ),
+        )
 
-    async def on_connected(self) -> None:
+    async def _on_connected(self) -> None:
         if self._config is not None:
             await self._client.send(
                 TABLE_CONFIG_PACKET,
-                SetConfigPacket(id=self.id, config=self._config),
-            )
-        if self._permission is not None:
-            await self._client.send(
-                TABLE_BIND_PERMISSION_PACKET,
-                BindPermissionPacket(
-                    id=self.id,
-                    permission=self._permission.identifier,
-                ),
+                SetConfigPacket(id=self._id, config=self._config),
             )
         if self._listening:
-            await self._client.send(TABLE_LISTEN_PACKET, self.id)
+            await self._client.send(TABLE_LISTEN_PACKET, self._id)
         if len(self._proxies) > 0:
-            await self._client.send(TABLE_PROXY_LISTEN_PACKET, self.id)
+            await self._client.send(TABLE_PROXY_LISTEN_PACKET, self._id)
 
     async def _on_proxy(self, packet: TableProxyPacket) -> None:
-        if packet.id != self.id:
+        if packet.id != self._id:
             return
         items = self._parse_items(packet.items)
         for proxy in self._proxies:
@@ -542,28 +367,28 @@ class TableImpl[T](Table[T]):
         await self._client.send(
             TABLE_PROXY_PACKET,
             TableProxyPacket(
-                id=self.id,
+                id=self._id,
                 key=packet.key,
                 items=serialized_items,
             ),
         )
 
     async def _on_item_add(self, packet: TableItemsPacket) -> None:
-        if packet.id != self.id:
+        if packet.id != self._id:
             return
         items = self._parse_items(packet.items)
         await self._listeners.add(items)
         await self.update_cache(items)
 
     async def _on_item_update(self, packet: TableItemsPacket) -> None:
-        if packet.id != self.id:
+        if packet.id != self._id:
             return
         items = self._parse_items(packet.items)
         await self._listeners.update(items)
         await self.update_cache(items)
 
     async def _on_item_remove(self, packet: TableItemsPacket) -> None:
-        if packet.id != self.id:
+        if packet.id != self._id:
             return
         items = self._parse_items(packet.items)
         await self._listeners.remove(items)
@@ -574,7 +399,7 @@ class TableImpl[T](Table[T]):
         await self._listeners.cache_update(self._cache)
 
     async def _on_item_clear(self, packet: TablePacket) -> None:
-        if packet.id != self.id:
+        if packet.id != self._id:
             return
         await self._listeners.clear()
         self._cache.clear()

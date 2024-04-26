@@ -7,6 +7,7 @@ from omuchat import App
 from omuchat.chat import (
     AUTHOR_TABLE,
     CHANNEL_TABLE,
+    CHAT_PERMISSION,
     CREATE_CHANNEL_TREE_ENDPOINT,
     IDENTIFIER,
     MESSAGE_TABLE,
@@ -22,7 +23,7 @@ app = App(
 address = Address("127.0.0.1", 26423)
 client = OmuClient(app, address=address)
 
-
+client.permissions.register(CHAT_PERMISSION)
 messages = client.tables.get(MESSAGE_TABLE)
 authors = client.tables.get(AUTHOR_TABLE)
 messages.set_config({"cache_size": 1000})

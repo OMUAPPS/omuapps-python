@@ -19,10 +19,18 @@ type Json = Union[str, int, float, bool, None, Dict[str, Json], List[Json]]
 class ServerTable(abc.ABC):
     @property
     @abc.abstractmethod
-    def cache(self) -> Dict[str, bytes]: ...
+    def id(self) -> Identifier: ...
+
+    @property
+    @abc.abstractmethod
+    def cache(self) -> Mapping[str, bytes]: ...
 
     @abc.abstractmethod
     def bind_permission(self, permission: Identifier) -> None: ...
+
+    @property
+    @abc.abstractmethod
+    def permission(self) -> Identifier | None: ...
 
     @abc.abstractmethod
     def set_config(self, config: TableConfig) -> None: ...
