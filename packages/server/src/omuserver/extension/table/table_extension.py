@@ -155,7 +155,7 @@ class TableExtension:
         table = await self.get_table(packet.id)
         if (await self.check_permission(session, table)).is_err():
             return
-        table.bind_permission(packet.permission)
+        table.set_permission(packet.all)
 
     async def handle_table_config(
         self, session: Session, packet: SetConfigPacket

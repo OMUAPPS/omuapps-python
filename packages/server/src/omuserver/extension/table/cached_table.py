@@ -32,12 +32,22 @@ class CachedTable(ServerTable):
         self._save_task: asyncio.Task | None = None
         self._adapter: TableAdapter | None = None
         self.config: TableConfig = {}
-        self._permission: Identifier | None = None
+        self._permission_all: Identifier | None = None
+        self._permission_read: Identifier | None = None
+        self._permission_write: Identifier | None = None
         self._cache: Dict[str, bytes] = {}
         self._cache_size: int | None = None
 
-    def bind_permission(self, permission: Identifier) -> None:
-        self._permission = permission
+    def set_permission(
+        self,
+        all: Identifier | None = None,
+        /,
+        read: Identifier | None = None,
+        write: Identifier | None = None,
+    ) -> None:
+        self._permission_all = all
+        self._permission_read = read
+        self._permission_write = write
 
     def set_config(self, config: TableConfig) -> None:
         self.config = config
@@ -257,4 +267,4 @@ class CachedTable(ServerTable):
 
     @property
     def permission(self) -> Identifier | None:
-        return self._permission
+        return self._permission_all

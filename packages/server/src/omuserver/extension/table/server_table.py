@@ -26,7 +26,13 @@ class ServerTable(abc.ABC):
     def cache(self) -> Mapping[str, bytes]: ...
 
     @abc.abstractmethod
-    def bind_permission(self, permission: Identifier) -> None: ...
+    def set_permission(
+        self,
+        permission: Identifier | None = None,
+        /,
+        read: Identifier | None = None,
+        write: Identifier | None = None,
+    ) -> None: ...
 
     @property
     @abc.abstractmethod

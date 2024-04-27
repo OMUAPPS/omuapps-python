@@ -15,39 +15,58 @@ from omuchat.model.provider import Provider
 from omuchat.model.room import Room
 
 IDENTIFIER = Identifier.from_key("cc.omuchat:chat")
-CHAT_PERMISSION = PermissionType.create(
-    IDENTIFIER,
-    "chat",
+CHAT_PERMISSION = PermissionType(
+    IDENTIFIER / "chat",
+    metadata={
+        "level": "medium",
+        "name": {
+            "ja": "チャットのデータ",
+            "en": "Chat data",
+        },
+        "note": {
+            "ja": "チャットデータの読み書き",
+            "en": "Read and write chat data",
+        },
+    },
+)
+CHAT_READ_PERMISSION = PermissionType(
+    IDENTIFIER / "chat" / "read",
+    metadata={
+        "level": "low",
+        "name": {
+            "ja": "チャットの読み取り",
+            "en": "Read chat",
+        },
+        "note": {
+            "ja": "チャットデータの読み取り",
+            "en": "Read chat data",
+        },
+    },
 )
 MESSAGE_TABLE = TableType.create_model(
     IDENTIFIER,
     "messages",
     Message,
-    permission=CHAT_PERMISSION,
 )
 AUTHOR_TABLE = TableType.create_model(
     IDENTIFIER,
     "authors",
     Author,
-    permission=CHAT_PERMISSION,
 )
 CHANNEL_TABLE = TableType.create_model(
     IDENTIFIER,
     "channels",
     Channel,
-    permission=CHAT_PERMISSION,
 )
 PROVIDER_TABLE = TableType.create_model(
     IDENTIFIER,
     "providers",
     Provider,
-    permission=CHAT_PERMISSION,
 )
 ROOM_TABLE = TableType.create_model(
     IDENTIFIER,
     "rooms",
     Room,
-    permission=CHAT_PERMISSION,
 )
 CREATE_CHANNEL_TREE_ENDPOINT = EndpointType[str, List[Channel]].create_json(
     IDENTIFIER,
@@ -62,7 +81,7 @@ class Chat:
         client: Client,
     ):
         client.server.require(IDENTIFIER)
-        client.permissions.require(CHAT_PERMISSION)
+        client.permissions.require(CHAT_PERMISSION.identifier)
         self.messages = client.tables.get(MESSAGE_TABLE)
         self.authors = client.tables.get(AUTHOR_TABLE)
         self.channels = client.tables.get(CHANNEL_TABLE)

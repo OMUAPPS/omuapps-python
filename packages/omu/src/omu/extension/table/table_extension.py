@@ -183,7 +183,6 @@ class TableImpl[T](Table[T]):
         self._client = client
         self._id = table_type.identifier
         self._serializer = table_type.serializer
-        self._permission = table_type.permission
         self._key_function = key_function
         self._cache: Dict[str, T] = {}
         self._listeners = TableListeners[T](self)
@@ -192,6 +191,9 @@ class TableImpl[T](Table[T]):
         self._cache_size: int | None = None
         self._listening = False
         self._config: TableConfig | None = None
+        self._permission_all: Identifier | None = None
+        self._permission_read: Identifier | None = None
+        self._permission_write: Identifier | None = None
 
         client.network.add_packet_handler(
             TABLE_PROXY_PACKET,
@@ -214,7 +216,7 @@ class TableImpl[T](Table[T]):
             self._on_item_clear,
         )
         client.network.add_task(self._connect_task)
-        client.listeners.ready += self._on_connected
+        client.listeners.ready += self._on_ready
 
     @property
     def cache(self) -> Mapping[str, T]:
@@ -325,23 +327,34 @@ class TableImpl[T](Table[T]):
         self._proxies.append(callback)
         return lambda: self._proxies.remove(callback)
 
+    def set_permission(
+        self,
+        all: Identifier | None = None,
+        /,
+        read: Identifier | None = None,
+        write: Identifier | None = None,
+    ) -> None:
+        self._permission_all = all
+        self._permission_read = read
+        self._permission_write = write
+
     def set_config(self, config: TableConfig) -> None:
         self._config = config
 
     async def _connect_task(self) -> None:
-        if self._permission is None:
-            return
-        if not self._permission.identifier.is_subpart_of(self._client.app.identifier):
+        if self._permission_all is None:
             return
         await self._client.send(
             TABLE_BIND_PERMISSION_PACKET,
             BindPermissionPacket(
                 id=self._id,
-                permission=self._permission.identifier,
+                all=self._permission_all,
+                read=self._permission_read,
+                write=self._permission_write,
             ),
         )
 
-    async def _on_connected(self) -> None:
+    async def _on_ready(self) -> None:
         if self._config is not None:
             await self._client.send(
                 TABLE_CONFIG_PACKET,

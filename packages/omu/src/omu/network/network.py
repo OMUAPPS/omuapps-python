@@ -139,6 +139,7 @@ class Network:
             if reconnect:
                 logger.error(e)
                 await self.try_reconnect()
+                return
             else:
                 raise e
         self._connected = True

@@ -29,12 +29,22 @@ class PluginExtension(Extension):
 
     def require(self, plugins: Dict[str, str | None]):
         self.plugins.update(plugins)
-        self.client.permissions.require(PLUGIN_PERMISSION)
+        self.client.permissions.require(PLUGIN_PERMISSION.identifier)
 
 
-PLUGIN_PERMISSION = PermissionType.create(
-    PLUGIN_EXTENSION_TYPE,
-    "request",
+PLUGIN_PERMISSION = PermissionType(
+    PLUGIN_EXTENSION_TYPE / "request",
+    metadata={
+        "level": "high",
+        "name": {
+            "en": "Require plugin",
+            "ja": "プラグインの要求",
+        },
+        "note": {
+            "en": "Require plugin",
+            "ja": "プラグインの要求",
+        },
+    },
 )
 PLUGIN_REQUIRE_PACKET = PacketType[Dict[str, str | None]].create_json(
     PLUGIN_EXTENSION_TYPE,

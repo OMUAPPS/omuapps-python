@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
+from omu.helper import map_optional
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
 
@@ -179,21 +180,41 @@ class SetConfigPacket:
 @dataclass
 class BindPermissionPacket:
     id: Identifier
-    permission: Identifier
+    all: Identifier | None = None
+    read: Identifier | None = None
+    write: Identifier | None = None
 
     @staticmethod
     def serialize(item: BindPermissionPacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.id.key())
-        writer.write_string(item.permission.key())
+        flags = 0
+        if item.all is not None:
+            flags |= 0b1
+        if item.read is not None:
+            flags |= 0b10
+        if item.write is not None:
+            flags |= 0b100
+        writer.write_byte(flags)
+        if item.all is not None:
+            writer.write_string(item.all.key())
+        if item.read is not None:
+            writer.write_string(item.read.key())
+        if item.write is not None:
+            writer.write_string(item.write.key())
         return writer.finish()
 
     @staticmethod
     def deserialize(item: bytes) -> BindPermissionPacket:
         with ByteReader(item) as reader:
             id = reader.read_string()
-            permission = reader.read_string()
+            flags = reader.read_byte()
+            permission = reader.read_string() if flags & 0b1 else None
+            permission_read = reader.read_string() if flags & 0b10 else None
+            permission_write = reader.read_string() if flags & 0b100 else None
         return BindPermissionPacket(
             id=Identifier.from_key(id),
-            permission=Identifier.from_key(permission),
+            all=map_optional(permission, Identifier.from_key),
+            read=map_optional(permission_read, Identifier.from_key),
+            write=map_optional(permission_write, Identifier.from_key),
         )

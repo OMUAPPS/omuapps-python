@@ -25,12 +25,17 @@ client = OmuClient(app, address=address)
 
 client.permissions.register(CHAT_PERMISSION)
 messages = client.tables.get(MESSAGE_TABLE)
-authors = client.tables.get(AUTHOR_TABLE)
+messages.set_permission(CHAT_PERMISSION.identifier)
 messages.set_config({"cache_size": 1000})
+authors = client.tables.get(AUTHOR_TABLE)
+authors.set_permission(CHAT_PERMISSION.identifier)
 authors.set_config({"cache_size": 500})
 channels = client.tables.get(CHANNEL_TABLE)
+channels.set_permission(CHAT_PERMISSION.identifier)
 providers = client.tables.get(PROVIDER_TABLE)
+providers.set_permission(CHAT_PERMISSION.identifier)
 rooms = client.tables.get(ROOM_TABLE)
+rooms.set_permission(CHAT_PERMISSION.identifier)
 
 
 @client.endpoints.bind(endpoint_type=CREATE_CHANNEL_TREE_ENDPOINT)
