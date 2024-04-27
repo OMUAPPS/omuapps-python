@@ -45,6 +45,7 @@ class Network:
     async def _handle_ready(self, session: Session, packet: None) -> None:
         await session.wait_for_tasks()
         await session.send(PACKET_TYPES.READY, None)
+        logger.info(f"Ready: {session.app.key()}")
 
     def register_packet(self, *packet_types: PacketType) -> None:
         self._packet_dispatcher.register(*packet_types)
