@@ -178,14 +178,14 @@ class SetConfigPacket:
 
 
 @dataclass
-class BindPermissionPacket:
+class SetPermissionPacket:
     id: Identifier
     all: Identifier | None = None
     read: Identifier | None = None
     write: Identifier | None = None
 
     @staticmethod
-    def serialize(item: BindPermissionPacket) -> bytes:
+    def serialize(item: SetPermissionPacket) -> bytes:
         writer = ByteWriter()
         writer.write_string(item.id.key())
         flags = 0
@@ -205,14 +205,14 @@ class BindPermissionPacket:
         return writer.finish()
 
     @staticmethod
-    def deserialize(item: bytes) -> BindPermissionPacket:
+    def deserialize(item: bytes) -> SetPermissionPacket:
         with ByteReader(item) as reader:
             id = reader.read_string()
             flags = reader.read_byte()
             permission = reader.read_string() if flags & 0b1 else None
             permission_read = reader.read_string() if flags & 0b10 else None
             permission_write = reader.read_string() if flags & 0b100 else None
-        return BindPermissionPacket(
+        return SetPermissionPacket(
             id=Identifier.from_key(id),
             all=map_optional(permission, Identifier.from_key),
             read=map_optional(permission_read, Identifier.from_key),

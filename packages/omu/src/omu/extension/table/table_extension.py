@@ -20,8 +20,8 @@ from omu.network.packet.packet import PacketType
 from omu.serializer import JsonSerializable, Serializer
 
 from .packets import (
-    BindPermissionPacket,
     SetConfigPacket,
+    SetPermissionPacket,
     TableFetchPacket,
     TableItemsPacket,
     TableKeysPacket,
@@ -92,10 +92,10 @@ TABLE_EXTENSION_TYPE = ExtensionType(
 )
 
 
-TABLE_SET_PERMISSION_PACKET = PacketType[BindPermissionPacket].create(
+TABLE_SET_PERMISSION_PACKET = PacketType[SetPermissionPacket].create(
     TABLE_EXTENSION_TYPE,
     "set_permission",
-    BindPermissionPacket,
+    SetPermissionPacket,
 )
 TABLE_SET_CONFIG_PACKET = PacketType[SetConfigPacket].create(
     TABLE_EXTENSION_TYPE,
@@ -348,7 +348,7 @@ class TableImpl[T](Table[T]):
             return
         await self._client.send(
             TABLE_SET_PERMISSION_PACKET,
-            BindPermissionPacket(
+            SetPermissionPacket(
                 id=self._id,
                 all=self._permissions.all,
                 read=self._permissions.read,

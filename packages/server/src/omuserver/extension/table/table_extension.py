@@ -18,8 +18,8 @@ from omu.extension.table.table_extension import (
     TABLE_SET_CONFIG_PACKET,
     TABLE_SET_PERMISSION_PACKET,
     TABLE_SIZE_ENDPOINT,
-    BindPermissionPacket,
     SetConfigPacket,
+    SetPermissionPacket,
     TableFetchPacket,
     TableItemsPacket,
     TableKeysPacket,
@@ -150,7 +150,7 @@ class TableExtension:
         return await table.size()
 
     async def handle_bind_permission(
-        self, session: Session, packet: BindPermissionPacket
+        self, session: Session, packet: SetPermissionPacket
     ) -> None:
         table = await self.get_table(packet.id)
         if (await self.check_permission(session, table)).is_err():
