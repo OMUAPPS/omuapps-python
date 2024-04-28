@@ -82,7 +82,7 @@ PERMISSION_REGISTER_PACKET = PacketType[List[PermissionType]].create_json(
 )
 PERMISSION_REQUIRE_PACKET = PacketType[List[Identifier]].create_json(
     PERMISSION_EXTENSION_TYPE,
-    "request",
+    "require",
     serializer=Serializer.model(Identifier).to_array(),
 )
 PERMISSION_REQUEST_ENDPOINT = EndpointType[List[Identifier], None].create_json(
