@@ -29,7 +29,7 @@ class PluginExtension(Extension):
 
     def require(self, plugins: Dict[str, str | None]):
         self.plugins.update(plugins)
-        self.client.permissions.require(PLUGIN_PERMISSION.identifier)
+        self.client.permissions.require(PLUGIN_PERMISSION.id)
 
 
 PLUGIN_PERMISSION = PermissionType(

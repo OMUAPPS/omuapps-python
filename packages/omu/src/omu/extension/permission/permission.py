@@ -23,7 +23,7 @@ class PermissionTypeJson(TypedDict):
 
 @dataclass(frozen=True)
 class PermissionType(Model[PermissionTypeJson]):
-    identifier: Identifier
+    id: Identifier
     metadata: PermissionMetadata
 
     @classmethod
@@ -34,19 +34,19 @@ class PermissionType(Model[PermissionTypeJson]):
         metadata: PermissionMetadata,
     ) -> PermissionType:
         return PermissionType(
-            identifier=identifier / name,
+            id=identifier / name,
             metadata=metadata,
         )
 
     def to_json(self) -> PermissionTypeJson:
         return {
-            "id": self.identifier.key(),
+            "id": self.id.key(),
             "metadata": self.metadata,
         }
 
     @classmethod
     def from_json(cls, json: PermissionTypeJson) -> PermissionType:
         return PermissionType(
-            identifier=Identifier.from_key(json["id"]),
+            id=Identifier.from_key(json["id"]),
             metadata=json["metadata"],
         )

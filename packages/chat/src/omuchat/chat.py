@@ -81,7 +81,7 @@ class Chat:
         client: Client,
     ):
         client.server.require(IDENTIFIER)
-        client.permissions.require(CHAT_PERMISSION.identifier)
+        client.permissions.require(CHAT_PERMISSION.id)
         self.messages = client.tables.get(MESSAGE_TABLE)
         self.authors = client.tables.get(AUTHOR_TABLE)
         self.channels = client.tables.get(CHANNEL_TABLE)

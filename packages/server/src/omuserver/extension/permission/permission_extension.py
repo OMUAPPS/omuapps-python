@@ -47,20 +47,20 @@ class PermissionExtension:
         )
 
     def register(self, permission: PermissionType) -> None:
-        if permission.identifier in self.permission_registry:
-            raise ValueError(f"Permission {permission.identifier} already registered")
-        self.permission_registry[permission.identifier] = permission
+        if permission.id in self.permission_registry:
+            raise ValueError(f"Permission {permission.id} already registered")
+        self.permission_registry[permission.id] = permission
 
     async def handle_register(
         self, session: Session, permissions: List[PermissionType]
     ) -> None:
         for permission in permissions:
-            if not permission.identifier.is_subpart_of(session.app.identifier):
+            if not permission.id.is_subpart_of(session.app.identifier):
                 raise ValueError(
-                    f"Permission identifier {permission.identifier} "
+                    f"Permission identifier {permission.id} "
                     f"is not a subpart of app identifier {session.app.identifier}"
                 )
-            self.permission_registry[permission.identifier] = permission
+            self.permission_registry[permission.id] = permission
 
     async def handle_require(
         self, session: Session, permission_identifiers: List[Identifier]
@@ -80,9 +80,7 @@ class PermissionExtension:
             PermissionRequest(request_id, session.app, permissions)
         )
         if accepted:
-            self.session_permissions[session.token] = {
-                p.identifier: p for p in permissions
-            }
+            self.session_permissions[session.token] = {p.id: p for p in permissions}
             if not session.closed:
                 await session.send(PERMISSION_GRANT_PACKET, permissions)
             task_future.set_result(None)
@@ -106,9 +104,7 @@ class PermissionExtension:
             PermissionRequest(request_id, session.app, permissions)
         )
         if accepted:
-            self.session_permissions[session.token] = {
-                p.identifier: p for p in permissions
-            }
+            self.session_permissions[session.token] = {p.id: p for p in permissions}
             if not session.closed:
                 await session.send(PERMISSION_GRANT_PACKET, permissions)
         else:
