@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import (
     AsyncGenerator,
     Callable,
@@ -42,8 +43,8 @@ class TableExtension(Extension):
         self._client = client
         self._tables: Dict[Identifier, Table] = {}
         client.network.register_packet(
-            TABLE_BIND_PERMISSION_PACKET,
-            TABLE_CONFIG_PACKET,
+            TABLE_SET_PERMISSION_PACKET,
+            TABLE_SET_CONFIG_PACKET,
             TABLE_LISTEN_PACKET,
             TABLE_PROXY_LISTEN_PACKET,
             TABLE_PROXY_PACKET,
@@ -56,7 +57,6 @@ class TableExtension(Extension):
     def create[T](
         self,
         table_type: TableType[T],
-        key_function: Callable[[T], str],
     ) -> Table[T]:
         if self.has(table_type.identifier):
             raise ValueError(
@@ -65,7 +65,6 @@ class TableExtension(Extension):
         table = TableImpl(
             self._client,
             table_type=table_type,
-            key_function=key_function,
         )
         self._tables[table_type.identifier] = table
         return table
@@ -73,7 +72,7 @@ class TableExtension(Extension):
     def get[T](self, type: TableType[T]) -> Table[T]:
         if self.has(type.identifier):
             return self._tables[type.identifier]
-        return self.create(type, type.key_func)
+        return self.create(type)
 
     def model[T: Keyable, D](
         self, identifier: Identifier, name: str, model_type: type[ModelType[T, D]]
@@ -82,10 +81,7 @@ class TableExtension(Extension):
         if self.has(identifier):
             raise ValueError(f"Table with identifier {identifier} already exists")
         table_type = TableType.create_model(identifier, name, model_type)
-        return self.create(
-            table_type,
-            lambda item: item.key(),
-        )
+        return self.create(table_type)
 
     def has(self, identifier: Identifier) -> bool:
         return identifier in self._tables
@@ -96,14 +92,14 @@ TABLE_EXTENSION_TYPE = ExtensionType(
 )
 
 
-TABLE_BIND_PERMISSION_PACKET = PacketType[BindPermissionPacket].create(
+TABLE_SET_PERMISSION_PACKET = PacketType[BindPermissionPacket].create(
     TABLE_EXTENSION_TYPE,
-    "bind_permission",
+    "set_permission",
     BindPermissionPacket,
 )
-TABLE_CONFIG_PACKET = PacketType[SetConfigPacket].create(
+TABLE_SET_CONFIG_PACKET = PacketType[SetConfigPacket].create(
     TABLE_EXTENSION_TYPE,
-    "config",
+    "set_config",
     SetConfigPacket,
 )
 TABLE_LISTEN_PACKET = PacketType[Identifier].create_json(
@@ -173,17 +169,23 @@ TABLE_ITEM_CLEAR_PACKET = PacketType[TablePacket].create(
 )
 
 
+@dataclass(frozen=True)
+class TablePermissions:
+    all: Identifier | None
+    read: Identifier | None
+    write: Identifier | None
+
+
 class TableImpl[T](Table[T]):
     def __init__(
         self,
         client: Client,
         table_type: TableType,
-        key_function: Callable[[T], str],
     ):
         self._client = client
         self._id = table_type.identifier
         self._serializer = table_type.serializer
-        self._key_function = key_function
+        self._key_function = table_type.key_function
         self._cache: Dict[str, T] = {}
         self._listeners = TableListeners[T](self)
         self._proxies: List[Coro[[T], T | None]] = []
@@ -191,9 +193,7 @@ class TableImpl[T](Table[T]):
         self._cache_size: int | None = None
         self._listening = False
         self._config: TableConfig | None = None
-        self._permission_all: Identifier | None = None
-        self._permission_read: Identifier | None = None
-        self._permission_write: Identifier | None = None
+        self._permissions: TablePermissions | None = None
 
         client.network.add_packet_handler(
             TABLE_PROXY_PACKET,
@@ -215,7 +215,7 @@ class TableImpl[T](Table[T]):
             TABLE_ITEM_CLEAR_PACKET,
             self._on_item_clear,
         )
-        client.network.add_task(self._connect_task)
+        client.network.add_task(self._on_network_task)
         client.listeners.ready += self._on_ready
 
     @property
@@ -334,30 +334,32 @@ class TableImpl[T](Table[T]):
         read: Identifier | None = None,
         write: Identifier | None = None,
     ) -> None:
-        self._permission_all = all
-        self._permission_read = read
-        self._permission_write = write
+        self._permissions = TablePermissions(
+            all,
+            read,
+            write,
+        )
 
     def set_config(self, config: TableConfig) -> None:
         self._config = config
 
-    async def _connect_task(self) -> None:
-        if self._permission_all is None:
+    async def _on_network_task(self) -> None:
+        if self._permissions is None:
             return
         await self._client.send(
-            TABLE_BIND_PERMISSION_PACKET,
+            TABLE_SET_PERMISSION_PACKET,
             BindPermissionPacket(
                 id=self._id,
-                all=self._permission_all,
-                read=self._permission_read,
-                write=self._permission_write,
+                all=self._permissions.all,
+                read=self._permissions.read,
+                write=self._permissions.write,
             ),
         )
 
     async def _on_ready(self) -> None:
         if self._config is not None:
             await self._client.send(
-                TABLE_CONFIG_PACKET,
+                TABLE_SET_CONFIG_PACKET,
                 SetConfigPacket(id=self._id, config=self._config),
             )
         if self._listening:

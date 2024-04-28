@@ -136,7 +136,7 @@ type ModelEntry[T: Keyable, D] = JsonSerializable[T, D]
 class TableType[T]:
     identifier: Identifier
     serializer: Serializable[T, bytes]
-    key_func: Callable[[T], str]
+    key_function: Callable[[T], str]
 
     @classmethod
     def create_model[_T: Keyable, _D](
@@ -148,7 +148,7 @@ class TableType[T]:
         return TableType(
             identifier=identifier / name,
             serializer=Serializer.model(model_type).to_json(),
-            key_func=lambda item: item.key(),
+            key_function=lambda item: item.key(),
         )
 
     @classmethod
@@ -161,5 +161,5 @@ class TableType[T]:
         return TableType(
             identifier=identifier / name,
             serializer=serializer,
-            key_func=lambda item: item.key(),
+            key_function=lambda item: item.key(),
         )

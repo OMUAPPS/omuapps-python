@@ -24,6 +24,7 @@ class PermissionExtension(Extension):
         self.required_permission_ids: Set[Identifier] = set()
         client.network.register_packet(
             PERMISSION_REGISTER_PACKET,
+            PERMISSION_REQUIRE_PACKET,
             PERMISSION_GRANT_PACKET,
         )
         client.network.add_packet_handler(

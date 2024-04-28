@@ -5,8 +5,6 @@ from typing import Dict, List
 
 from omu.extension.table import Table, TableType
 from omu.extension.table.table_extension import (
-    TABLE_BIND_PERMISSION_PACKET,
-    TABLE_CONFIG_PACKET,
     TABLE_FETCH_ALL_ENDPOINT,
     TABLE_FETCH_ENDPOINT,
     TABLE_ITEM_ADD_PACKET,
@@ -17,6 +15,8 @@ from omu.extension.table.table_extension import (
     TABLE_LISTEN_PACKET,
     TABLE_PROXY_LISTEN_PACKET,
     TABLE_PROXY_PACKET,
+    TABLE_SET_CONFIG_PACKET,
+    TABLE_SET_PERMISSION_PACKET,
     TABLE_SIZE_ENDPOINT,
     BindPermissionPacket,
     SetConfigPacket,
@@ -47,8 +47,8 @@ class TableExtension:
         self._tables: Dict[Identifier, ServerTable] = {}
         self._adapters: List[TableAdapter] = []
         server.packet_dispatcher.register(
-            TABLE_BIND_PERMISSION_PACKET,
-            TABLE_CONFIG_PACKET,
+            TABLE_SET_PERMISSION_PACKET,
+            TABLE_SET_CONFIG_PACKET,
             TABLE_LISTEN_PACKET,
             TABLE_PROXY_LISTEN_PACKET,
             TABLE_PROXY_PACKET,
@@ -58,11 +58,11 @@ class TableExtension:
             TABLE_ITEM_CLEAR_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_BIND_PERMISSION_PACKET,
+            TABLE_SET_PERMISSION_PACKET,
             self.handle_bind_permission,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_CONFIG_PACKET,
+            TABLE_SET_CONFIG_PACKET,
             self.handle_table_config,
         )
         server.packet_dispatcher.add_packet_handler(
