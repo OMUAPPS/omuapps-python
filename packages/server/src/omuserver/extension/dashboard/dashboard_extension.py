@@ -88,13 +88,14 @@ class DashboardExtension:
                 DASHBOARD_PERMISSION_REQUEST_PACKET,
                 request,
             )
-        self.pending_permission_requests.clear()
 
     async def handle_permission_accept(self, session: Session, request_id: str) -> None:
+        del self.pending_permission_requests[request_id]
         future = self.permission_requests.pop(request_id)
         future.set_result(True)
 
     async def handle_permission_deny(self, session: Session, request_id: str) -> None:
+        del self.pending_permission_requests[request_id]
         future = self.permission_requests.pop(request_id)
         future.set_result(False)
 
