@@ -4,14 +4,11 @@ import asyncio
 from typing import (
     TYPE_CHECKING,
     Dict,
-    List,
 )
 
 from omu.extension.plugin.plugin_extension import (
-    PLUGIN_PERMISSION,
+    PLUGIN_PERMISSION_TYPE,
     PLUGIN_REQUIRE_PACKET,
-    PLUGIN_WAIT_ENDPOINT,
-    WaitResponse,
 )
 from packaging.specifiers import SpecifierSet
 
@@ -37,12 +34,8 @@ class PluginExtension:
             PLUGIN_REQUIRE_PACKET,
             self.handle_require_packet,
         )
-        server.endpoints.bind_endpoint(
-            PLUGIN_WAIT_ENDPOINT,
-            self.handle_wait_endpoint,
-        )
         server.permissions.register(
-            PLUGIN_PERMISSION,
+            PLUGIN_PERMISSION_TYPE,
         )
 
     async def on_network_start(self) -> None:
@@ -65,12 +58,3 @@ class PluginExtension:
         async with self.lock:
             await self.dependency_resolver.resolve()
             await self.loader.load_updated_plugins()
-
-    async def handle_wait_endpoint(
-        self, session: Session, plugins: List[str]
-    ) -> WaitResponse:
-        async with self.lock:
-            for plugin in plugins:
-                if plugin not in self.loader.plugins:
-                    return {"success": False}
-            return {"success": True}

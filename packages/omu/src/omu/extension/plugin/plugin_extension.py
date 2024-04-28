@@ -1,8 +1,7 @@
-from typing import Dict, List, TypedDict
+from typing import Dict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
-from omu.extension.endpoint.endpoint import EndpointType
 from omu.extension.permission.permission import PermissionType
 from omu.network.packet.packet import PacketType
 
@@ -25,14 +24,13 @@ class PluginExtension(Extension):
 
     async def on_connected(self):
         await self.client.send(PLUGIN_REQUIRE_PACKET, self.plugins)
-        await self.client.endpoints.call(PLUGIN_WAIT_ENDPOINT, [*self.plugins.keys()])
 
     def require(self, plugins: Dict[str, str | None]):
         self.plugins.update(plugins)
-        self.client.permissions.require(PLUGIN_PERMISSION.id)
+        self.client.permissions.require(PLUGIN_PERMISSION)
 
 
-PLUGIN_PERMISSION = PermissionType(
+PLUGIN_PERMISSION_TYPE = PermissionType(
     PLUGIN_EXTENSION_TYPE / "request",
     metadata={
         "level": "high",
@@ -46,17 +44,8 @@ PLUGIN_PERMISSION = PermissionType(
         },
     },
 )
+PLUGIN_PERMISSION = PLUGIN_PERMISSION_TYPE.id
 PLUGIN_REQUIRE_PACKET = PacketType[Dict[str, str | None]].create_json(
     PLUGIN_EXTENSION_TYPE,
     "require",
-)
-
-
-class WaitResponse(TypedDict):
-    success: bool
-
-
-PLUGIN_WAIT_ENDPOINT = EndpointType[List[str], WaitResponse].create_json(
-    PLUGIN_EXTENSION_TYPE,
-    "wait",
 )
