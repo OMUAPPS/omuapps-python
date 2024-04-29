@@ -44,6 +44,8 @@ class Network:
 
     async def _handle_ready(self, session: Session, packet: None) -> None:
         await session.wait_for_tasks()
+        if session.closed:
+            return
         await session.send(PACKET_TYPES.READY, None)
         logger.info(f"Ready: {session.app.key()}")
 
