@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Dict, List
 
 from loguru import logger
 from omu.extension.server.server_extension import (
-    APPS_TABLE_TYPE,
+    APP_TABLE_TYPE,
     REQUIRE_APPS_ENDPOINT_TYPE,
     SHUTDOWN_ENDPOINT_TYPE,
     VERSION_REGISTRY_TYPE,
@@ -73,7 +73,7 @@ class ServerExtension:
 
     async def on_start(self) -> None:
         await self.version_registry.set(__version__)
-        self.apps = await self._server.tables.register_table(APPS_TABLE_TYPE)
+        self.apps = await self._server.tables.register_table(APP_TABLE_TYPE)
         await self.apps.clear()
 
     async def on_connected(self, session: Session) -> None:
