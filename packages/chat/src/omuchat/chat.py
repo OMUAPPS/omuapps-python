@@ -15,7 +15,7 @@ from omuchat.model.provider import Provider
 from omuchat.model.room import Room
 
 IDENTIFIER = Identifier.from_key("cc.omuchat:chat")
-CHAT_PERMISSION = PermissionType(
+CHAT_PERMISSION_TYPE = PermissionType(
     IDENTIFIER / "chat",
     metadata={
         "level": "medium",
@@ -29,7 +29,8 @@ CHAT_PERMISSION = PermissionType(
         },
     },
 )
-CHAT_READ_PERMISSION = PermissionType(
+CHAT_PERMISSION = CHAT_PERMISSION_TYPE.id
+CHAT_READ_PERMISSION_TYPE = PermissionType(
     IDENTIFIER / "chat" / "read",
     metadata={
         "level": "low",
@@ -43,6 +44,8 @@ CHAT_READ_PERMISSION = PermissionType(
         },
     },
 )
+CHAT_READ_PERMISSION = CHAT_READ_PERMISSION_TYPE.id
+
 MESSAGE_TABLE = TableType.create_model(
     IDENTIFIER,
     "messages",
@@ -81,7 +84,7 @@ class Chat:
         client: Client,
     ):
         client.server.require(IDENTIFIER)
-        client.permissions.require(CHAT_PERMISSION.id)
+        client.permissions.require(CHAT_PERMISSION)
         self.messages = client.tables.get(MESSAGE_TABLE)
         self.authors = client.tables.get(AUTHOR_TABLE)
         self.channels = client.tables.get(CHANNEL_TABLE)

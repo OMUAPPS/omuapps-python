@@ -8,6 +8,7 @@ from omuchat.chat import (
     AUTHOR_TABLE,
     CHANNEL_TABLE,
     CHAT_PERMISSION,
+    CHAT_PERMISSION_TYPE,
     CREATE_CHANNEL_TREE_ENDPOINT,
     IDENTIFIER,
     MESSAGE_TABLE,
@@ -23,19 +24,19 @@ app = App(
 address = Address("127.0.0.1", 26423)
 client = OmuClient(app, address=address)
 
-client.permissions.register(CHAT_PERMISSION)
+client.permissions.register(CHAT_PERMISSION_TYPE)
 messages = client.tables.get(MESSAGE_TABLE)
-messages.set_permission(CHAT_PERMISSION.id)
+messages.set_permission(CHAT_PERMISSION)
 messages.set_config({"cache_size": 1000})
 authors = client.tables.get(AUTHOR_TABLE)
-authors.set_permission(CHAT_PERMISSION.id)
+authors.set_permission(CHAT_PERMISSION)
 authors.set_config({"cache_size": 500})
 channels = client.tables.get(CHANNEL_TABLE)
-channels.set_permission(CHAT_PERMISSION.id)
+channels.set_permission(CHAT_PERMISSION)
 providers = client.tables.get(PROVIDER_TABLE)
-providers.set_permission(CHAT_PERMISSION.id)
+providers.set_permission(CHAT_PERMISSION)
 rooms = client.tables.get(ROOM_TABLE)
-rooms.set_permission(CHAT_PERMISSION.id)
+rooms.set_permission(CHAT_PERMISSION)
 
 
 @client.endpoints.bind(endpoint_type=CREATE_CHANNEL_TREE_ENDPOINT)
