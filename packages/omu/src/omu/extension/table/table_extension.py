@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import (
     AsyncGenerator,
     Callable,
@@ -32,6 +31,7 @@ from .table import (
     Table,
     TableConfig,
     TableListeners,
+    TablePermissions,
     TableType,
 )
 
@@ -169,13 +169,6 @@ TABLE_ITEM_CLEAR_PACKET = PacketType[TablePacket].create(
 )
 
 
-@dataclass(frozen=True)
-class TablePermissions:
-    all: Identifier | None
-    read: Identifier | None
-    write: Identifier | None
-
-
 class TableImpl[T](Table[T]):
     def __init__(
         self,
@@ -193,7 +186,7 @@ class TableImpl[T](Table[T]):
         self._cache_size: int | None = None
         self._listening = False
         self._config: TableConfig | None = None
-        self._permissions: TablePermissions | None = None
+        self._permissions: TablePermissions | None = table_type.permissions
 
         client.network.add_packet_handler(
             TABLE_PROXY_PACKET,
@@ -327,24 +320,13 @@ class TableImpl[T](Table[T]):
         self._proxies.append(callback)
         return lambda: self._proxies.remove(callback)
 
-    def set_permission(
-        self,
-        all: Identifier | None = None,
-        /,
-        read: Identifier | None = None,
-        write: Identifier | None = None,
-    ) -> None:
-        self._permissions = TablePermissions(
-            all,
-            read,
-            write,
-        )
-
     def set_config(self, config: TableConfig) -> None:
         self._config = config
 
     async def _on_network_task(self) -> None:
         if self._permissions is None:
+            return
+        if not self._id.is_subpart_of(self._client.app.identifier):
             return
         await self._client.send(
             TABLE_SET_PERMISSION_PACKET,
@@ -353,6 +335,8 @@ class TableImpl[T](Table[T]):
                 all=self._permissions.all,
                 read=self._permissions.read,
                 write=self._permissions.write,
+                remove=self._permissions.remove,
+                proxy=self._permissions.proxy,
             ),
         )
 

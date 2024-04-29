@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping
 
-from omu.extension.table import TableConfig
+from omu.extension.table import TableConfig, TablePermissions
 from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyPacket
 from omu.identifier import Identifier
 
@@ -26,32 +26,26 @@ class CachedTable(ServerTable):
         self._id = id
         self._listeners = ServerTableListeners()
         self._sessions: Dict[Session, SessionTableListener] = {}
+        self._permissions: TablePermissions | None = None
         self._proxy_sessions: Dict[str, Session] = {}
         self._changed = False
         self._proxy_id = 0
         self._save_task: asyncio.Task | None = None
         self._adapter: TableAdapter | None = None
         self.config: TableConfig = {}
-        self._permission_all: Identifier | None = None
-        self._permission_read: Identifier | None = None
-        self._permission_write: Identifier | None = None
         self._cache: Dict[str, bytes] = {}
         self._cache_size: int | None = None
-
-    def set_permission(
-        self,
-        all: Identifier | None = None,
-        /,
-        read: Identifier | None = None,
-        write: Identifier | None = None,
-    ) -> None:
-        self._permission_all = all
-        self._permission_read = read
-        self._permission_write = write
 
     def set_config(self, config: TableConfig) -> None:
         self.config = config
         self._cache_size = config.get("cache_size", None)
+
+    @property
+    def permissions(self) -> TablePermissions | None:
+        return self._permissions
+
+    def set_permissions(self, permissions: TablePermissions) -> None:
+        self._permissions = permissions
 
     def set_adapter(self, adapter: TableAdapter) -> None:
         self._adapter = adapter
@@ -264,7 +258,3 @@ class CachedTable(ServerTable):
     @property
     def adapter(self) -> TableAdapter | None:
         return self._adapter
-
-    @property
-    def permission(self) -> Identifier | None:
-        return self._permission_all

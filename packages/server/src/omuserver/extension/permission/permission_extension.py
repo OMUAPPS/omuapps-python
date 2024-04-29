@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import TYPE_CHECKING, Dict, List
 
@@ -16,7 +15,6 @@ from omu.identifier import Identifier
 from omu.network.packet.packet_types import DisconnectType
 
 from omuserver.session import Session
-from omuserver.session.session import SessionTask
 
 if TYPE_CHECKING:
     from omuserver.server import Server
@@ -65,17 +63,17 @@ class PermissionExtension:
     async def handle_require(
         self, session: Session, permission_identifiers: List[Identifier]
     ):
-        task_future = asyncio.Future[None]()
-        session.add_task(
-            SessionTask(task_future, f"handle_request({permission_identifiers})")
+        ready_task = await session.create_ready_task(
+            f"handle_request({permission_identifiers})"
         )
 
         request_id = self._get_next_request_id()
         permissions: List[PermissionType] = []
         for identifier in permission_identifiers:
             permission = self.permission_registry.get(identifier)
-            if permission is not None:
-                permissions.append(permission)
+            if permission is None:
+                raise ValueError(f"Permission {identifier} not registered")
+            permissions.append(permission)
         accepted = await self.server.dashboard.request_permissions(
             PermissionRequest(request_id, session.app, permissions)
         )
@@ -83,7 +81,7 @@ class PermissionExtension:
             self.session_permissions[session.token] = {p.id: p for p in permissions}
             if not session.closed:
                 await session.send(PERMISSION_GRANT_PACKET, permissions)
-            task_future.set_result(None)
+            ready_task.set()
         else:
             await session.disconnect(
                 DisconnectType.PERMISSION_DENIED,

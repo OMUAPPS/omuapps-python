@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import asyncio
-from typing import TYPE_CHECKING, Awaitable, List
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, List
 
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
@@ -41,10 +42,15 @@ class SessionListeners:
         self.ready = EventEmitter[Session]()
 
 
+@dataclass
 class SessionTask:
-    def __init__(self, future: Awaitable[None], name: str) -> None:
-        self.future = future
-        self.name = name
+    session: Session
+    start_future: asyncio.Future[None]
+    future: asyncio.Future[None]
+    name: str
+
+    def set(self) -> None:
+        self.future.set_result(None)
 
     def __repr__(self) -> str:
         return f"SessionTask({self.name})"
@@ -65,7 +71,7 @@ class Session:
         self.is_dashboard = is_dashboard
         self.connection = connection
         self.listeners = SessionListeners()
-        self.tasks: List[SessionTask] = []
+        self.ready_tasks: List[SessionTask] = []
         self.ready = False
 
     @classmethod
@@ -157,15 +163,28 @@ class Session:
     async def send[T](self, packet_type: PacketType[T], data: T) -> None:
         await self.connection.send(Packet(packet_type, data), self.packet_mapper)
 
-    def add_task(self, task: SessionTask) -> None:
+    async def create_ready_task(self, name: str) -> SessionTask:
         if self.ready:
             raise RuntimeError("Session is already ready")
-        self.tasks.append(task)
+        start_future = asyncio.Future()
+        future = asyncio.Future()
+        task = SessionTask(
+            session=self,
+            start_future=start_future,
+            future=future,
+            name=name,
+        )
+        self.ready_tasks.append(task)
+        await start_future
+        return task
 
     async def wait_for_tasks(self) -> None:
         if self.ready:
             raise RuntimeError("Session is already ready")
-        await asyncio.gather(*[task.future for task in self.tasks])
-        self.tasks.clear()
+        # await asyncio.gather(*[task.future for task in self.tasks])
+        for task in self.ready_tasks:
+            task.start_future.set_result(None)
+            await task.future
+        self.ready_tasks.clear()
         self.ready = True
         await self.listeners.ready.emit(self)

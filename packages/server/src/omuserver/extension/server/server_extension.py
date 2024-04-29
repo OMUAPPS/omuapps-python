@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Dict, List
 from loguru import logger
 from omu.extension.server.server_extension import (
     APP_TABLE_TYPE,
-    REQUIRE_APPS_ENDPOINT_TYPE,
+    REQUIRE_APPS_PACKET_TYPE,
     SHUTDOWN_ENDPOINT_TYPE,
     VERSION_REGISTRY_TYPE,
 )
@@ -15,7 +15,6 @@ from omu.identifier import Identifier
 
 from omuserver import __version__
 from omuserver.helper import get_launch_command
-from omuserver.session.session import SessionTask
 
 if TYPE_CHECKING:
     from omuserver.server import Server
@@ -31,13 +30,16 @@ class WaitHandle:
 class ServerExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
+        server.packet_dispatcher.register(
+            REQUIRE_APPS_PACKET_TYPE,
+        )
         self.version_registry = self._server.registry.create(VERSION_REGISTRY_TYPE)
         server.network.listeners.connected += self.on_connected
         server.network.listeners.disconnected += self.on_disconnected
         server.listeners.start += self.on_start
         server.endpoints.bind_endpoint(SHUTDOWN_ENDPOINT_TYPE, self.shutdown)
-        server.endpoints.bind_endpoint(
-            REQUIRE_APPS_ENDPOINT_TYPE, self.handle_require_apps
+        server.packet_dispatcher.add_packet_handler(
+            REQUIRE_APPS_PACKET_TYPE, self.handle_require_apps
         )
         self._app_waiters: Dict[Identifier, List[WaitHandle]] = defaultdict(list)
 
@@ -50,12 +52,14 @@ class ServerExtension:
             app_ids.remove(identifier)
         if len(app_ids) == 0:
             return
-        future = Future()
-        session.add_task(SessionTask(future, f"require_apps({app_ids})"))
+
+        ready_task = await session.create_ready_task(f"require_apps({app_ids})")
+
         waiter = WaitHandle(app_ids)
         for app_id in app_ids:
             self._app_waiters[app_id].append(waiter)
-        await future
+        await waiter.future
+        ready_task.set()
 
     async def shutdown(self, session: Session, restart: bool = False) -> bool:
         await self._server.shutdown()

@@ -183,6 +183,8 @@ class SetPermissionPacket:
     all: Identifier | None = None
     read: Identifier | None = None
     write: Identifier | None = None
+    remove: Identifier | None = None
+    proxy: Identifier | None = None
 
     @staticmethod
     def serialize(item: SetPermissionPacket) -> bytes:
@@ -195,6 +197,10 @@ class SetPermissionPacket:
             flags |= 0b10
         if item.write is not None:
             flags |= 0b100
+        if item.remove is not None:
+            flags |= 0b1000
+        if item.proxy is not None:
+            flags |= 0b10000
         writer.write_byte(flags)
         if item.all is not None:
             writer.write_string(item.all.key())
@@ -202,6 +208,10 @@ class SetPermissionPacket:
             writer.write_string(item.read.key())
         if item.write is not None:
             writer.write_string(item.write.key())
+        if item.remove is not None:
+            writer.write_string(item.remove.key())
+        if item.proxy is not None:
+            writer.write_string(item.proxy.key())
         return writer.finish()
 
     @staticmethod
@@ -212,9 +222,13 @@ class SetPermissionPacket:
             permission = reader.read_string() if flags & 0b1 else None
             permission_read = reader.read_string() if flags & 0b10 else None
             permission_write = reader.read_string() if flags & 0b100 else None
+            permission_remove = reader.read_string() if flags & 0b1000 else None
+            permission_proxy = reader.read_string() if flags & 0b10000 else None
         return SetPermissionPacket(
             id=Identifier.from_key(id),
             all=map_optional(permission, Identifier.from_key),
             read=map_optional(permission_read, Identifier.from_key),
             write=map_optional(permission_write, Identifier.from_key),
+            remove=map_optional(permission_remove, Identifier.from_key),
+            proxy=map_optional(permission_proxy, Identifier.from_key),
         )

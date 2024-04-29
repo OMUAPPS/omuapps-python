@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, Dict, List
 
+from omu.errors import PermissionDenied
 from omu.extension.table import Table, TableType
+from omu.extension.table.table import TablePermissions
 from omu.extension.table.table_extension import (
     TABLE_FETCH_ALL_ENDPOINT,
     TABLE_FETCH_ENDPOINT,
@@ -28,8 +30,6 @@ from omu.extension.table.table_extension import (
 )
 from omu.identifier import Identifier
 from omu.interface import Keyable
-from omu.network.packet.packet_types import DisconnectType
-from result import Err, Ok, Result
 
 from omuserver.extension.table.serialized_table import SerializedTable
 from omuserver.server import Server
@@ -153,62 +153,96 @@ class TableExtension:
         self, session: Session, packet: SetPermissionPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        if (await self.check_permission(session, table)).is_err():
-            return
-        table.set_permission(packet.all)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all],
+        )
+        permissions = TablePermissions(
+            all=packet.all,
+            read=packet.read,
+            write=packet.write,
+            remove=packet.remove,
+            proxy=packet.proxy,
+        )
+        table.set_permissions(permissions)
 
     async def handle_table_config(
         self, session: Session, packet: SetConfigPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all],
+        )
         table.set_config(packet.config)
 
     async def handler_listen(self, session: Session, id: Identifier) -> None:
         table = await self.get_table(id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.read],
+        )
         table.attach_session(session)
 
     async def handle_proxy_listen(self, session: Session, id: Identifier) -> None:
         table = await self.get_table(id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.proxy],
+        )
         table.attach_proxy_session(session)
 
     async def handle_proxy(self, session: Session, packet: TableProxyPacket) -> None:
         table = await self.get_table(packet.id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.proxy],
+        )
         await table.proxy(session, packet.key, packet.items)
 
     async def handle_item_add(self, session: Session, packet: TableItemsPacket) -> None:
         table = await self.get_table(packet.id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.write],
+        )
         await table.add(packet.items)
 
     async def handle_item_update(
         self, session: Session, packet: TableItemsPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.write],
+        )
         await table.update(packet.items)
 
     async def handle_item_remove(
         self, session: Session, packet: TableItemsPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.remove],
+        )
         await table.remove(list(packet.items.keys()))
 
     async def handle_item_clear(self, session: Session, packet: TablePacket) -> None:
         table = await self.get_table(packet.id)
-        if (await self.check_permission(session, table)).is_err():
-            return
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.remove],
+        )
         await table.clear()
 
     async def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
@@ -234,22 +268,23 @@ class TableExtension:
         for table in self._tables.values():
             await table.store()
 
-    async def check_permission(self, session: Session, table: ServerTable) -> Result:
+    async def check_permission(
+        self,
+        session: Session,
+        table: ServerTable,
+        get_permission: Callable[[TablePermissions], List[Identifier | None]],
+    ):
         if table.id.is_subpart_of(session.app.identifier):
-            return Ok(None)
-        if table.permission is None:
-            await session.disconnect(
-                DisconnectType.PERMISSION_DENIED,
-                f"Table {table.id} does not have a permission set",
-            )
-            return Err(None)
-        has_permission = self.server.permissions.has_permission(
-            session, table.permission
+            return
+        if table.permissions is None:
+            raise PermissionDenied(f"Table {table.id} does not have a permission set")
+        permissions: List[Identifier | None] = get_permission(table.permissions)
+        for permission in permissions:
+            if permission is None:
+                continue
+            if self.server.permissions.has_permission(session, permission):
+                return
+
+        raise PermissionDenied(
+            f"Table {table.id} does not have permission {table.permissions}"
         )
-        if not has_permission:
-            await session.disconnect(
-                DisconnectType.PERMISSION_DENIED,
-                f"Table {table.id} does not have permission {table.permission}",
-            )
-            return Err(None)
-        return Ok(None)
