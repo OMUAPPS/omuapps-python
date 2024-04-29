@@ -34,15 +34,16 @@ class PermissionExtension(Extension):
         client.network.listeners.connected += self.on_connected
         client.network.add_task(self.on_network_task)
 
-    def register(self, permission: PermissionType):
-        if permission.id in self.registered_permissions:
-            raise ValueError(f"Permission {permission.id} already registered")
-        base_identifier = self.client.app.identifier
-        if not permission.id.is_subpart_of(base_identifier):
-            raise ValueError(
-                f"Permission identifier {permission.id} is not a subpart of app identifier {base_identifier}"
-            )
-        self.registered_permissions[permission.id] = permission
+    def register(self, *permission_types: PermissionType):
+        for permission in permission_types:
+            if permission.id in self.registered_permissions:
+                raise ValueError(f"Permission {permission.id} already registered")
+            base_identifier = self.client.app.identifier
+            if not permission.id.is_subpart_of(base_identifier):
+                raise ValueError(
+                    f"Permission identifier {permission.id} is not a subpart of app identifier {base_identifier}"
+                )
+            self.registered_permissions[permission.id] = permission
 
     def require(self, permission_id: Identifier):
         self.required_permission_ids.add(permission_id)
