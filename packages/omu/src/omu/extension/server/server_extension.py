@@ -13,7 +13,7 @@ SERVER_EXTENSION_TYPE = ExtensionType(
     "server", lambda client: ServerExtension(client), lambda: []
 )
 
-APPS_TABLE_TYPE = TableType.create_model(
+APP_TABLE_TYPE = TableType.create_model(
     SERVER_EXTENSION_TYPE,
     "apps",
     App,
@@ -37,7 +37,7 @@ VERSION_REGISTRY_TYPE = RegistryType[str | None].create_json(
 class ServerExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        self.apps = client.tables.get(APPS_TABLE_TYPE)
+        self.apps = client.tables.get(APP_TABLE_TYPE)
         self.required_apps: Set[Identifier] = set()
         client.network.listeners.connected += self.on_connect
 
