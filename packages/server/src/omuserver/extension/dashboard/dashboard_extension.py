@@ -90,11 +90,15 @@ class DashboardExtension:
             )
 
     async def handle_permission_accept(self, session: Session, request_id: str) -> None:
+        if request_id not in self.permission_requests:
+            raise ValueError(f"Permission request with id {request_id} does not exist")
         del self.pending_permission_requests[request_id]
         future = self.permission_requests.pop(request_id)
         future.set_result(True)
 
     async def handle_permission_deny(self, session: Session, request_id: str) -> None:
+        if request_id not in self.permission_requests:
+            raise ValueError(f"Permission request with id {request_id} does not exist")
         del self.pending_permission_requests[request_id]
         future = self.permission_requests.pop(request_id)
         future.set_result(False)
@@ -112,9 +116,8 @@ class DashboardExtension:
     async def send_dashboard_permission_request(
         self, request: PermissionRequest
     ) -> None:
-        if self.dashboard_session is None:
-            self.pending_permission_requests[request.request_id] = request
-        else:
+        self.pending_permission_requests[request.request_id] = request
+        if self.dashboard_session is not None:
             await self.dashboard_session.send(
                 DASHBOARD_PERMISSION_REQUEST_PACKET,
                 request,
