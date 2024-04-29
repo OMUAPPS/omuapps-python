@@ -118,4 +118,6 @@ class PermissionExtension:
         return f"{self.request_id}-{time.time_ns()}"
 
     def has_permission(self, session: Session, permission_id: Identifier) -> bool:
+        if session.is_dashboard:
+            return True
         return permission_id in self.session_permissions.get(session.token, {})
