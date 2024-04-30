@@ -5,6 +5,7 @@ import asyncio
 from loguru import logger
 
 from omu.app import App
+from omu.client.token import JsonTokenProvider, TokenProvider
 from omu.extension import ExtensionRegistry
 from omu.extension.asset import (
     ASSET_EXTENSION_TYPE,
@@ -58,6 +59,7 @@ class OmuClient(Client):
         self,
         app: App,
         address: Address,
+        token: TokenProvider | None = None,
         connection: WebsocketsConnection | None = None,
         extension_registry: ExtensionRegistry | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
@@ -69,6 +71,7 @@ class OmuClient(Client):
         self._network = Network(
             self,
             address,
+            token or JsonTokenProvider(),
             connection or WebsocketsConnection(self, address),
         )
         self._extensions = extension_registry or ExtensionRegistry(self)
@@ -149,10 +152,10 @@ class OmuClient(Client):
     async def send[T](self, type: PacketType[T], data: T) -> None:
         await self._network.send(Packet(type, data))
 
-    def run(self, *, token: str | None = None, reconnect: bool = True) -> None:
+    def run(self, *, reconnect: bool = True) -> None:
         try:
             self.loop.set_exception_handler(self.handle_exception)
-            self.loop.create_task(self.start(token=token, reconnect=reconnect))
+            self.loop.create_task(self.start(reconnect=reconnect))
             self.loop.run_forever()
         finally:
             self.loop.close()
@@ -164,11 +167,11 @@ class OmuClient(Client):
         if exception:
             raise exception
 
-    async def start(self, *, token: str | None = None, reconnect: bool = True) -> None:
+    async def start(self, *, reconnect: bool = True) -> None:
         if self._running:
             raise RuntimeError("Already running")
         self._running = True
-        self.loop.create_task(self._network.connect(token=token, reconnect=reconnect))
+        self.loop.create_task(self._network.connect(reconnect=reconnect))
         await self._listeners.started()
 
     async def stop(self) -> None:
