@@ -4,7 +4,7 @@ from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.identifier import Identifier
-from omu.network.packet.packet import PacketType
+from omu.network.packet import PacketType
 from omu.serializer import Serializer
 
 from .permission import PermissionType

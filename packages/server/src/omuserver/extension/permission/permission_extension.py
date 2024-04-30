@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 import time
 from typing import TYPE_CHECKING, Dict, List
 
@@ -22,10 +24,6 @@ if TYPE_CHECKING:
 
 class PermissionExtension:
     def __init__(self, server: Server) -> None:
-        self.server = server
-        self.request_id = 0
-        self.permission_registry: Dict[Identifier, PermissionType] = {}
-        self.session_permissions: Dict[str, Dict[Identifier, PermissionType]] = {}
         server.packet_dispatcher.register(
             PERMISSION_REGISTER_PACKET,
             PERMISSION_REQUIRE_PACKET,
@@ -43,6 +41,23 @@ class PermissionExtension:
             PERMISSION_REQUEST_ENDPOINT,
             self.handle_request,
         )
+        self.server = server
+        self.request_id = 0
+        self.permission_registry: Dict[Identifier, PermissionType] = {}
+        self.session_permissions: Dict[str, List[Identifier]] = {}
+        permission_dir = server.directories.get("permissions")
+        permission_dir.mkdir(parents=True, exist_ok=True)
+        self.permission_db = sqlite3.connect(permission_dir / "permissions.db")
+        self.permission_db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS permissions (
+                id TEXT PRIMARY KEY,
+                value BLOB
+            )
+            """
+        )
+        self.permission_db.commit()
+        self.load_permissions()
 
     def register(self, permission: PermissionType) -> None:
         if permission.id in self.permission_registry:
@@ -59,6 +74,31 @@ class PermissionExtension:
                     f"is not a subpart of app identifier {session.app.identifier}"
                 )
             self.permission_registry[permission.id] = permission
+
+    def load_permissions(self) -> None:
+        cursor = self.permission_db.cursor()
+        cursor.execute("SELECT id, value FROM permissions")
+        for row in cursor:
+            token = row[0]
+            permissions = json.loads(row[1])
+            self.session_permissions[token] = [
+                Identifier.from_key(key) for key in permissions
+            ]
+
+    def store_permissions(self) -> None:
+        cursor = self.permission_db.cursor()
+        for token, permissions in self.session_permissions.items():
+            permission_keys = [permission.key() for permission in permissions]
+            permissions = json.dumps(permission_keys)
+            cursor.execute(
+                "INSERT OR REPLACE INTO permissions VALUES (?, ?)",
+                (token, permissions),
+            )
+        self.permission_db.commit()
+
+    def set_permissions(self, token: str, permissions: List[Identifier]) -> None:
+        self.session_permissions[token] = permissions
+        self.store_permissions()
 
     async def handle_require(
         self, session: Session, permission_identifiers: List[Identifier]
@@ -78,7 +118,7 @@ class PermissionExtension:
             PermissionRequest(request_id, session.app, permissions)
         )
         if accepted:
-            self.session_permissions[session.token] = {p.id: p for p in permissions}
+            self.set_permissions(session.token, [p.id for p in permissions])
             if not session.closed:
                 await session.send(PERMISSION_GRANT_PACKET, permissions)
             ready_task.set()
@@ -102,7 +142,7 @@ class PermissionExtension:
             PermissionRequest(request_id, session.app, permissions)
         )
         if accepted:
-            self.session_permissions[session.token] = {p.id: p for p in permissions}
+            self.set_permissions(session.token, [p.id for p in permissions])
             if not session.closed:
                 await session.send(PERMISSION_GRANT_PACKET, permissions)
         else:
