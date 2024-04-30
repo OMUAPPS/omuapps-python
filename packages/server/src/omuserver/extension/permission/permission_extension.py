@@ -119,9 +119,12 @@ class PermissionExtension:
             if permission is None:
                 raise ValueError(f"Permission {identifier} not registered")
             permissions.append(permission)
-        accepted = await self.server.dashboard.request_permissions(
-            PermissionRequest(request_id, session.app, permissions)
-        )
+        if session.is_plugin:
+            accepted = True
+        else:
+            accepted = await self.server.dashboard.request_permissions(
+                PermissionRequest(request_id, session.app, permissions)
+            )
         if accepted:
             self.set_permissions(session.token, [p.id for p in permissions])
             if not session.closed:

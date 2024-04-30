@@ -3,6 +3,7 @@ import datetime
 import random
 import sqlite3
 import string
+from typing import Set
 
 from loguru import logger
 from omu import App
@@ -23,6 +24,12 @@ class Security(abc.ABC):
     async def verify_app_token(self, app: App, token: Token | None) -> Token: ...
 
     @abc.abstractmethod
+    async def generate_plugin_token(self) -> Token: ...
+
+    @abc.abstractmethod
+    async def is_plugin_token(self, token: Token) -> bool: ...
+
+    @abc.abstractmethod
     async def is_dashboard_token(self, token: Token) -> bool: ...
 
 
@@ -37,6 +44,7 @@ class TokenGenerator:
 class ServerAuthenticator(Security):
     def __init__(self, server: Server):
         self._server = server
+        self._plugin_tokens: Set[str] = set()
         self._token_generator = TokenGenerator()
         self._token_db = sqlite3.connect(
             server.directories.get("security") / "tokens.sqlite"
@@ -108,3 +116,11 @@ class ServerAuthenticator(Security):
         if dashboard_token is None:
             return False
         return dashboard_token == token
+
+    async def generate_plugin_token(self) -> Token:
+        token = self._token_generator.generate(32)
+        self._plugin_tokens.add(token)
+        return token
+
+    async def is_plugin_token(self, token: Token) -> bool:
+        return token in self._plugin_tokens

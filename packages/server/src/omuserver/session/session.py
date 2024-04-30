@@ -63,12 +63,14 @@ class Session:
         app: App,
         token: str,
         is_dashboard: bool,
+        is_plugin: bool,
         connection: SessionConnection,
     ) -> None:
         self.packet_mapper = packet_mapper
         self.app = app
         self.token = token
         self.is_dashboard = is_dashboard
+        self.is_plugin = is_plugin
         self.connection = connection
         self.listeners = SessionListeners()
         self.ready_tasks: List[SessionTask] = []
@@ -115,6 +117,17 @@ class Session:
         app = event.app
         token = event.token
 
+        if token and await server.security.is_plugin_token(token):
+            session = Session(
+                packet_mapper=packet_mapper,
+                app=app,
+                token=token,
+                is_dashboard=False,
+                is_plugin=True,
+                connection=connection,
+            )
+            return session
+
         is_dashboard = False
         if server.config.dashboard_token and server.config.dashboard_token == token:
             is_dashboard = True
@@ -130,7 +143,14 @@ class Session:
             )
             await connection.close()
             raise RuntimeError("Invalid token")
-        session = Session(packet_mapper, event.app, token, is_dashboard, connection)
+        session = Session(
+            packet_mapper=packet_mapper,
+            app=app,
+            token=token,
+            is_dashboard=is_dashboard,
+            is_plugin=False,
+            connection=connection,
+        )
         await session.send(PACKET_TYPES.TOKEN, token)
         return session
 

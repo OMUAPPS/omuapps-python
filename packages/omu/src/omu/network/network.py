@@ -106,6 +106,9 @@ class Network:
             del self._connection
         self._connection = connection
 
+    def set_token_provider(self, token_provider: TokenProvider) -> None:
+        self._token_provider = token_provider
+
     def register_packet(self, *packet_types: PacketType) -> None:
         self._packet_mapper.register(*packet_types)
         for packet_type in packet_types:
