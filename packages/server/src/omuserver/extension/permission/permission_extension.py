@@ -103,6 +103,11 @@ class PermissionExtension:
     async def handle_require(
         self, session: Session, permission_identifiers: List[Identifier]
     ):
+        if set(permission_identifiers) == set(
+            self.session_permissions.get(session.token, {})
+        ):
+            return
+
         ready_task = await session.create_ready_task(
             f"handle_request({permission_identifiers})"
         )
