@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, List
 
+from omu.extension.permission.permission import PermissionType
 from omu.extension.registry.registry_extension import (
     REGISTRY_GET_ENDPOINT,
     REGISTRY_LISTEN_PACKET,
+    REGISTRY_PERMISSION_ID,
     REGISTRY_UPDATE_PACKET,
     RegistryPacket,
 )
@@ -18,12 +20,28 @@ if TYPE_CHECKING:
     from omuserver.server import Server
     from omuserver.session import Session
 
+REGISTRY_PERMISSION = PermissionType(
+    REGISTRY_PERMISSION_ID,
+    {
+        "level": "low",
+        "name": {
+            "en": "Registry Permission",
+            "ja": "レジストリ権限",
+        },
+        "note": {
+            "en": "Permission to read and write to a registry",
+            "ja": "レジストリに読み書きする権限",
+        },
+    },
+)
+
 
 class RegistryExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.registries: Dict[Identifier, ServerRegistry] = {}
         self._startup_registries: List[ServerRegistry] = []
+        server.permissions.register(REGISTRY_PERMISSION)
         server.packet_dispatcher.register(
             REGISTRY_LISTEN_PACKET,
             REGISTRY_UPDATE_PACKET,

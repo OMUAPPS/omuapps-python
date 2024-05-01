@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import abc
 import asyncio
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, List
 
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
@@ -39,16 +39,42 @@ class SessionListeners:
     def __init__(self) -> None:
         self.packet = EventEmitter[Session, Packet]()
         self.disconnected = EventEmitter[Session]()
+        self.ready = EventEmitter[Session]()
 
 
-@dataclass(frozen=True)
+@dataclass
+class SessionTask:
+    session: Session
+    start_future: asyncio.Future[None]
+    future: asyncio.Future[None]
+    name: str
+
+    def set(self) -> None:
+        self.future.set_result(None)
+
+    def __repr__(self) -> str:
+        return f"SessionTask({self.name})"
+
+
 class Session:
-    packet_mapper: PacketMapper
-    app: App
-    token: str
-    is_dashboard: bool
-    connection: SessionConnection
-    _listeners: SessionListeners = field(default_factory=SessionListeners)
+    def __init__(
+        self,
+        packet_mapper: PacketMapper,
+        app: App,
+        token: str,
+        is_dashboard: bool,
+        is_plugin: bool,
+        connection: SessionConnection,
+    ) -> None:
+        self.packet_mapper = packet_mapper
+        self.app = app
+        self.token = token
+        self.is_dashboard = is_dashboard
+        self.is_plugin = is_plugin
+        self.connection = connection
+        self.listeners = SessionListeners()
+        self.ready_tasks: List[SessionTask] = []
+        self.ready = False
 
     @classmethod
     async def from_connection(
@@ -91,6 +117,17 @@ class Session:
         app = event.app
         token = event.token
 
+        if token and await server.security.is_plugin_token(token):
+            session = Session(
+                packet_mapper=packet_mapper,
+                app=app,
+                token=token,
+                is_dashboard=False,
+                is_plugin=True,
+                connection=connection,
+            )
+            return session
+
         is_dashboard = False
         if server.config.dashboard_token and server.config.dashboard_token == token:
             is_dashboard = True
@@ -106,7 +143,14 @@ class Session:
             )
             await connection.close()
             raise RuntimeError("Invalid token")
-        session = Session(packet_mapper, event.app, token, is_dashboard, connection)
+        session = Session(
+            packet_mapper=packet_mapper,
+            app=app,
+            token=token,
+            is_dashboard=is_dashboard,
+            is_plugin=False,
+            connection=connection,
+        )
         await session.send(PACKET_TYPES.TOKEN, token)
         return session
 
@@ -122,7 +166,7 @@ class Session:
                 PACKET_TYPES.DISCONNECT, DisconnectPacket(disconnect_type, message)
             )
         await self.connection.close()
-        await self._listeners.disconnected.emit(self)
+        await self.listeners.disconnected.emit(self)
 
     async def listen(self) -> None:
         while not self.connection.closed:
@@ -133,12 +177,34 @@ class Session:
             await self.dispatch_packet(packet)
 
     async def dispatch_packet(self, packet: Packet) -> None:
-        coro = self._listeners.packet.emit(self, packet)
+        coro = self.listeners.packet.emit(self, packet)
         asyncio.create_task(coro)
 
     async def send[T](self, packet_type: PacketType[T], data: T) -> None:
         await self.connection.send(Packet(packet_type, data), self.packet_mapper)
 
-    @property
-    def listeners(self) -> SessionListeners:
-        return self._listeners
+    async def create_ready_task(self, name: str) -> SessionTask:
+        if self.ready:
+            raise RuntimeError("Session is already ready")
+        start_future = asyncio.Future()
+        future = asyncio.Future()
+        task = SessionTask(
+            session=self,
+            start_future=start_future,
+            future=future,
+            name=name,
+        )
+        self.ready_tasks.append(task)
+        await start_future
+        return task
+
+    async def wait_for_tasks(self) -> None:
+        if self.ready:
+            raise RuntimeError("Session is already ready")
+        # await asyncio.gather(*[task.future for task in self.tasks])
+        for task in self.ready_tasks:
+            task.start_future.set_result(None)
+            await task.future
+        self.ready_tasks.clear()
+        self.ready = True
+        await self.listeners.ready.emit(self)

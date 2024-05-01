@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import socket
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Dict
@@ -38,10 +39,25 @@ class Network:
         self._app = web.Application()
         self.add_websocket_route("/ws")
         self.register_packet(PACKET_TYPES.CONNECT, PACKET_TYPES.READY)
+        self.add_packet_handler(PACKET_TYPES.READY, self._handle_ready)
         self.listeners.connected += self._packet_dispatcher.process_connection
+
+    async def _handle_ready(self, session: Session, packet: None) -> None:
+        await session.wait_for_tasks()
+        if session.closed:
+            return
+        await session.send(PACKET_TYPES.READY, None)
+        logger.info(f"Ready: {session.app.key()}")
 
     def register_packet(self, *packet_types: PacketType) -> None:
         self._packet_dispatcher.register(*packet_types)
+
+    def add_packet_handler[T](
+        self,
+        packet_type: PacketType[T],
+        coro: Coro[[Session, T], None],
+    ) -> None:
+        self._packet_dispatcher.add_packet_handler(packet_type, coro)
 
     def add_http_route(
         self, path: str, handle: Coro[[web.Request], web.StreamResponse]
@@ -95,7 +111,8 @@ class Network:
         session.listeners.disconnected += self.handle_disconnection
         await self._listeners.connected.emit(session)
         await session.send(PACKET_TYPES.CONNECT, ConnectPacket(app=session.app))
-        await session.listen()
+        listen_task = self._server.loop.create_task(session.listen())
+        await listen_task
 
     def is_connected(self, app: App) -> bool:
         return app.identifier in self._sessions
@@ -107,7 +124,7 @@ class Network:
         await self._listeners.disconnected.emit(session)
 
     async def _handle_start(self, app: web.Application) -> None:
-        await self._listeners.start.emit()
+        asyncio.create_task(self._listeners.start.emit())
 
     def is_port_free(self) -> bool:
         try:
@@ -128,7 +145,7 @@ class Network:
                 return psutil.Process(connection.pid)
         return None
 
-    async def start(self) -> None:
+    def check_port_availability(self):
         if not self.is_port_free():
             process = self.get_process_by_port(self._server.address.port)
             if process is None:
@@ -137,6 +154,9 @@ class Network:
             name = process.name()
             pid = process.pid
             raise OSError(f"Port {port} already in use by {name} ({pid=})")
+
+    async def start(self) -> None:
+        self.check_port_availability()
         self._app.on_startup.append(self._handle_start)
         runner = web.AppRunner(self._app)
         await runner.setup()

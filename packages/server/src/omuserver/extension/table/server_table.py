@@ -4,6 +4,8 @@ import abc
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping, Union
 
 from omu.event_emitter import EventEmitter
+from omu.extension.table.table import TablePermissions
+from omu.identifier import Identifier
 
 if TYPE_CHECKING:
     from omu.extension.table import TableConfig
@@ -18,10 +20,21 @@ type Json = Union[str, int, float, bool, None, Dict[str, Json], List[Json]]
 class ServerTable(abc.ABC):
     @property
     @abc.abstractmethod
-    def cache(self) -> Dict[str, bytes]: ...
+    def id(self) -> Identifier: ...
+
+    @property
+    @abc.abstractmethod
+    def cache(self) -> Mapping[str, bytes]: ...
 
     @abc.abstractmethod
     def set_config(self, config: TableConfig) -> None: ...
+
+    @property
+    @abc.abstractmethod
+    def permissions(self) -> TablePermissions | None: ...
+
+    @abc.abstractmethod
+    def set_permissions(self, permissions: TablePermissions) -> None: ...
 
     @abc.abstractmethod
     def set_cache_size(self, size: int) -> None: ...

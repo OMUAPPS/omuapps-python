@@ -1,11 +1,12 @@
-from .table import Table, TableConfig, TableListeners, TableType
+from .table import Table, TableConfig, TableListeners, TablePermissions, TableType
 from .table_extension import TABLE_EXTENSION_TYPE, TableExtension
 
 __all__ = [
     "Table",
-    "TableType",
-    "TableListeners",
-    "TableExtension",
-    "TABLE_EXTENSION_TYPE",
     "TableConfig",
+    "TableListeners",
+    "TablePermissions",
+    "TableType",
+    "TABLE_EXTENSION_TYPE",
+    "TableExtension",
 ]

@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping
 
-from omu.extension.table import TableConfig
-from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyData
+from omu.extension.table import TableConfig, TablePermissions
+from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyPacket
 from omu.identifier import Identifier
 
 from .adapters.tableadapter import TableAdapter
@@ -20,33 +20,32 @@ class CachedTable(ServerTable):
     def __init__(
         self,
         server: Server,
-        identifier: Identifier,
+        id: Identifier,
     ):
         self._server = server
-        self._identifier = identifier
+        self._id = id
         self._listeners = ServerTableListeners()
         self._sessions: Dict[Session, SessionTableListener] = {}
+        self._permissions: TablePermissions | None = None
         self._proxy_sessions: Dict[str, Session] = {}
         self._changed = False
         self._proxy_id = 0
         self._save_task: asyncio.Task | None = None
         self._adapter: TableAdapter | None = None
-        self._config: TableConfig = {}
-
+        self.config: TableConfig = {}
         self._cache: Dict[str, bytes] = {}
         self._cache_size: int | None = None
 
-    @property
-    def adapter(self) -> TableAdapter | None:
-        return self._adapter
-
-    @property
-    def cache(self) -> Dict[str, bytes]:
-        return self._cache
-
     def set_config(self, config: TableConfig) -> None:
-        self._config = config
+        self.config = config
         self._cache_size = config.get("cache_size", None)
+
+    @property
+    def permissions(self) -> TablePermissions | None:
+        return self._permissions
+
+    def set_permissions(self, permissions: TablePermissions) -> None:
+        self._permissions = permissions
 
     def set_adapter(self, adapter: TableAdapter) -> None:
         self._adapter = adapter
@@ -62,7 +61,11 @@ class CachedTable(ServerTable):
     def attach_session(self, session: Session) -> None:
         if session in self._sessions:
             return
-        handler = SessionTableListener(self._identifier.key(), session, self)
+        handler = SessionTableListener(
+            id=self._id,
+            session=session,
+            table=self,
+        )
         self._sessions[session] = handler
         session.listeners.disconnected += self.handle_disconnection
 
@@ -123,9 +126,9 @@ class CachedTable(ServerTable):
         self._proxy_id += 1
         await session.send(
             TABLE_PROXY_PACKET,
-            TableProxyData(
+            TableProxyPacket(
+                id=self._id,
                 items=items,
-                type=self._identifier.key(),
                 key=self._proxy_id,
             ),
         )
@@ -152,9 +155,9 @@ class CachedTable(ServerTable):
         session = tuple(self._proxy_sessions.values())[index + 1]
         await session.send(
             TABLE_PROXY_PACKET,
-            TableProxyData(
+            TableProxyPacket(
+                id=self._id,
                 items=items,
-                type=self._identifier.key(),
                 key=self._proxy_id,
             ),
         )
@@ -206,7 +209,7 @@ class CachedTable(ServerTable):
         cursor: str | None = None
         while True:
             items = await self.fetch_items(
-                before=self._config.get("chunk_size", 100),
+                before=self.config.get("chunk_size", 100),
                 cursor=cursor,
             )
             if len(items) == 0:
@@ -217,10 +220,6 @@ class CachedTable(ServerTable):
 
     async def size(self) -> int:
         return len(self._cache)
-
-    @property
-    def listeners(self) -> ServerTableListeners:
-        return self._listeners
 
     async def save_task(self) -> None:
         while self._changed:
@@ -243,3 +242,19 @@ class CachedTable(ServerTable):
             if len(self._cache) > self._cache_size:
                 del self._cache[next(iter(self._cache))]
         await self._listeners.cache_update(self._cache)
+
+    @property
+    def cache(self) -> Mapping[str, bytes]:
+        return self._cache
+
+    @property
+    def listeners(self) -> ServerTableListeners:
+        return self._listeners
+
+    @property
+    def id(self) -> Identifier:
+        return self._id
+
+    @property
+    def adapter(self) -> TableAdapter | None:
+        return self._adapter

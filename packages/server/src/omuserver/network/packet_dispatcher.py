@@ -40,7 +40,7 @@ class ServerPacketDispatcher:
     def add_packet_handler[T](
         self,
         packet_type: PacketType[T],
-        listener: Coro[[Session, T], None] | None = None,
+        handler: Coro[[Session, T], None] | None = None,
     ) -> Callable[[Coro[[Session, T], None]], None]:
         if not self._packet_listeners.get(packet_type.identifier):
             raise ValueError(f"Packet type {packet_type.identifier} not registered")
@@ -48,8 +48,8 @@ class ServerPacketDispatcher:
         def decorator(func: Coro[[Session, T], None]) -> None:
             self._packet_listeners[packet_type.identifier].listeners.subscribe(func)
 
-        if listener:
-            decorator(listener)
+        if handler:
+            decorator(handler)
         return decorator
 
 

@@ -9,9 +9,10 @@ from omu.serializer import Serializable, Serializer
 
 @dataclass(frozen=True)
 class EndpointType[Req, Res]:
-    identifier: Identifier
+    id: Identifier
     request_serializer: Serializable[Req, bytes]
     response_serializer: Serializable[Res, bytes]
+    permission_id: Identifier | None = None
 
     @classmethod
     def create_json(
@@ -20,15 +21,19 @@ class EndpointType[Req, Res]:
         name: str,
         request_serializer: Serializable[Req, Any] | None = None,
         response_serializer: Serializable[Res, Any] | None = None,
+        permission_id: Identifier | None = None,
     ):
+        request_serializer = Serializer.of(
+            request_serializer or Serializer.noop()
+        ).to_json()
+        response_serializer = Serializer.of(
+            response_serializer or Serializer.noop()
+        ).to_json()
         return cls(
-            identifier=identifier / name,
-            request_serializer=Serializer.of(
-                request_serializer or Serializer.noop()
-            ).to_json(),
-            response_serializer=Serializer.of(
-                response_serializer or Serializer.noop()
-            ).to_json(),
+            id=identifier / name,
+            request_serializer=request_serializer,
+            response_serializer=response_serializer,
+            permission_id=permission_id,
         )
 
     @classmethod
@@ -38,9 +43,11 @@ class EndpointType[Req, Res]:
         name: str,
         request_serializer: Serializable[Req, bytes],
         response_serializer: Serializable[Res, bytes],
+        permission_id: Identifier | None = None,
     ):
         return cls(
-            identifier=identifier / name,
+            id=identifier / name,
             request_serializer=request_serializer,
             response_serializer=response_serializer,
+            permission_id=permission_id,
         )

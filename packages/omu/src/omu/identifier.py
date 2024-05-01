@@ -85,11 +85,11 @@ class Identifier(Model[str], Keyable):
             and self.path[: len(base.path)] == base.path
         )
 
-    def concat(self, *path: str) -> Identifier:
+    def join(self, *path: str) -> Identifier:
         return Identifier(self.namespace, *self.path, *path)
 
     def __truediv__(self, name: str) -> Identifier:
-        return self.concat(name)
+        return self.join(name)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Identifier):

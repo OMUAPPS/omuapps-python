@@ -1,7 +1,9 @@
 from typing import AsyncGenerator, Callable, Dict, List, Mapping
 
 from omu.extension.table import Table, TableConfig, TableListeners, TableType
+from omu.extension.table.table import TablePermissions
 from omu.helper import AsyncCallback, Coro
+from omu.identifier import Identifier
 from omu.interface import Keyable
 from omu.serializer import Serializable
 
@@ -25,6 +27,9 @@ class SerializedTable[T: Keyable](Table[T]):
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self.key = type.identifier.key()
+        self._permissions: TablePermissions | None = None
+        self.permission_read: Identifier | None = None
+        self.permission_write: Identifier | None = None
         self._listening = False
         table.listeners.cache_update += self.on_cache_update
         table.listeners.add += self.on_add
@@ -35,6 +40,24 @@ class SerializedTable[T: Keyable](Table[T]):
     @property
     def cache(self) -> Mapping[str, T]:
         return SerializeAdapter(self._table.cache, self._type.serializer)
+
+    def set_permissions(
+        self,
+        /,
+        all: Identifier | None = None,
+        read: Identifier | None = None,
+        write: Identifier | None = None,
+        remove: Identifier | None = None,
+        proxy: Identifier | None = None,
+    ) -> None:
+        self._permissions = TablePermissions(
+            all=all,
+            read=read,
+            write=write,
+            remove=remove,
+            proxy=proxy,
+        )
+        self._table.set_permissions(self._permissions)
 
     def set_config(self, config: TableConfig) -> None:
         self._table.set_config(config)

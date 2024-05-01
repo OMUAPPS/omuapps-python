@@ -3,6 +3,7 @@ from typing import List
 
 import iwashi
 from omu import Address, OmuClient
+from omu.extension.permission import PermissionType
 from omuchat import App
 from omuchat.chat import (
     AUTHOR_TABLE,
@@ -14,6 +15,13 @@ from omuchat.chat import (
     ROOM_TABLE,
 )
 from omuchat.model.channel import Channel
+from omuchat.permissions import (
+    CHAT_CHANNEL_TREE_PERMISSION_ID,
+    CHAT_PERMISSION_ID,
+    CHAT_READ_PERMISSION_ID,
+    CHAT_SEND_PERMISSION_ID,
+    CHAT_WRITE_PERMISSION_ID,
+)
 
 app = App(
     IDENTIFIER,
@@ -22,10 +30,82 @@ app = App(
 address = Address("127.0.0.1", 26423)
 client = OmuClient(app, address=address)
 
+client.permissions.register(
+    PermissionType(
+        CHAT_PERMISSION_ID,
+        metadata={
+            "level": "medium",
+            "name": {
+                "ja": "チャットのデータ",
+                "en": "Chat data",
+            },
+            "note": {
+                "ja": "チャットデータの読み書き",
+                "en": "Read and write chat data",
+            },
+        },
+    ),
+    PermissionType(
+        CHAT_READ_PERMISSION_ID,
+        metadata={
+            "level": "low",
+            "name": {
+                "ja": "チャットの読み取り",
+                "en": "Read chat",
+            },
+            "note": {
+                "ja": "チャットデータの読み取り",
+                "en": "Read chat data",
+            },
+        },
+    ),
+    PermissionType(
+        CHAT_WRITE_PERMISSION_ID,
+        metadata={
+            "level": "low",
+            "name": {
+                "ja": "チャットの書き込み",
+                "en": "Write chat",
+            },
+            "note": {
+                "ja": "チャットデータの書き込み",
+                "en": "Write chat data",
+            },
+        },
+    ),
+    PermissionType(
+        CHAT_SEND_PERMISSION_ID,
+        metadata={
+            "level": "low",
+            "name": {
+                "ja": "チャットの送信",
+                "en": "Send chat",
+            },
+            "note": {
+                "ja": "チャットデータの送信",
+                "en": "Send chat data",
+            },
+        },
+    ),
+    PermissionType(
+        CHAT_CHANNEL_TREE_PERMISSION_ID,
+        metadata={
+            "level": "medium",
+            "name": {
+                "ja": "チャンネルツリーの作成",
+                "en": "Create channel tree",
+            },
+            "note": {
+                "ja": "チャンネルツリーの作成",
+                "en": "Create channel tree",
+            },
+        },
+    ),
+)
 
 messages = client.tables.get(MESSAGE_TABLE)
-authors = client.tables.get(AUTHOR_TABLE)
 messages.set_config({"cache_size": 1000})
+authors = client.tables.get(AUTHOR_TABLE)
 authors.set_config({"cache_size": 500})
 channels = client.tables.get(CHANNEL_TABLE)
 providers = client.tables.get(PROVIDER_TABLE)

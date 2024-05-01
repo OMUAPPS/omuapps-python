@@ -19,10 +19,6 @@ class I18nExtension(Extension):
         self.client = client
         self.locales_registry = client.registry.get(LOCALES_REGISTRY)
         self.locales: List[Locale] = []
-        client.network.listeners.connected += self._handle_connected
-
-    async def _handle_connected(self) -> None:
-        self.locales = await self.locales_registry.get()
 
     def translate(self, localized_text: LocalizedText) -> str:
         if not self.locales:

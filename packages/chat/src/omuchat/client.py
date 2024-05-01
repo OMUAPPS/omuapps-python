@@ -2,8 +2,7 @@ from typing import Callable
 
 from omu import Address, App, OmuClient
 
-from omuchat.event import EventRegistry, EventSource
-from omuchat.event.event import EventHandler
+from omuchat.event import EventHandler, EventRegistry, EventSource
 
 from .chat import Chat
 

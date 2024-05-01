@@ -5,6 +5,7 @@ import asyncio
 from loguru import logger
 
 from omu.app import App
+from omu.client.token import JsonTokenProvider, TokenProvider
 from omu.extension import ExtensionRegistry
 from omu.extension.asset import (
     ASSET_EXTENSION_TYPE,
@@ -25,6 +26,10 @@ from omu.extension.i18n import (
 from omu.extension.permission import (
     PERMISSION_EXTENSION_TYPE,
     PermissionExtension,
+)
+from omu.extension.plugin import (
+    PLUGIN_EXTENSION_TYPE,
+    PluginExtension,
 )
 from omu.extension.registry import (
     REGISTRY_EXTENSION_TYPE,
@@ -54,6 +59,7 @@ class OmuClient(Client):
         self,
         app: App,
         address: Address,
+        token: TokenProvider | None = None,
         connection: WebsocketsConnection | None = None,
         extension_registry: ExtensionRegistry | None = None,
         loop: asyncio.AbstractEventLoop | None = None,
@@ -65,18 +71,19 @@ class OmuClient(Client):
         self._network = Network(
             self,
             address,
+            token or JsonTokenProvider(),
             connection or WebsocketsConnection(self, address),
         )
-        self._network.listeners.connected += self._listeners.ready.emit
         self._extensions = extension_registry or ExtensionRegistry(self)
 
         self._endpoints = self.extensions.register(ENDPOINT_EXTENSION_TYPE)
+        self._plugins = self.extensions.register(PLUGIN_EXTENSION_TYPE)
         self._tables = self.extensions.register(TABLE_EXTENSION_TYPE)
         self._registry = self.extensions.register(REGISTRY_EXTENSION_TYPE)
         self._signal = self.extensions.register(SIGNAL_EXTENSION_TYPE)
-        self._assets = self.extensions.register(ASSET_EXTENSION_TYPE)
-        self._server = self.extensions.register(SERVER_EXTENSION_TYPE)
         self._permissions = self.extensions.register(PERMISSION_EXTENSION_TYPE)
+        self._server = self.extensions.register(SERVER_EXTENSION_TYPE)
+        self._assets = self.extensions.register(ASSET_EXTENSION_TYPE)
         self._dashboard = self.extensions.register(DASHBOARD_EXTENSION_TYPE)
         self._i18n = self.extensions.register(I18N_EXTENSION_TYPE)
 
@@ -101,6 +108,10 @@ class OmuClient(Client):
     @property
     def endpoints(self) -> EndpointExtension:
         return self._endpoints
+
+    @property
+    def plugins(self) -> PluginExtension:
+        return self._plugins
 
     @property
     def tables(self) -> TableExtension:
@@ -141,10 +152,10 @@ class OmuClient(Client):
     async def send[T](self, type: PacketType[T], data: T) -> None:
         await self._network.send(Packet(type, data))
 
-    def run(self, *, token: str | None = None, reconnect: bool = True) -> None:
+    def run(self, *, reconnect: bool = True) -> None:
         try:
             self.loop.set_exception_handler(self.handle_exception)
-            self.loop.create_task(self.start(token=token, reconnect=reconnect))
+            self.loop.create_task(self.start(reconnect=reconnect))
             self.loop.run_forever()
         finally:
             self.loop.close()
@@ -156,11 +167,11 @@ class OmuClient(Client):
         if exception:
             raise exception
 
-    async def start(self, *, token: str | None = None, reconnect: bool = True) -> None:
+    async def start(self, *, reconnect: bool = True) -> None:
         if self._running:
             raise RuntimeError("Already running")
         self._running = True
-        self.loop.create_task(self._network.connect(token=token, reconnect=reconnect))
+        self.loop.create_task(self._network.connect(reconnect=reconnect))
         await self._listeners.started()
 
     async def stop(self) -> None:

@@ -1,187 +1,309 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, Dict, List
 
-from omu.extension.table import Table, TableType
+from omu.errors import PermissionDenied
+from omu.extension.permission import PermissionType
+from omu.extension.table import Table, TablePermissions, TableType
+from omu.extension.table.packets import (
+    SetConfigPacket,
+    SetPermissionPacket,
+    TableFetchPacket,
+    TableItemsPacket,
+    TableKeysPacket,
+    TablePacket,
+    TableProxyPacket,
+)
 from omu.extension.table.table_extension import (
-    TABLE_CONFIG_PACKET,
     TABLE_FETCH_ALL_ENDPOINT,
     TABLE_FETCH_ENDPOINT,
     TABLE_ITEM_ADD_PACKET,
     TABLE_ITEM_CLEAR_PACKET,
     TABLE_ITEM_GET_ENDPOINT,
-    TABLE_ITEM_REMOVE_EVENT,
+    TABLE_ITEM_REMOVE_PACKET,
     TABLE_ITEM_UPDATE_PACKET,
     TABLE_LISTEN_PACKET,
+    TABLE_PERMISSION_ID,
     TABLE_PROXY_LISTEN_PACKET,
     TABLE_PROXY_PACKET,
+    TABLE_SET_CONFIG_PACKET,
+    TABLE_SET_PERMISSION_PACKET,
     TABLE_SIZE_ENDPOINT,
-    SetConfigReq,
-    TableEventData,
-    TableFetchReq,
-    TableItemsData,
-    TableKeysData,
-    TableProxyData,
 )
 from omu.identifier import Identifier
 from omu.interface import Keyable
 
-from omuserver.extension.table.serialized_table import SerializedTable
 from omuserver.server import Server
 from omuserver.session import Session
 
 from .adapters.sqlitetable import SqliteTableAdapter
 from .adapters.tableadapter import TableAdapter
 from .cached_table import CachedTable
+from .serialized_table import SerializedTable
 from .server_table import ServerTable
+
+TABLE_PERMISSION = PermissionType(
+    TABLE_PERMISSION_ID,
+    {
+        "level": "low",
+        "name": {
+            "en": "Table Permission",
+            "ja": "テーブル権限",
+        },
+        "note": {
+            "en": "Permission to read, write, and remove items in a table",
+            "ja": "テーブル内のアイテムを読み書き、削除する権限",
+        },
+    },
+)
 
 
 class TableExtension:
     def __init__(self, server: Server) -> None:
-        self._server = server
+        self.server = server
         self._tables: Dict[Identifier, ServerTable] = {}
         self._adapters: List[TableAdapter] = []
+        server.permissions.register(TABLE_PERMISSION)
         server.packet_dispatcher.register(
-            TABLE_CONFIG_PACKET,
+            TABLE_SET_PERMISSION_PACKET,
+            TABLE_SET_CONFIG_PACKET,
             TABLE_LISTEN_PACKET,
             TABLE_PROXY_LISTEN_PACKET,
             TABLE_PROXY_PACKET,
             TABLE_ITEM_ADD_PACKET,
             TABLE_ITEM_UPDATE_PACKET,
-            TABLE_ITEM_REMOVE_EVENT,
+            TABLE_ITEM_REMOVE_PACKET,
             TABLE_ITEM_CLEAR_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_CONFIG_PACKET, self._on_table_set_config
+            TABLE_SET_PERMISSION_PACKET,
+            self.handle_bind_permission,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_LISTEN_PACKET, self._on_table_listen
+            TABLE_SET_CONFIG_PACKET,
+            self.handle_table_config,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_PROXY_LISTEN_PACKET, self._on_table_proxy_listen
+            TABLE_LISTEN_PACKET,
+            self.handler_listen,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_PROXY_PACKET, self._on_table_proxy
+            TABLE_PROXY_LISTEN_PACKET,
+            self.handle_proxy_listen,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_ITEM_ADD_PACKET, self._on_table_item_add
+            TABLE_PROXY_PACKET,
+            self.handle_proxy,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_ITEM_UPDATE_PACKET, self._on_table_item_update
+            TABLE_ITEM_ADD_PACKET,
+            self.handle_item_add,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_ITEM_REMOVE_EVENT, self._on_table_item_remove
+            TABLE_ITEM_UPDATE_PACKET,
+            self.handle_item_update,
         )
         server.packet_dispatcher.add_packet_handler(
-            TABLE_ITEM_CLEAR_PACKET, self._on_table_item_clear
+            TABLE_ITEM_REMOVE_PACKET,
+            self.handle_item_remove,
         )
-        server.endpoints.bind_endpoint(TABLE_ITEM_GET_ENDPOINT, self._on_table_item_get)
-        server.endpoints.bind_endpoint(TABLE_FETCH_ENDPOINT, self._on_table_item_fetch)
+        server.packet_dispatcher.add_packet_handler(
+            TABLE_ITEM_CLEAR_PACKET,
+            self.handle_item_clear,
+        )
         server.endpoints.bind_endpoint(
-            TABLE_FETCH_ALL_ENDPOINT, self._on_table_item_fetch_all
+            TABLE_ITEM_GET_ENDPOINT,
+            self.handle_item_get,
         )
-        server.endpoints.bind_endpoint(TABLE_SIZE_ENDPOINT, self._on_table_item_size)
+        server.endpoints.bind_endpoint(
+            TABLE_FETCH_ENDPOINT,
+            self.handle_item_fetch,
+        )
+        server.endpoints.bind_endpoint(
+            TABLE_FETCH_ALL_ENDPOINT,
+            self.handle_item_fetch_all,
+        )
+        server.endpoints.bind_endpoint(
+            TABLE_SIZE_ENDPOINT,
+            self.handle_table_size,
+        )
         server.listeners.stop += self.on_server_stop
 
-    async def _on_table_item_get(
-        self, session: Session, req: TableKeysData
-    ) -> TableItemsData:
-        table = await self.get_table(req["type"])
-        items = await table.get_many(*req["keys"])
-        return TableItemsData(
-            type=req["type"],
+    async def handle_item_get(
+        self, session: Session, packet: TableKeysPacket
+    ) -> TableItemsPacket:
+        table = await self.get_table(packet.id)
+        items = await table.get_many(*packet.keys)
+        return TableItemsPacket(
+            id=packet.id,
             items=items,
         )
 
-    async def _on_table_item_fetch(
-        self, session: Session, req: TableFetchReq
-    ) -> TableItemsData:
-        table = await self.get_table(req["type"])
+    async def handle_item_fetch(
+        self, session: Session, packet: TableFetchPacket
+    ) -> TableItemsPacket:
+        table = await self.get_table(packet.id)
         items = await table.fetch_items(
-            before=req.get("before"),
-            after=req.get("after"),
-            cursor=req.get("cursor"),
+            before=packet.before,
+            after=packet.after,
+            cursor=packet.cursor,
         )
-        return TableItemsData(
-            type=req["type"],
+        return TableItemsPacket(
+            id=packet.id,
             items=items,
         )
 
-    async def _on_table_item_fetch_all(
-        self, session: Session, req: TableEventData
-    ) -> TableItemsData:
-        table = await self.get_table(req["type"])
+    async def handle_item_fetch_all(
+        self, session: Session, packet: TablePacket
+    ) -> TableItemsPacket:
+        table = await self.get_table(packet.id)
         items = await table.fetch_all()
-        return TableItemsData(
-            type=req["type"],
+        return TableItemsPacket(
+            id=packet.id,
             items=items,
         )
 
-    async def _on_table_item_size(self, session: Session, req: TableEventData) -> int:
-        table = await self.get_table(req["type"])
+    async def handle_table_size(self, session: Session, packet: TablePacket) -> int:
+        table = await self.get_table(packet.id)
         return await table.size()
 
-    async def _on_table_set_config(
-        self, session: Session, config: SetConfigReq
+    async def handle_bind_permission(
+        self, session: Session, packet: SetPermissionPacket
     ) -> None:
-        table = await self.get_table(config["type"])
-        table.set_config(config["config"])
+        table = await self.get_table(packet.id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all],
+        )
+        permissions = TablePermissions(
+            all=packet.all,
+            read=packet.read,
+            write=packet.write,
+            remove=packet.remove,
+            proxy=packet.proxy,
+        )
+        table.set_permissions(permissions)
 
-    async def _on_table_listen(self, session: Session, type: str) -> None:
-        table = await self.get_table(type)
+    async def handle_table_config(
+        self, session: Session, packet: SetConfigPacket
+    ) -> None:
+        table = await self.get_table(packet.id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all],
+        )
+        table.set_config(packet.config)
+
+    async def handler_listen(self, session: Session, id: Identifier) -> None:
+        table = await self.get_table(id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.read],
+        )
         table.attach_session(session)
 
-    async def _on_table_proxy_listen(self, session: Session, type: str) -> None:
-        table = await self.get_table(type)
+    async def handle_proxy_listen(self, session: Session, id: Identifier) -> None:
+        table = await self.get_table(id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.proxy],
+        )
         table.attach_proxy_session(session)
 
-    async def _on_table_proxy(self, session: Session, event: TableProxyData) -> None:
-        table = await self.get_table(event["type"])
-        await table.proxy(session, event["key"], event["items"])
+    async def handle_proxy(self, session: Session, packet: TableProxyPacket) -> None:
+        table = await self.get_table(packet.id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.proxy],
+        )
+        await table.proxy(session, packet.key, packet.items)
 
-    async def _on_table_item_add(self, session: Session, event: TableItemsData) -> None:
-        table = await self.get_table(event["type"])
-        await table.add(event["items"])
+    async def handle_item_add(self, session: Session, packet: TableItemsPacket) -> None:
+        table = await self.get_table(packet.id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.write],
+        )
+        await table.add(packet.items)
 
-    async def _on_table_item_update(
-        self, session: Session, event: TableItemsData
+    async def handle_item_update(
+        self, session: Session, packet: TableItemsPacket
     ) -> None:
-        table = await self.get_table(event["type"])
-        await table.update(event["items"])
+        table = await self.get_table(packet.id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.write],
+        )
+        await table.update(packet.items)
 
-    async def _on_table_item_remove(
-        self, session: Session, event: TableItemsData
+    async def handle_item_remove(
+        self, session: Session, packet: TableItemsPacket
     ) -> None:
-        table = await self.get_table(event["type"])
-        await table.remove(list(event["items"].keys()))
+        table = await self.get_table(packet.id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.remove],
+        )
+        await table.remove(list(packet.items.keys()))
 
-    async def _on_table_item_clear(
-        self, session: Session, event: TableEventData
-    ) -> None:
-        table = await self.get_table(event["type"])
+    async def handle_item_clear(self, session: Session, packet: TablePacket) -> None:
+        table = await self.get_table(packet.id)
+        await self.check_permission(
+            session,
+            table,
+            lambda perms: [perms.all, perms.remove],
+        )
         await table.clear()
 
     async def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
-        table = await self.get_table(table_type.identifier.key())
+        table = await self.get_table(table_type.identifier)
         return SerializedTable(table, table_type)
 
-    async def get_table(self, id: str) -> ServerTable:
-        identifier = Identifier.from_key(id)
-        if identifier in self._tables:
-            return self._tables[identifier]
-        table = CachedTable(self._server, identifier)
-        adapter = SqliteTableAdapter.create(self.get_table_path(identifier))
+    async def get_table(self, id: Identifier) -> ServerTable:
+        if id in self._tables:
+            return self._tables[id]
+        table = CachedTable(self.server, id)
+        adapter = SqliteTableAdapter.create(self.get_table_path(id))
         await adapter.load()
         table.set_adapter(adapter)
-        self._tables[identifier] = table
+        self._tables[id] = table
         return table
 
     def get_table_path(self, identifier: Identifier) -> Path:
-        path = self._server.directories.get("tables") / identifier.get_sanitized_path()
+        path = self.server.directories.get("tables") / identifier.get_sanitized_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
     async def on_server_stop(self) -> None:
         for table in self._tables.values():
             await table.store()
+
+    async def check_permission(
+        self,
+        session: Session,
+        table: ServerTable,
+        get_permission: Callable[[TablePermissions], List[Identifier | None]],
+    ):
+        if table.id.is_subpart_of(session.app.identifier):
+            return
+        if table.permissions is None:
+            raise PermissionDenied(f"Table {table.id} does not have a permission set")
+        permissions: List[Identifier | None] = get_permission(table.permissions)
+        for permission in permissions:
+            if permission is None:
+                continue
+            if self.server.permissions.has_permission(session, permission):
+                return
+
+        raise PermissionDenied(
+            f"Table {table.id} does not have permission {table.permissions}"
+        )

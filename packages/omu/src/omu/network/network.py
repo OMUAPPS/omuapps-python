@@ -7,6 +7,7 @@ from typing import Dict, List, Literal
 from loguru import logger
 
 from omu.client import Client
+from omu.client.token import TokenProvider
 from omu.errors import (
     AnotherConnection,
     InvalidOrigin,
@@ -39,15 +40,21 @@ class PacketListeners[T]:
 
 
 class Network:
-    def __init__(self, client: Client, address: Address, connection: Connection):
+    def __init__(
+        self,
+        client: Client,
+        address: Address,
+        token_provider: TokenProvider,
+        connection: Connection,
+    ):
         self._client = client
         self._address = address
+        self._token_provider = token_provider
         self._connection = connection
         self._connected = False
         self._closed = False
         self._listeners = NetworkListeners()
         self._tasks: List[Coro[[], None]] = []
-        self._token: str | None = None
         self._packet_mapper = PacketMapper()
         self._packet_handlers: Dict[Identifier, PacketListeners] = {}
         self.register_packet(
@@ -56,7 +63,12 @@ class Network:
             PACKET_TYPES.TOKEN,
             PACKET_TYPES.READY,
         )
+        self.add_packet_handler(PACKET_TYPES.TOKEN, self.handle_token)
         self.add_packet_handler(PACKET_TYPES.DISCONNECT, self.handle_disconnect)
+        self.add_packet_handler(PACKET_TYPES.READY, self.handle_ready)
+
+    async def handle_token(self, token: str):
+        self._token_provider.store(self._address, self._client.app, token)
 
     async def handle_disconnect(self, reason: DisconnectPacket):
         if reason.type in {
@@ -80,6 +92,9 @@ class Network:
         if error:
             raise error(reason.message)
 
+    async def handle_ready(self, _: None):
+        await self._client.listeners.ready.emit()
+
     @property
     def address(self) -> Address:
         return self._address
@@ -90,6 +105,9 @@ class Network:
         if self._connection:
             del self._connection
         self._connection = connection
+
+    def set_token_provider(self, token_provider: TokenProvider) -> None:
+        self._token_provider = token_provider
 
     def register_packet(self, *packet_types: PacketType) -> None:
         self._packet_mapper.register(*packet_types)
@@ -119,15 +137,12 @@ class Network:
     def connected(self) -> bool:
         return self._connected
 
-    async def connect(
-        self, *, token: str | None = None, reconnect: bool = True
-    ) -> None:
+    async def connect(self, *, reconnect: bool = True) -> None:
         if self._connected:
             raise RuntimeError("Already connected")
         if self._closed:
             raise RuntimeError("Connection closed")
 
-        self._token = token
         await self.disconnect()
         try:
             await self._connection.connect()
@@ -135,6 +150,7 @@ class Network:
             if reconnect:
                 logger.error(e)
                 await self.try_reconnect()
+                return
             else:
                 raise e
         self._connected = True
@@ -143,7 +159,7 @@ class Network:
                 PACKET_TYPES.CONNECT,
                 ConnectPacket(
                     app=self._client.app,
-                    token=self._token,
+                    token=self._token_provider.get(self._address, self._client.app),
                 ),
             )
         )
@@ -152,6 +168,8 @@ class Network:
         await self._listeners.status.emit("connected")
         await self._listeners.connected.emit()
         await self._dispatch_tasks()
+
+        await self.send(Packet(PACKET_TYPES.READY, None))
         await listen_task
 
         if reconnect:
@@ -161,7 +179,7 @@ class Network:
         if self._closed:
             return
         await asyncio.sleep(1)
-        await self.connect(token=self._token, reconnect=True)
+        await self.connect(reconnect=True)
 
     async def disconnect(self) -> None:
         if self._connection.closed:
