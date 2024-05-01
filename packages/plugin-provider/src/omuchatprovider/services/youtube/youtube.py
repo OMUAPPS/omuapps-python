@@ -1,5 +1,3 @@
-from typing import List
-
 from omuchat.client import Client
 from omuchat.model.channel import Channel
 from omuchat.model.provider import Provider
@@ -24,9 +22,9 @@ class YoutubeService(ProviderService):
     def provider(self) -> Provider:
         return PROVIDER
 
-    async def fetch_rooms(self, channel: Channel) -> List[FetchedRoom]:
+    async def fetch_rooms(self, channel: Channel) -> list[FetchedRoom]:
         videos = await self.extractor.fetch_online_videos(channel.url)
-        rooms: List[FetchedRoom] = []
+        rooms: list[FetchedRoom] = []
         for video_id in videos:
             room = Room(
                 provider_id=YOUTUBE_IDENTIFIER,
@@ -35,10 +33,14 @@ class YoutubeService(ProviderService):
                 status="offline",
                 channel_id=channel.key(),
             )
+
+            def create(room=room):
+                return YoutubeChatService.create(self, self.client, room)
+
             rooms.append(
                 FetchedRoom(
                     room=room,
-                    create=lambda: YoutubeChatService.create(self, self.client, room),
+                    create=create,
                 )
             )
         return rooms

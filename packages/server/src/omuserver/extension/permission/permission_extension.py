@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from omu.extension.dashboard.dashboard import PermissionRequest
 from omu.extension.permission import PermissionType
@@ -43,8 +43,8 @@ class PermissionExtension:
         )
         self.server = server
         self.request_id = 0
-        self.permission_registry: Dict[Identifier, PermissionType] = {}
-        self.session_permissions: Dict[str, List[Identifier]] = {}
+        self.permission_registry: dict[Identifier, PermissionType] = {}
+        self.session_permissions: dict[str, list[Identifier]] = {}
         permission_dir = server.directories.get("permissions")
         permission_dir.mkdir(parents=True, exist_ok=True)
         self.permission_db = sqlite3.connect(permission_dir / "permissions.db")
@@ -66,7 +66,7 @@ class PermissionExtension:
             self.permission_registry[permission.id] = permission
 
     async def handle_register(
-        self, session: Session, permissions: List[PermissionType]
+        self, session: Session, permissions: list[PermissionType]
     ) -> None:
         for permission in permissions:
             if not permission.id.is_subpart_of(session.app.identifier):
@@ -97,12 +97,12 @@ class PermissionExtension:
             )
         self.permission_db.commit()
 
-    def set_permissions(self, token: str, permissions: List[Identifier]) -> None:
+    def set_permissions(self, token: str, permissions: list[Identifier]) -> None:
         self.session_permissions[token] = permissions
         self.store_permissions()
 
     async def handle_require(
-        self, session: Session, permission_identifiers: List[Identifier]
+        self, session: Session, permission_identifiers: list[Identifier]
     ):
         if set(permission_identifiers) == set(
             self.session_permissions.get(session.token, {})
@@ -114,7 +114,7 @@ class PermissionExtension:
         )
 
         request_id = self._get_next_request_id()
-        permissions: List[PermissionType] = []
+        permissions: list[PermissionType] = []
         for identifier in permission_identifiers:
             permission = self.permission_registry.get(identifier)
             if permission is None:
@@ -138,10 +138,10 @@ class PermissionExtension:
             )
 
     async def handle_request(
-        self, session: Session, permission_identifiers: List[Identifier]
+        self, session: Session, permission_identifiers: list[Identifier]
     ):
         request_id = self._get_next_request_id()
-        permissions: List[PermissionType] = []
+        permissions: list[PermissionType] = []
         for identifier in permission_identifiers:
             permission = self.permission_registry.get(identifier)
             if permission is not None:

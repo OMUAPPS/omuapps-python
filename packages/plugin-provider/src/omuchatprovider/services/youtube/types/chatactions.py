@@ -1,4 +1,4 @@
-from typing import List, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from .accessibility import Accessibility
 from .image import Image, Thumbnails
@@ -31,7 +31,7 @@ class Source(TypedDict):
 
 
 class Sources(TypedDict):
-    sources: List[Source]
+    sources: list[Source]
 
 
 class ImageTint(TypedDict):
@@ -47,7 +47,7 @@ class Processor(TypedDict):
 
 
 class UnheartedIcon(TypedDict):
-    sources: List[Source]
+    sources: list[Source]
     processor: Processor
 
 
@@ -78,7 +78,7 @@ class LiveChatRenderer(TypedDict):
 class AuthorInfo(TypedDict):
     authorName: SimpleText
     authorPhoto: Thumbnails
-    authorBadges: NotRequired[List[AuthorBadge]]
+    authorBadges: NotRequired[list[AuthorBadge]]
 
 
 class LiveChatTextMessageRenderer(LiveChatRenderer, AuthorInfo):
@@ -272,4 +272,4 @@ class ChatActionsItem(TypedDict):
     addLiveChatTickerItemAction: NotRequired[AddLiveChatTickerItemAction]
 
 
-type ChatActions = List[ChatActionsItem]
+type ChatActions = list[ChatActionsItem]

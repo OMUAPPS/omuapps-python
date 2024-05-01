@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Dict, List
 
 from omu.errors import PermissionDenied
 from omu.extension.permission import PermissionType
@@ -62,8 +62,8 @@ TABLE_PERMISSION = PermissionType(
 class TableExtension:
     def __init__(self, server: Server) -> None:
         self.server = server
-        self._tables: Dict[Identifier, ServerTable] = {}
-        self._adapters: List[TableAdapter] = []
+        self._tables: dict[Identifier, ServerTable] = {}
+        self._adapters: list[TableAdapter] = []
         server.permissions.register(TABLE_PERMISSION)
         server.packet_dispatcher.register(
             TABLE_SET_PERMISSION_PACKET,
@@ -291,13 +291,13 @@ class TableExtension:
         self,
         session: Session,
         table: ServerTable,
-        get_permission: Callable[[TablePermissions], List[Identifier | None]],
+        get_permission: Callable[[TablePermissions], list[Identifier | None]],
     ):
         if table.id.is_subpart_of(session.app.identifier):
             return
         if table.permissions is None:
             raise PermissionDenied(f"Table {table.id} does not have a permission set")
-        permissions: List[Identifier | None] = get_permission(table.permissions)
+        permissions: list[Identifier | None] = get_permission(table.permissions)
         for permission in permissions:
             if permission is None:
                 continue

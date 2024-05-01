@@ -1,4 +1,4 @@
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 from omu.extension.signal import SignalType
 from omuchat.model import Provider
@@ -9,8 +9,10 @@ from omuchatprovider.helper import HTTP_REGEX
 YOUTUBE_IDENTIFIER = BASE_PROVIDER_IDENTIFIER / "youtube"
 YOUTUBE_URL = "https://www.youtube.com"
 YOUTUBE_REGEX = (
-    HTTP_REGEX
-    + r"(youtu\.be\/(?P<video_id_short>[\w-]+))|(m\.)?youtube\.com\/(watch\?v=(?P<video_id>[\w_-]+|)|@(?P<channel_id_vanity>[\w_-]+|)|channel\/(?P<channel_id>[\w_-]+|)|user\/(?P<channel_id_user>[\w_-]+|)|c\/(?P<channel_id_c>[\w_-]+|))"
+    HTTP_REGEX + r"(youtu\.be\/(?P<video_id_short>[\w-]+))|(m\.)?youtube\.com\/"
+    r"(watch\?v=(?P<video_id>[\w_-]+|)|@(?P<channel_id_vanity>[\w_-]+|)"
+    r"|channel\/(?P<channel_id>[\w_-]+|)|user\/(?P<channel_id_user>[\w_-]+|)"
+    r"|c\/(?P<channel_id_c>[\w_-]+|))"
 )
 PROVIDER = Provider(
     id=YOUTUBE_IDENTIFIER,
@@ -26,21 +28,19 @@ BASE_HEADERS = {
         "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
     )
 }
-BASE_PAYLOAD = dict(
-    {
-        "context": {
-            "client": {
-                "clientName": "WEB",
-                "clientVersion": "2.20240416.05.00",
-            }
+BASE_PAYLOAD = {
+    "context": {
+        "client": {
+            "clientName": "WEB",
+            "clientVersion": "2.20240416.05.00",
         }
     }
-)
+}
 
 
 class ReactionMessage(TypedDict):
     room_id: str
-    reactions: Dict[str, int]
+    reactions: dict[str, int]
 
 
 REACTION_SIGNAL_TYPE = SignalType[ReactionMessage].create_json(

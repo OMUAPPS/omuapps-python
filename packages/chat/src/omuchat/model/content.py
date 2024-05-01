@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Callable, Iterable
 from typing import (
-    Callable,
-    Iterable,
-    List,
     Literal,
     LiteralString,
     Protocol,
@@ -32,7 +30,7 @@ class Component[T: LiteralString, D](abc.ABC):
     def to_json(self) -> D: ...
 
     def walk(self, cb: Callable[[Component], None]) -> None:
-        stack: List[Component] = [self]
+        stack: list[Component] = [self]
         while stack:
             component = stack.pop()
             if not component:
@@ -42,7 +40,7 @@ class Component[T: LiteralString, D](abc.ABC):
                 stack.extend(component.get_children())
 
     def iter(self) -> Iterable[Component]:
-        stack: List[Component] = [self]
+        stack: list[Component] = [self]
         while stack:
             component = stack.pop()
             if not component:
@@ -54,10 +52,10 @@ class Component[T: LiteralString, D](abc.ABC):
 
 class Parent(abc.ABC):
     @abc.abstractmethod
-    def get_children(self) -> List[Component]: ...
+    def get_children(self) -> list[Component]: ...
 
     @abc.abstractmethod
-    def set_children(self, children: List[Component]) -> None: ...
+    def set_children(self, children: list[Component]) -> None: ...
 
 
 class ComponentType[D, C: Component](Protocol):
@@ -94,11 +92,11 @@ def register[D: ComponentJson, C: Component](
     component_types[type] = component_type
 
 
-type RootData = List[ComponentJson]
+type RootData = list[ComponentJson]
 
 
 class Root(Component[Literal["root"], RootData], Parent):
-    def __init__(self, children: List[Component] | None = None):
+    def __init__(self, children: list[Component] | None = None):
         self.children = children or []
 
     @classmethod
@@ -112,10 +110,10 @@ class Root(Component[Literal["root"], RootData], Parent):
     def to_json(self) -> RootData:
         return [serialize(child) for child in self.children]
 
-    def get_children(self) -> List[Component]:
+    def get_children(self) -> list[Component]:
         return self.children
 
-    def set_children(self, children: List[Component]) -> None:
+    def set_children(self, children: list[Component]) -> None:
         self.children = children
 
     def add(self, component: Component):
@@ -188,11 +186,11 @@ class Image(Component[Literal["image"], ImageData]):
 
 class LinkData(TypedDict):
     url: str
-    children: List[ComponentJson]
+    children: list[ComponentJson]
 
 
 class Link(Component[Literal["link"], LinkData], Parent):
-    def __init__(self, url: str, children: List[Component]):
+    def __init__(self, url: str, children: list[Component]):
         self.url = url
         self.children = children
 
@@ -214,15 +212,15 @@ class Link(Component[Literal["link"], LinkData], Parent):
             "children": [serialize(child) for child in self.children],
         }
 
-    def get_children(self) -> List[Component]:
+    def get_children(self) -> list[Component]:
         return self.children
 
-    def set_children(self, children: List[Component]) -> None:
+    def set_children(self, children: list[Component]) -> None:
         self.children = children
 
 
 class System(Component[Literal["system"], RootData], Parent):
-    def __init__(self, children: List[Component]):
+    def __init__(self, children: list[Component]):
         self.children = children
 
     @classmethod
@@ -240,10 +238,10 @@ class System(Component[Literal["system"], RootData], Parent):
     def to_json(self) -> RootData:
         return [serialize(child) for child in self.children]
 
-    def get_children(self) -> List[Component]:
+    def get_children(self) -> list[Component]:
         return self.children
 
-    def set_children(self, children: List[Component]) -> None:
+    def set_children(self, children: list[Component]) -> None:
         self.children = children
 
 

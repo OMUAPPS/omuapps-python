@@ -20,7 +20,10 @@ def setup_logging():
         "logs/{time:YYYY-MM-DD}.log",
         rotation="1 day",
         colorize=False,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
+        format=(
+            "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | "
+            "{name}:{function}:{line} - {message}"
+        ),
     )
 
 

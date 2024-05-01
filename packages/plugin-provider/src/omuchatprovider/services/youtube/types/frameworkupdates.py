@@ -1,4 +1,4 @@
-from typing import List, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 
 class Content(TypedDict):
@@ -54,7 +54,7 @@ class ReactionBucketsItem(TypedDict):
     intensityScore: int
 
 
-type ReactionBuckets = List[ReactionBucketsItem]
+type ReactionBuckets = list[ReactionBucketsItem]
 
 
 class EmojiFountainDataEntity(TypedDict):
@@ -87,7 +87,7 @@ class Mutation(TypedDict):
     )
 
 
-type Mutations = List[Mutation]
+type Mutations = list[Mutation]
 
 
 class Timestamp(TypedDict):

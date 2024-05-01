@@ -1,6 +1,5 @@
 import asyncio
 import time
-from typing import Dict
 
 from loguru import logger
 from omu.identifier import Identifier
@@ -19,8 +18,8 @@ APP = App(
 
 client = Client(APP)
 
-services: Dict[Identifier, ProviderService] = {}
-chat_services: Dict[Identifier, ChatService] = {}
+services: dict[Identifier, ProviderService] = {}
+chat_services: dict[Identifier, ChatService] = {}
 
 
 async def register_services():

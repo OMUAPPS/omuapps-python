@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING, DefaultDict, List
+from typing import TYPE_CHECKING
 
 from omu.extension.signal.signal_extension import (
     SIGNAL_BROADCAST_PACKET,
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class SignalExtension:
     def __init__(self, server: Server):
         self._server = server
-        self.signals: DefaultDict[Identifier, List[Session]] = defaultdict(list)
+        self.signals: defaultdict[Identifier, list[Session]] = defaultdict(list)
         server.packet_dispatcher.register(SIGNAL_LISTEN_PACKET, SIGNAL_BROADCAST_PACKET)
         server.packet_dispatcher.add_packet_handler(
             SIGNAL_LISTEN_PACKET, self.handle_listen

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Dict, Mapping, Tuple
 
 from .tableadapter import TableAdapter
 
@@ -38,7 +38,7 @@ class SqliteTableAdapter(TableAdapter):
             return None
         return row[0]
 
-    async def get_many(self, keys: list[str]) -> Dict[str, bytes]:
+    async def get_many(self, keys: list[str]) -> dict[str, bytes]:
         cursor = self._conn.execute(
             f"SELECT key, value FROM data WHERE key IN ({','.join('?' for _ in keys)})",
             keys,
@@ -53,7 +53,7 @@ class SqliteTableAdapter(TableAdapter):
         )
 
     async def set_all(self, items: Mapping[str, bytes]) -> None:
-        query = [(key, value) for key, value in items.items()]
+        query = list(items.items())
         self._conn.executemany(
             "INSERT OR REPLACE INTO data (key, value) VALUES (?, ?)",
             query,
@@ -70,7 +70,7 @@ class SqliteTableAdapter(TableAdapter):
 
     async def fetch_items(
         self, before: int | None, after: int | None, cursor: str | None
-    ) -> Dict[str, bytes]:
+    ) -> dict[str, bytes]:
         cursor_id: int | None = None
         if cursor is not None:
             _cursor = self._conn.execute("SELECT id FROM data WHERE key = ?", (cursor,))
@@ -83,7 +83,7 @@ class SqliteTableAdapter(TableAdapter):
             _cursor = self._conn.execute("SELECT key, value FROM data")
             return {row[0]: (row[1]) for row in _cursor.fetchall()}
 
-        items: Dict[int, Tuple[str, bytes]] = {}
+        items: dict[int, tuple[str, bytes]] = {}
         if before is not None:
             if cursor_id is None:
                 _cursor = self._conn.execute(
@@ -92,7 +92,8 @@ class SqliteTableAdapter(TableAdapter):
                 )
             else:
                 _cursor = self._conn.execute(
-                    "SELECT id, key, value FROM data WHERE id <= ? ORDER BY id DESC LIMIT ?",
+                    "SELECT id, key, value FROM data WHERE id <= ? "
+                    "ORDER BY id DESC LIMIT ?",
                     (cursor_id, before),
                 )
             items.update({row[0]: (row[1], (row[2])) for row in _cursor.fetchall()})
@@ -104,13 +105,14 @@ class SqliteTableAdapter(TableAdapter):
                 )
             else:
                 _cursor = self._conn.execute(
-                    "SELECT id, key, value FROM data WHERE id >= ? ORDER BY id LIMIT ?",
+                    "SELECT id, key, value FROM data WHERE id >= ? "
+                    "ORDER BY id ASC LIMIT ?",
                     (cursor_id, after),
                 )
             items.update({row[0]: (row[1], (row[2])) for row in _cursor.fetchall()})
         return {key: value for _, (key, value) in sorted(items.items(), reverse=True)}
 
-    async def fetch_all(self) -> Dict[str, bytes]:
+    async def fetch_all(self) -> dict[str, bytes]:
         _cursor = self._conn.execute("SELECT key, value FROM data")
         return {row[0]: (row[1]) for row in _cursor.fetchall()}
 

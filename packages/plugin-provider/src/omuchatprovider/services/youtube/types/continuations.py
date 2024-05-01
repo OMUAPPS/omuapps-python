@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
 
 class InvalidationId(TypedDict):
@@ -20,7 +20,7 @@ class ContinuationsItem(TypedDict):
     invalidationContinuationData: InvalidationContinuationData
 
 
-type Continuations = List[ContinuationsItem]
+type Continuations = list[ContinuationsItem]
 
 
 class TimedContinuationData(TypedDict):

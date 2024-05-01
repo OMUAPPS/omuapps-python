@@ -3,14 +3,19 @@ from __future__ import annotations
 import json
 import re
 import time
-from typing import Callable, Coroutine
+from collections.abc import Callable, Coroutine
 
 import aiohttp
 from loguru import logger
 from omuchat import Provider
 
 HTTP_REGEX = r"(https?://)?(www\.)?"
-URL_NORMALIZE_REGEX = r"(?P<protocol>https?)?:?\/?\/?(?P<domain>[^.]+\.[^\/]+)(?P<path>[^?#]+)?(?P<query>.+)?"
+URL_NORMALIZE_REGEX = (
+    r"(?P<protocol>https?)?:?\/?\/?"
+    r"(?P<domain>[^.]+\.[^\/]+)"
+    r"(?P<path>[^?#]+)?"
+    r"(?P<query>.+)?"
+)
 
 
 def get_session(provider: Provider) -> aiohttp.ClientSession:
@@ -32,7 +37,11 @@ def normalize_url(url: str) -> str:
     match = re.match(URL_NORMALIZE_REGEX, url)
     if match is None:
         raise ValueError(f"Invalid URL: {url}")
-    return f"{match.group('protocol') or 'https'}://{match.group('domain')}{match.group('path') or ''}{match.group('query') or ''}"
+    protocol = match.group("protocol") or "https"
+    domain = match.group("domain")
+    path = match.group("path") or ""
+    query = match.group("query") or ""
+    return f"{protocol}://{domain}{path}{query}"
 
 
 def assert_none[T](value: T | None, message: str) -> T:

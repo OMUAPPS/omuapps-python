@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping
+from collections.abc import AsyncGenerator, Mapping
+from typing import TYPE_CHECKING
 
 from omu.extension.table import TableConfig, TablePermissions
 from omu.extension.table.table_extension import TABLE_PROXY_PACKET, TableProxyPacket
@@ -25,15 +26,15 @@ class CachedTable(ServerTable):
         self._server = server
         self._id = id
         self._listeners = ServerTableListeners()
-        self._sessions: Dict[Session, SessionTableListener] = {}
+        self._sessions: dict[Session, SessionTableListener] = {}
         self._permissions: TablePermissions | None = None
-        self._proxy_sessions: Dict[str, Session] = {}
+        self._proxy_sessions: dict[str, Session] = {}
         self._changed = False
         self._proxy_id = 0
         self._save_task: asyncio.Task | None = None
         self._adapter: TableAdapter | None = None
         self.config: TableConfig = {}
-        self._cache: Dict[str, bytes] = {}
+        self._cache: dict[str, bytes] = {}
         self._cache_size: int | None = None
 
     def set_config(self, config: TableConfig) -> None:
@@ -93,11 +94,11 @@ class CachedTable(ServerTable):
         await self.update_cache({key: data})
         return data
 
-    async def get_many(self, *keys: str) -> Dict[str, bytes]:
+    async def get_many(self, *keys: str) -> dict[str, bytes]:
         key_list = list(keys)
         if self._adapter is None:
             raise Exception("Table not set")
-        items: Dict[str, bytes] = {}
+        items: dict[str, bytes] = {}
         for key in tuple(key_list):
             if key in self._cache:
                 items[key] = self._cache[key]
@@ -171,7 +172,7 @@ class CachedTable(ServerTable):
         await self.update_cache(items)
         self.mark_changed()
 
-    async def remove(self, keys: List[str]) -> None:
+    async def remove(self, keys: list[str]) -> None:
         if self._adapter is None:
             raise Exception("Table not set")
         removed = await self._adapter.get_many(keys)
@@ -195,12 +196,12 @@ class CachedTable(ServerTable):
         before: int | None = None,
         after: int | None = None,
         cursor: str | None = None,
-    ) -> Dict[str, bytes]:
+    ) -> dict[str, bytes]:
         if self._adapter is None:
             raise Exception("Table not set")
         return await self._adapter.fetch_items(before, after, cursor)
 
-    async def fetch_all(self) -> Dict[str, bytes]:
+    async def fetch_all(self) -> dict[str, bytes]:
         if self._adapter is None:
             raise Exception("Table not set")
         return await self._adapter.fetch_all()

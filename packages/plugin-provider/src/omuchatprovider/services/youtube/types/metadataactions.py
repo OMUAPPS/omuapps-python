@@ -1,4 +1,4 @@
-from typing import List, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from .chatactions import SimpleText
 from .runs import Runs
@@ -39,4 +39,4 @@ class MetadataActionsItem(TypedDict):
     updateDescriptionAction: NotRequired[UpdateDescriptionAction]
 
 
-type MetadataActions = List[MetadataActionsItem]
+type MetadataActions = list[MetadataActionsItem]

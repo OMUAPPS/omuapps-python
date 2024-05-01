@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from omu.extension.permission.permission import PermissionType
 from omu.extension.registry.registry_extension import (
@@ -39,8 +39,8 @@ REGISTRY_PERMISSION = PermissionType(
 class RegistryExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self.registries: Dict[Identifier, ServerRegistry] = {}
-        self._startup_registries: List[ServerRegistry] = []
+        self.registries: dict[Identifier, ServerRegistry] = {}
+        self._startup_registries: list[ServerRegistry] = []
         server.permissions.register(REGISTRY_PERMISSION)
         server.packet_dispatcher.register(
             REGISTRY_LISTEN_PACKET,

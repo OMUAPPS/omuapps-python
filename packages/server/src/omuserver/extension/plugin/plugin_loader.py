@@ -4,12 +4,10 @@ import asyncio
 import importlib.metadata
 import importlib.util
 import sys
+from collections.abc import Mapping
 from multiprocessing import Process
 from typing import (
     TYPE_CHECKING,
-    Dict,
-    List,
-    Mapping,
     Protocol,
 )
 
@@ -39,11 +37,11 @@ class PluginModule(Protocol):
 
 class DependencyResolver:
     def __init__(self) -> None:
-        self._dependencies: Dict[str, SpecifierSet] = {}
+        self._dependencies: dict[str, SpecifierSet] = {}
 
     def format_dependencies(
         self, dependencies: Mapping[str, SpecifierSet | None]
-    ) -> List[str]:
+    ) -> list[str]:
         args = []
         for dependency, specifier in dependencies.items():
             if specifier is not None:
@@ -115,9 +113,9 @@ class DependencyResolver:
         return changed
 
     async def resolve(self):
-        to_install: Dict[str, SpecifierSet] = {}
-        to_update: Dict[str, SpecifierSet] = {}
-        skipped: Dict[str, SpecifierSet] = {}
+        to_install: dict[str, SpecifierSet] = {}
+        to_update: dict[str, SpecifierSet] = {}
+        skipped: dict[str, SpecifierSet] = {}
         packages_distributions: Mapping[str, importlib.metadata.Distribution] = {
             dist.name: dist for dist in importlib.metadata.distributions()
         }
@@ -144,7 +142,7 @@ class DependencyResolver:
 class PluginLoader:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self.plugins: Dict[str, Plugin] = {}
+        self.plugins: dict[str, Plugin] = {}
         server.listeners.start += self.handle_server_start
         server.listeners.stop += self.handle_server_stop
 

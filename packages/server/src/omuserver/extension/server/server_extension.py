@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from asyncio import Future
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from loguru import logger
 from omu.extension.server.server_extension import (
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class WaitHandle:
-    def __init__(self, ids: List[Identifier]):
+    def __init__(self, ids: list[Identifier]):
         self.future = Future()
         self.ids = ids
 
@@ -41,10 +41,10 @@ class ServerExtension:
         server.packet_dispatcher.add_packet_handler(
             REQUIRE_APPS_PACKET_TYPE, self.handle_require_apps
         )
-        self._app_waiters: Dict[Identifier, List[WaitHandle]] = defaultdict(list)
+        self._app_waiters: dict[Identifier, list[WaitHandle]] = defaultdict(list)
 
     async def handle_require_apps(
-        self, session: Session, app_ids: List[Identifier]
+        self, session: Session, app_ids: list[Identifier]
     ) -> None:
         for identifier in self._server.network._sessions.keys():
             if identifier not in app_ids:

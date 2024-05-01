@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
 
 class ParamsItem(TypedDict):
@@ -8,10 +8,10 @@ class ParamsItem(TypedDict):
 
 class ServiceTrackingParamsItem(TypedDict):
     service: str
-    params: List[ParamsItem]
+    params: list[ParamsItem]
 
 
-type ServiceTrackingParams = List[ServiceTrackingParamsItem]
+type ServiceTrackingParams = list[ServiceTrackingParamsItem]
 
 
 class MainAppWebResponseContext(TypedDict):

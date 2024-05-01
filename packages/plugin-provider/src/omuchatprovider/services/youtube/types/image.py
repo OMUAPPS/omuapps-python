@@ -1,4 +1,4 @@
-from typing import List, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from .accessibility import Accessibility
 
@@ -10,9 +10,9 @@ class Thumbnail(TypedDict):
 
 
 class Thumbnails(TypedDict):
-    thumbnails: List[Thumbnail]
+    thumbnails: list[Thumbnail]
 
 
 class Image(TypedDict):
-    thumbnails: List[Thumbnail]
+    thumbnails: list[Thumbnail]
     accessibility: NotRequired[Accessibility]

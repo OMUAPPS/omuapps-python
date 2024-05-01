@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 from typing import (
     TYPE_CHECKING,
-    Dict,
 )
 
 from omu.extension.plugin.plugin_extension import (
@@ -42,7 +41,7 @@ class PluginExtension:
         await self.loader.run_plugins()
 
     async def handle_require_packet(
-        self, session: Session, packages: Dict[str, str | None]
+        self, session: Session, packages: dict[str, str | None]
     ) -> None:
         changed = False
         for package, version in packages.items():

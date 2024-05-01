@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from omu.extension.asset.asset_extension import (
     ASSET_DOWNLOAD_ENDPOINT,
@@ -63,9 +63,9 @@ class AssetExtension:
         return identifier
 
     async def handle_upload_many(
-        self, session: Session, files: List[File]
-    ) -> List[Identifier]:
-        identifiers: List[Identifier] = []
+        self, session: Session, files: list[File]
+    ) -> list[Identifier]:
+        identifiers: list[Identifier] = []
         for file in files:
             identifier = await self.storage.store(file)
             identifiers.append(identifier)
@@ -75,9 +75,9 @@ class AssetExtension:
         return await self.storage.retrieve(identifier)
 
     async def handle_download_many(
-        self, session: Session, identifiers: List[Identifier]
-    ) -> List[File]:
-        files: List[File] = []
+        self, session: Session, identifiers: list[Identifier]
+    ) -> list[File]:
+        files: list[File] = []
         for identifier in identifiers:
             file = await self.storage.retrieve(identifier)
             files.append(file)

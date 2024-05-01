@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Dict
+from typing import TYPE_CHECKING
 
 from loguru import logger
 from omu.event_emitter import EventEmitter
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
 class ServerPacketDispatcher:
     def __init__(self):
         self.packet_mapper = PacketMapper()
-        self._packet_listeners: Dict[Identifier, PacketListeners] = {}
+        self._packet_listeners: dict[Identifier, PacketListeners] = {}
 
     async def process_connection(self, session: Session) -> None:
         session.listeners.packet += self.process_packet

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Hashable
 from datetime import datetime
-from typing import Hashable, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from omu.helper import map_optional
 from omu.identifier import Identifier

@@ -43,7 +43,7 @@ async def translate(component: content.Component) -> content.Component:
     translated = await translator.translate(
         [text.text for text in texts if text.text], config["language"]
     )
-    for text, (translation, _) in zip(texts, translated):
+    for text, (translation, _) in zip(texts, translated, strict=False):
         text.text = translation
     return component
 

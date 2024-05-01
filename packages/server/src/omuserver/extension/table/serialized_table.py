@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Callable, Dict, List, Mapping
+from collections.abc import AsyncGenerator, Callable, Mapping
 
 from omu.extension.table import Table, TableConfig, TableListeners, TableType
 from omu.extension.table.table import TablePermissions
@@ -24,7 +24,7 @@ class SerializedTable[T: Keyable](Table[T]):
         self._table = table
         self._type = type
         self._listeners = TableListeners[T](self)
-        self._proxies: List[Coro[[T], T | None]] = []
+        self._proxies: list[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self.key = type.identifier.key()
         self._permissions: TablePermissions | None = None
@@ -73,7 +73,7 @@ class SerializedTable[T: Keyable](Table[T]):
             return None
         return self._type.serializer.deserialize(item)
 
-    async def get_many(self, *keys: str) -> Dict[str, T]:
+    async def get_many(self, *keys: str) -> dict[str, T]:
         items = await self._table.get_many(*keys)
         return {
             key: self._type.serializer.deserialize(item) for key, item in items.items()
@@ -98,11 +98,11 @@ class SerializedTable[T: Keyable](Table[T]):
         before: int | None = None,
         after: int | None = None,
         cursor: str | None = None,
-    ) -> Dict[str, T]:
+    ) -> dict[str, T]:
         items = await self._table.fetch_items(before, after, cursor)
         return self._parse_items(items)
 
-    async def fetch_all(self) -> Dict[str, T]:
+    async def fetch_all(self) -> dict[str, T]:
         items = await self._table.fetch_all()
         return self._parse_items(items)
 
@@ -166,8 +166,8 @@ class SerializedTable[T: Keyable](Table[T]):
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
         raise NotImplementedError
 
-    def _parse_items(self, items: Mapping[str, bytes]) -> Dict[str, T]:
-        parsed: Dict[str, T] = {}
+    def _parse_items(self, items: Mapping[str, bytes]) -> dict[str, T]:
+        parsed: dict[str, T] = {}
         for key, item in items.items():
             item = self._type.serializer.deserialize(item)
             if not item:

@@ -2,15 +2,14 @@ import asyncio
 import time
 import traceback
 import typing
-from typing import Dict, List
 
 
 class Tasks:
     def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         self.loop = loop
-        self.tasks: List[asyncio.Task] = []
-        self.times: Dict[str, float] = {}
-        self.times_max: Dict[str, float] = {}
+        self.tasks: list[asyncio.Task] = []
+        self.times: dict[str, float] = {}
+        self.times_max: dict[str, float] = {}
 
     def terminate(self):
         for task in self.tasks:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from omu.helper import map_optional
 from omu.identifier import Identifier
@@ -15,7 +15,7 @@ class AuthorMetadata(TypedDict):
     screen_id: NotRequired[str | None]
     avatar_url: NotRequired[str | None]
     description: NotRequired[str | None]
-    links: NotRequired[List[str] | None]
+    links: NotRequired[list[str] | None]
 
 
 class AuthorJson(TypedDict):
@@ -23,7 +23,7 @@ class AuthorJson(TypedDict):
     id: str
     name: NotRequired[str] | None
     avatar_url: NotRequired[str] | None
-    roles: NotRequired[List[RoleJson]] | None
+    roles: NotRequired[list[RoleJson]] | None
     metadata: NotRequired[AuthorMetadata] | None
 
 
@@ -35,7 +35,7 @@ class Author(Keyable, Model[AuthorJson]):
         id: Identifier,
         name: str | None = None,
         avatar_url: str | None = None,
-        roles: List[Role] | None = None,
+        roles: list[Role] | None = None,
         metadata: AuthorMetadata | None = None,
     ) -> None:
         self.provider_id = provider_id

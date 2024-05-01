@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, AsyncGenerator, Dict, List, Mapping, Union
+from collections.abc import AsyncGenerator, Mapping
+from typing import TYPE_CHECKING
 
 from omu.event_emitter import EventEmitter
 from omu.extension.table.table import TablePermissions
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
     from .adapters.tableadapter import TableAdapter
 
-type Json = Union[str, int, float, bool, None, Dict[str, Json], List[Json]]
+type Json = str | int | float | bool | None | dict[str, Json] | list[Json]
 
 
 class ServerTable(abc.ABC):
@@ -67,7 +68,7 @@ class ServerTable(abc.ABC):
     async def get(self, key: str) -> bytes | None: ...
 
     @abc.abstractmethod
-    async def get_many(self, *keys: str) -> Dict[str, bytes]: ...
+    async def get_many(self, *keys: str) -> dict[str, bytes]: ...
 
     @abc.abstractmethod
     async def add(self, items: Mapping[str, bytes]) -> None: ...
@@ -76,7 +77,7 @@ class ServerTable(abc.ABC):
     async def update(self, items: Mapping[str, bytes]) -> None: ...
 
     @abc.abstractmethod
-    async def remove(self, keys: List[str]) -> None: ...
+    async def remove(self, keys: list[str]) -> None: ...
 
     @abc.abstractmethod
     async def clear(self) -> None: ...
@@ -87,10 +88,10 @@ class ServerTable(abc.ABC):
         before: int | None = None,
         after: int | None = None,
         cursor: str | None = None,
-    ) -> Dict[str, bytes]: ...
+    ) -> dict[str, bytes]: ...
 
     @abc.abstractmethod
-    async def fetch_all(self) -> Dict[str, bytes]: ...
+    async def fetch_all(self) -> dict[str, bytes]: ...
 
     @abc.abstractmethod
     async def iterate(self) -> AsyncGenerator[bytes, None]: ...

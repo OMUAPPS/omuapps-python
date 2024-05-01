@@ -1,4 +1,4 @@
-from typing import List, NotRequired, TypedDict, Union
+from typing import NotRequired, TypedDict
 
 from .image import Image
 from .urlendpoint import NavigationEndpoint
@@ -6,8 +6,8 @@ from .urlendpoint import NavigationEndpoint
 
 class Emoji(TypedDict):
     emojiId: str
-    shortcuts: List[str]
-    searchTerms: List[str]
+    shortcuts: list[str]
+    searchTerms: list[str]
     image: Image
     isCustomEmoji: bool
 
@@ -44,8 +44,8 @@ class EmojiRun(TypedDict):
     emoji: Emoji
 
 
-type RunsItem = Union[TextRun, LinkRun, EmojiRun]
+type RunsItem = TextRun | LinkRun | EmojiRun
 
 
 class Runs(TypedDict):
-    runs: List[RunsItem]
+    runs: list[RunsItem]

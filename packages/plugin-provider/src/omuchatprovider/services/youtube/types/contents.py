@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
 from .chatactions import ChatActions
 
@@ -22,7 +22,7 @@ class ContinuationItem(TypedDict):
     invalidationContinuationData: InvalidationContinuationData
 
 
-type Continuations = List[ContinuationItem]
+type Continuations = list[ContinuationItem]
 
 
 class LiveChatRenderer(TypedDict):

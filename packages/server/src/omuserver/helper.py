@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from typing import List, TypedDict
+from typing import TypedDict
 
 
 def safe_path(root_path: Path, input_path: Path) -> Path:
@@ -21,7 +21,7 @@ def safe_path_join(root: Path, *paths: Path | str) -> Path:
 
 class LaunchCommand(TypedDict):
     cwd: str
-    args: List[str]
+    args: list[str]
 
 
 def get_launch_command() -> LaunchCommand:

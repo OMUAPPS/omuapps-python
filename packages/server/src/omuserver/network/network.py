@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import socket
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 import psutil
 from aiohttp import web
@@ -35,7 +35,7 @@ class Network:
         self._server = server
         self._packet_dispatcher = packet_dispatcher
         self._listeners = NetworkListeners()
-        self._sessions: Dict[Identifier, Session] = {}
+        self._sessions: dict[Identifier, Session] = {}
         self._app = web.Application()
         self.add_websocket_route("/ws")
         self.register_packet(PACKET_TYPES.CONNECT, PACKET_TYPES.READY)

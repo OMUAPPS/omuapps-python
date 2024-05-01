@@ -3,7 +3,6 @@ import datetime
 import random
 import sqlite3
 import string
-from typing import Set
 
 from loguru import logger
 from omu import App
@@ -44,7 +43,7 @@ class TokenGenerator:
 class ServerAuthenticator(Security):
     def __init__(self, server: Server):
         self._server = server
-        self._plugin_tokens: Set[str] = set()
+        self._plugin_tokens: set[str] = set()
         self._token_generator = TokenGenerator()
         self._token_db = sqlite3.connect(
             server.directories.get("security") / "tokens.sqlite"

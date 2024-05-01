@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import typing
 from dataclasses import dataclass
 
 from omu.helper import Coro
@@ -25,7 +24,7 @@ class ProviderService(abc.ABC):
     def provider(self) -> Provider: ...
 
     @abc.abstractmethod
-    async def fetch_rooms(self, channel: Channel) -> typing.List[FetchedRoom]: ...
+    async def fetch_rooms(self, channel: Channel) -> list[FetchedRoom]: ...
 
     @abc.abstractmethod
     async def is_online(self, room: Room) -> bool: ...

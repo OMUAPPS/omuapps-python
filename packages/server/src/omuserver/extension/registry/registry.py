@@ -1,4 +1,3 @@
-from typing import Dict
 
 from omu import Identifier
 from omu.extension.registry.registry_extension import (
@@ -14,7 +13,7 @@ from omuserver.session import Session
 class ServerRegistry:
     def __init__(self, server: Server, identifier: Identifier) -> None:
         self.identifier = identifier
-        self._listeners: Dict[Identifier, Session] = {}
+        self._listeners: dict[Identifier, Session] = {}
         self._path = server.directories.get(
             "registry"
         ) / identifier.get_sanitized_path().with_suffix(".json")

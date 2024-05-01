@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from omu.helper import map_optional
 from omu.identifier import Identifier
@@ -20,7 +20,7 @@ class MessageJson(TypedDict):
     author_id: NotRequired[str] | None
     content: NotRequired[content.ComponentJson] | None
     paid: NotRequired[PaidJson] | None
-    gifts: NotRequired[List[GiftJson]] | None
+    gifts: NotRequired[list[GiftJson]] | None
     created_at: NotRequired[str] | None  # ISO 8601 date string
 
 
@@ -31,7 +31,7 @@ class Message(Keyable, Model[MessageJson]):
     author_id: Identifier | None = None
     content: content.Component | None = None
     paid: Paid | None = None
-    gifts: List[Gift] | None = None
+    gifts: list[Gift] | None = None
     created_at: datetime | None = None
 
     @classmethod

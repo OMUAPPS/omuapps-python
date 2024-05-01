@@ -7,7 +7,7 @@ import urllib.parse
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING
 
 import bs4
 from iwashi.service import Youtube
@@ -109,7 +109,7 @@ class YoutubeChat:
         )
 
     @classmethod
-    def extract_script(cls, soup: bs4.BeautifulSoup, startswith: str) -> Dict | None:
+    def extract_script(cls, soup: bs4.BeautifulSoup, startswith: str) -> dict | None:
         for script in soup.select("script"):
             script_text = script.text.strip()
             if script_text.startswith(startswith):
@@ -231,7 +231,7 @@ class YoutubeChatService(ChatService):
         self._room = room
         self.chat = chat
         self.tasks = Tasks(client.loop)
-        self.author_fetch_queue: List[Author] = []
+        self.author_fetch_queue: list[Author] = []
         self._closed = False
 
     @property
@@ -286,8 +286,8 @@ class YoutubeChatService(ChatService):
             await self.stop()
 
     async def process_chat_data(self, chat_data: ChatData):
-        messages: List[Message] = []
-        authors: List[Author] = []
+        messages: list[Message] = []
+        authors: list[Author] = []
         for action in chat_data.chat_actions:
             if "addChatItemAction" in action:
                 message, author = await self.process_message_item(
@@ -304,7 +304,7 @@ class YoutubeChatService(ChatService):
             else:
                 logger.warning(f"Unknown chat action: {action}")
         if len(authors) > 0:
-            added_authors: List[Author] = []
+            added_authors: list[Author] = []
             for author in authors:
                 if author.key() in self.client.chat.authors.cache:
                     continue
@@ -347,7 +347,7 @@ class YoutubeChatService(ChatService):
 
     async def process_message_item(
         self, item: AddChatItemActionItem
-    ) -> Tuple[Message | None, Author | None]:
+    ) -> tuple[Message | None, Author | None]:
         if "liveChatTextMessageRenderer" in item:
             data = item["liveChatTextMessageRenderer"]
             author = self._parse_author(data)
@@ -511,7 +511,7 @@ class YoutubeChatService(ChatService):
             .map(lambda x: x.get("url"))
             .get()
         )
-        roles: List[Role] = []
+        roles: list[Role] = []
         for badge in message.get("authorBadges", []):
             if "icon" in badge["liveChatAuthorBadgeRenderer"]:
                 icon_type = badge["liveChatAuthorBadgeRenderer"]["icon"]["iconType"]
@@ -589,7 +589,7 @@ def _get_accessibility_label(data: Accessibility | None) -> str | None:
     return data.get("accessibilityData", {}).get("label", None)
 
 
-def _get_best_thumbnail(thumbnails: List[Thumbnail]) -> str:
+def _get_best_thumbnail(thumbnails: list[Thumbnail]) -> str:
     if len(thumbnails) == 0:
         raise ProviderError("No thumbnails found")
     best = max(thumbnails, key=lambda x: x.get("width", 0) * x.get("height", 0))

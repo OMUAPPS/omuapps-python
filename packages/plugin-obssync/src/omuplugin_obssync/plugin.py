@@ -5,7 +5,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, List, TypedDict
+from typing import Any, TypedDict
 
 import psutil
 from omu.identifier import Identifier
@@ -15,7 +15,7 @@ IDENTIFIER = Identifier("cc.omuchat", "plugin-obssync")
 
 
 class obs:
-    launch_command: List[str] | None = None
+    launch_command: list[str] | None = None
     cwd: Path | None = None
 
 
@@ -37,7 +37,7 @@ class ScriptToolJson(TypedDict):
     settings: Any
 
 
-ModulesJson = TypedDict("ModulesJson", {"scripts-tool": List[ScriptToolJson]})
+ModulesJson = TypedDict("ModulesJson", {"scripts-tool": list[ScriptToolJson]})
 
 
 def get_launch_command():

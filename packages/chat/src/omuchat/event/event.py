@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Coroutine, Dict, Mapping
+from typing import TYPE_CHECKING
 
 from omu.event_emitter import EventEmitter
 
@@ -107,7 +108,7 @@ class Entry[**P]:
 class EventRegistry:
     def __init__(self, client: Client):
         self.client = client
-        self.events: Dict[int, Entry] = {}
+        self.events: dict[int, Entry] = {}
 
     def register[**P](self, event: EventSource[P], listener: EventHandler[P]):
         event_id = id(event)

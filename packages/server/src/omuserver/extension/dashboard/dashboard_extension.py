@@ -1,5 +1,4 @@
 from asyncio import Future
-from typing import Dict
 
 from omu.app import App
 from omu.errors import PermissionDenied
@@ -56,8 +55,8 @@ class DashboardExtension:
     def __init__(self, server: Server) -> None:
         self.server = server
         self.dashboard_session: Session | None = None
-        self.pending_permission_requests: Dict[str, PermissionRequest] = {}
-        self.permission_requests: Dict[str, Future[bool]] = {}
+        self.pending_permission_requests: dict[str, PermissionRequest] = {}
+        self.permission_requests: dict[str, Future[bool]] = {}
         server.permissions.register(
             DASHBOARD_SET_PERMISSION,
             DASHBOARD_OPEN_APP_PERMISSION,

@@ -1,6 +1,7 @@
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import List, Literal, Mapping, Tuple, TypedDict
+from typing import Literal, TypedDict
 
 from omu.extension.table.table import TableType
 from omu.identifier import Identifier
@@ -40,7 +41,7 @@ type Pattern = TextPattern | ImagePattern | RegexPattern
 class EmojiData(TypedDict):
     id: str
     asset: str
-    patterns: List[Pattern]
+    patterns: list[Pattern]
 
 
 class Emoji(Model[EmojiData], Keyable):
@@ -48,7 +49,7 @@ class Emoji(Model[EmojiData], Keyable):
         self,
         id: str,
         asset: Identifier,
-        patterns: List[Pattern],
+        patterns: list[Pattern],
     ) -> None:
         self.id = id
         self.asset = asset
@@ -83,9 +84,9 @@ emoji_table.set_cache_size(1000)
 
 
 class Patterns:
-    text: List[Tuple[TextPattern, Emoji]] = []
-    image: List[Tuple[ImagePattern, Emoji]] = []
-    regex: List[Tuple[RegexPattern, Emoji]] = []
+    text: list[tuple[TextPattern, Emoji]] = []
+    image: list[tuple[ImagePattern, Emoji]] = []
+    regex: list[tuple[RegexPattern, Emoji]] = []
 
 
 @emoji_table.listen

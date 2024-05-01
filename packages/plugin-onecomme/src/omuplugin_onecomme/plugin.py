@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, List, Set, TypedDict
+from typing import TypedDict
 
 from aiohttp import web
 from loguru import logger
@@ -39,7 +39,7 @@ class CommentData(TypedDict):
     isOwner: bool
     isAnonymous: bool
     profileImage: str
-    badges: List[Badge]
+    badges: list[Badge]
     timestamp: str
     comment: str
     displayName: str
@@ -58,10 +58,10 @@ class CommentServiceData(TypedDict):
     url: str
     write: bool
     speech: bool
-    options: Dict
+    options: dict
     enabled: bool
     persist: bool
-    translate: List
+    translate: list
     color: Color
 
 
@@ -153,10 +153,10 @@ async def to_comment(message: model.Message) -> Comment | None:
 
 
 class CommentsData(TypedDict):
-    comments: List[Comment]
+    comments: list[Comment]
 
 
-sessions: Set[web.WebSocketResponse] = set()
+sessions: set[web.WebSocketResponse] = set()
 
 
 async def handle(request: web.Request) -> web.WebSocketResponse:

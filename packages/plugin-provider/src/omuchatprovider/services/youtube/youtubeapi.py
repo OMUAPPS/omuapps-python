@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 import aiohttp
 import bs4
@@ -76,7 +76,7 @@ class YoutubeAPI:
     async def get(
         self,
         url: str,
-        params: Dict[str, str] | None = None,
+        params: dict[str, str] | None = None,
     ) -> YoutubePage:
         async with self.throttle:
             response = await self.session.get(
@@ -86,7 +86,7 @@ class YoutubeAPI:
             )
         return await YoutubePage.from_response(response)
 
-    async def fetch_online_videos(self, url: str) -> List[str]:
+    async def fetch_online_videos(self, url: str) -> list[str]:
         match = assert_none(
             re.search(YOUTUBE_REGEX, url),
             "Could not match url",
@@ -175,7 +175,7 @@ class YoutubeAPI:
             "v": video_id,
             "key": key,
         }
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             **BASE_PAYLOAD,
         }
         if continuation:
@@ -200,7 +200,7 @@ class YoutubeAPI:
         params = {
             "key": key,
         }
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             **BASE_PAYLOAD,
         }
         if continuation is not None:

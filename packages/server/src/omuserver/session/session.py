@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import asyncio
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
@@ -73,7 +73,7 @@ class Session:
         self.is_plugin = is_plugin
         self.connection = connection
         self.listeners = SessionListeners()
-        self.ready_tasks: List[SessionTask] = []
+        self.ready_tasks: list[SessionTask] = []
         self.ready = False
 
     @classmethod

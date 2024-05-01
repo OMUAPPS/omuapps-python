@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from typing import Dict, Tuple
 
 from loguru import logger
 from omu.errors import PermissionDenied
@@ -118,8 +117,8 @@ class EndpointCall:
 class EndpointExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self._endpoints: Dict[Identifier, Endpoint] = {}
-        self._calls: Dict[Tuple[Identifier, int], EndpointCall] = {}
+        self._endpoints: dict[Identifier, Endpoint] = {}
+        self._calls: dict[tuple[Identifier, int], EndpointCall] = {}
         server.packet_dispatcher.register(
             ENDPOINT_REGISTER_PACKET,
             ENDPOINT_CALL_PACKET,

@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Mapping, Optional
+from collections.abc import Mapping
 
 import aiohttp
 from aiohttp import web
@@ -46,7 +46,7 @@ class OmuServer(Server):
     def __init__(
         self,
         config: Config,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         self._config = config
         self._loop = loop or asyncio.get_event_loop()

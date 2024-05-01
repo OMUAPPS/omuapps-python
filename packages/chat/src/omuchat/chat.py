@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from omu import Client
 from omu.extension.endpoint import EndpointType
 from omu.extension.table import TablePermissions, TableType
@@ -70,7 +68,7 @@ ROOM_TABLE = TableType.create_model(
         write=CHAT_WRITE_PERMISSION_ID,
     ),
 )
-CREATE_CHANNEL_TREE_ENDPOINT = EndpointType[str, List[Channel]].create_json(
+CREATE_CHANNEL_TREE_ENDPOINT = EndpointType[str, list[Channel]].create_json(
     IDENTIFIER,
     "create_channel_tree",
     response_serializer=Serializer.model(Channel).to_array(),

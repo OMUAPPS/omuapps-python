@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 import iwashi
 from omu import Address, OmuClient
@@ -113,11 +112,11 @@ rooms = client.tables.get(ROOM_TABLE)
 
 
 @client.endpoints.bind(endpoint_type=CREATE_CHANNEL_TREE_ENDPOINT)
-async def create_channel_tree(url: str) -> List[Channel]:
+async def create_channel_tree(url: str) -> list[Channel]:
     results = await iwashi.tree(url)
     if results is None:
         return []
-    found_channels: List[Channel] = []
+    found_channels: list[Channel] = []
     services = await providers.fetch_items()
     for result in results.to_list():
         for provider in services.values():

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, TypedDict
+from typing import TypedDict
 
 
 class ExperimentFlags(TypedDict):
@@ -867,13 +867,13 @@ class ExperimentFlags(TypedDict):
     web_shorts_overlay_vertical_orientation: str
     yoodle_base_url: str
     yoodle_webp_base_url: str
-    conditional_lab_ids: List[int]
-    guide_business_info_countries: List[str]
-    guide_legal_footer_enabled_countries: List[str]
-    html5_profiler_trace_enums: List
-    kevlar_command_handler_command_banlist: List
-    kevlar_page_service_url_prefix_carveouts: List
-    web_op_signal_type_banlist: List
+    conditional_lab_ids: list[int]
+    guide_business_info_countries: list[str]
+    guide_legal_footer_enabled_countries: list[str]
+    html5_profiler_trace_enums: list
+    kevlar_command_handler_command_banlist: list
+    kevlar_page_service_url_prefix_carveouts: list
+    web_op_signal_type_banlist: list
 
 
 class GoogleFeedbackProductData(TypedDict):
@@ -919,7 +919,7 @@ class ConsistencytokenjarsItem(TypedDict):
 
 class Request(TypedDict):
     useSsl: bool
-    consistencyTokenJars: List[ConsistencytokenjarsItem]
+    consistencyTokenJars: list[ConsistencytokenjarsItem]
 
 
 class Clicktracking(TypedDict):
@@ -997,6 +997,6 @@ class ytcfg(TypedDict):
     CLIENT_TRANSPORT: str
     TIME_CREATED_MS: int
     LOGIN_INFO: str
-    VALID_SESSION_TEMPDATA_DOMAINS: List[str]
+    VALID_SESSION_TEMPDATA_DOMAINS: list[str]
     LIVE_CHAT_ALLOW_DARK_MODE: bool
     POST_TO_PARENT_DOMAIN: str
