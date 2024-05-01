@@ -2,17 +2,20 @@ from __future__ import annotations
 
 from asyncio import Future
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
 from omu.identifier import Identifier
-from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
-from omu.serializer import Serializer
 
 from .endpoint import EndpointType
+from .packets import (
+    EndpointDataPacket,
+    EndpointErrorPacket,
+    EndpointRegisterPacket,
+)
 
 ENDPOINT_EXTENSION_TYPE = ExtensionType(
     "endpoint",
@@ -21,11 +24,17 @@ ENDPOINT_EXTENSION_TYPE = ExtensionType(
 )
 
 
+@dataclass(frozen=True)
+class EndpointHandler:
+    endpoint_type: EndpointType
+    func: Coro[[Any], Any]
+
+
 class EndpointExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
         self.response_futures: Dict[int, Future] = {}
-        self.endpoints: Dict[Identifier, Tuple[EndpointType, Coro[[Any], Any]]] = {}
+        self.registered_endpoints: Dict[Identifier, EndpointHandler] = {}
         self.call_id = 0
         client.network.register_packet(
             ENDPOINT_REGISTER_PACKET,
@@ -51,9 +60,11 @@ class EndpointExtension(Extension):
         future.set_exception(Exception(packet.error))
 
     async def _on_call(self, packet: EndpointDataPacket) -> None:
-        if packet.id not in self.endpoints:
+        if packet.id not in self.registered_endpoints:
             raise Exception(f"Received call for unknown endpoint {packet.id}")
-        endpoint, func = self.endpoints[packet.id]
+        handler = self.registered_endpoints[packet.id]
+        endpoint = handler.endpoint_type
+        func = handler.func
         try:
             req = endpoint.request_serializer.deserialize(packet.data)
             res = await func(req)
@@ -70,14 +81,22 @@ class EndpointExtension(Extension):
             raise e
 
     async def on_connected(self) -> None:
-        await self.client.send(ENDPOINT_REGISTER_PACKET, [*self.endpoints.keys()])
+        endpoints = {
+            key: endpoint.endpoint_type.permission_id
+            for key, endpoint in self.registered_endpoints.items()
+        }
+        packet = EndpointRegisterPacket(endpoints=endpoints)
+        await self.client.send(ENDPOINT_REGISTER_PACKET, packet)
 
     def register[Req, Res](
         self, type: EndpointType[Req, Res], func: Coro[[Req], Res]
     ) -> None:
-        if type.identifier in self.endpoints:
-            raise Exception(f"Endpoint for key {type.identifier} already registered")
-        self.endpoints[type.identifier] = (type, func)
+        if type.id in self.registered_endpoints:
+            raise Exception(f"Endpoint for key {type.id} already registered")
+        self.registered_endpoints[type.id] = EndpointHandler(
+            endpoint_type=type,
+            func=func,
+        )
 
     def bind[T, R](
         self,
@@ -118,76 +137,18 @@ class EndpointExtension(Extension):
             json = endpoint.request_serializer.serialize(data)
             await self.client.send(
                 ENDPOINT_CALL_PACKET,
-                EndpointDataPacket(id=endpoint.identifier, key=self.call_id, data=json),
+                EndpointDataPacket(id=endpoint.id, key=self.call_id, data=json),
             )
             res = await future
             return endpoint.response_serializer.deserialize(res)
         except Exception as e:
-            raise Exception(
-                f"Error calling endpoint {endpoint.identifier.key()}"
-            ) from e
+            raise Exception(f"Error calling endpoint {endpoint.id.key()}") from e
 
 
-@dataclass
-class EndpointPacket:
-    id: Identifier
-    key: int
-
-
-@dataclass
-class EndpointDataPacket:
-    id: Identifier
-    key: int
-    data: bytes
-
-    @classmethod
-    def serialize(cls, item: EndpointDataPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_int(item.key)
-        writer.write_byte_array(item.data)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> EndpointDataPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            key = reader.read_int()
-            data = reader.read_byte_array()
-        return EndpointDataPacket(id=Identifier.from_key(id), key=key, data=data)
-
-
-@dataclass
-class EndpointErrorPacket:
-    id: Identifier
-    key: int
-    error: str
-
-    @classmethod
-    def serialize(cls, item: EndpointErrorPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_int(item.key)
-        writer.write_string(item.error)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> EndpointErrorPacket:
-        with ByteReader(item) as reader:
-            id = reader.read_string()
-            key = reader.read_int()
-            error = reader.read_string()
-        return EndpointErrorPacket(
-            id=Identifier.from_key(id),
-            key=key,
-            error=error,
-        )
-
-
-ENDPOINT_REGISTER_PACKET = PacketType[List[Identifier]].create_json(
+ENDPOINT_REGISTER_PACKET = PacketType[EndpointRegisterPacket].create_serialized(
     ENDPOINT_EXTENSION_TYPE,
     "register",
-    Serializer.model(Identifier).to_array(),
+    EndpointRegisterPacket,
 )
 ENDPOINT_CALL_PACKET = PacketType[EndpointDataPacket].create_serialized(
     ENDPOINT_EXTENSION_TYPE,

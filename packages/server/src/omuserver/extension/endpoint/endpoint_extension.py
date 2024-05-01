@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 from loguru import logger
 from omu.extension.endpoint.endpoint_extension import (
@@ -13,6 +13,7 @@ from omu.extension.endpoint.endpoint_extension import (
     EndpointErrorPacket,
     EndpointType,
 )
+from omu.extension.endpoint.packets import EndpointRegisterPacket
 from omu.helper import Coro
 from omu.identifier import Identifier
 
@@ -23,20 +24,34 @@ from omuserver.session import Session
 class Endpoint(abc.ABC):
     @property
     @abc.abstractmethod
-    def identifier(self) -> Identifier: ...
+    def id(self) -> Identifier: ...
+
+    @property
+    @abc.abstractmethod
+    def permission(self) -> Identifier | None: ...
 
     @abc.abstractmethod
     async def call(self, data: EndpointDataPacket, session: Session) -> None: ...
 
 
 class SessionEndpoint(Endpoint):
-    def __init__(self, session: Session, identifier: Identifier) -> None:
+    def __init__(
+        self,
+        session: Session,
+        id: Identifier,
+        permission: Identifier | None,
+    ) -> None:
         self._session = session
-        self._identifier = identifier
+        self._id = id
+        self._permission = permission
 
     @property
-    def identifier(self) -> Identifier:
-        return self._identifier
+    def id(self) -> Identifier:
+        return self._id
+
+    @property
+    def permission(self) -> Identifier | None:
+        return self._permission
 
     async def call(self, data: EndpointDataPacket, session: Session) -> None:
         if self._session.closed:
@@ -50,14 +65,20 @@ class ServerEndpoint[Req, Res](Endpoint):
         server: Server,
         endpoint: EndpointType[Req, Res],
         callback: Coro[[Session, Req], Res],
+        permission: Identifier | None = None,
     ) -> None:
         self._server = server
         self._endpoint = endpoint
         self._callback = callback
+        self._permission = permission
 
     @property
-    def identifier(self) -> Identifier:
-        return self._endpoint.identifier
+    def id(self) -> Identifier:
+        return self._endpoint.id
+
+    @property
+    def permission(self) -> Identifier | None:
+        return self._permission
 
     async def call(self, data: EndpointDataPacket, session: Session) -> None:
         if session.closed:
@@ -118,21 +139,28 @@ class EndpointExtension:
         )
 
     async def _on_endpoint_register(
-        self, session: Session, endpoint_identifiers: List[Identifier]
+        self, session: Session, packet: EndpointRegisterPacket
     ) -> None:
-        for identifier in endpoint_identifiers:
-            endpoint = SessionEndpoint(session, identifier)
-            self._endpoints[identifier] = endpoint
+        for endpoint, permission in packet.endpoints.items():
+            self._endpoints[endpoint] = SessionEndpoint(
+                session=session,
+                id=endpoint,
+                permission=permission,
+            )
 
     def bind_endpoint[Req, Res](
         self,
         type: EndpointType[Req, Res],
         callback: Coro[[Session, Req], Res],
     ) -> None:
-        if type.identifier in self._endpoints:
-            raise ValueError(f"Endpoint {type.identifier.key()} already bound")
-        endpoint = ServerEndpoint(self._server, type, callback)
-        self._endpoints[type.identifier] = endpoint
+        if type.id in self._endpoints:
+            raise ValueError(f"Endpoint {type.id.key()} already bound")
+        endpoint = ServerEndpoint(
+            self._server,
+            type,
+            callback,
+        )
+        self._endpoints[type.id] = endpoint
 
     async def _on_endpoint_call(
         self, session: Session, req: EndpointDataPacket
@@ -151,6 +179,27 @@ class EndpointExtension:
                 ),
             )
             return
+        if endpoint.permission is not None:
+            if endpoint.id.is_subpart_of(session.app.identifier):
+                has_permission = True
+            else:
+                has_permission = self._server.permissions.has_permission(
+                    session, endpoint.permission
+                )
+            if not has_permission:
+                logger.warning(
+                    f"{session.app.key()} tried to call "
+                    "endpoint {req.id} without permission"
+                )
+                await session.send(
+                    ENDPOINT_ERROR_PACKET,
+                    EndpointErrorPacket(
+                        id=req.id,
+                        key=req.key,
+                        error=f"Permission denied for endpoint {req.id}",
+                    ),
+                )
+                return
         await endpoint.call(req, session)
         key = (req.id, req.key)
         self._calls[key] = EndpointCall(session, req)
