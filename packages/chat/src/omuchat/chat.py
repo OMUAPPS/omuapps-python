@@ -14,9 +14,10 @@ from omuchat.model.message import Message
 from omuchat.model.provider import Provider
 from omuchat.model.room import Room
 from omuchat.permissions import (
-    CHAT_PERMISSION,
-    CHAT_READ_PERMISSION,
-    CHAT_WRITE_PERMISSION,
+    CHAT_CHANNEL_TREE_PERMISSION_ID,
+    CHAT_PERMISSION_ID,
+    CHAT_READ_PERMISSION_ID,
+    CHAT_WRITE_PERMISSION_ID,
 )
 
 MESSAGE_TABLE = TableType.create_model(
@@ -24,9 +25,9 @@ MESSAGE_TABLE = TableType.create_model(
     "messages",
     Message,
     permissions=TablePermissions(
-        all=CHAT_PERMISSION,
-        read=CHAT_READ_PERMISSION,
-        write=CHAT_WRITE_PERMISSION,
+        all=CHAT_PERMISSION_ID,
+        read=CHAT_READ_PERMISSION_ID,
+        write=CHAT_WRITE_PERMISSION_ID,
     ),
 )
 AUTHOR_TABLE = TableType.create_model(
@@ -34,9 +35,9 @@ AUTHOR_TABLE = TableType.create_model(
     "authors",
     Author,
     permissions=TablePermissions(
-        all=CHAT_PERMISSION,
-        read=CHAT_READ_PERMISSION,
-        write=CHAT_WRITE_PERMISSION,
+        all=CHAT_PERMISSION_ID,
+        read=CHAT_READ_PERMISSION_ID,
+        write=CHAT_WRITE_PERMISSION_ID,
     ),
 )
 CHANNEL_TABLE = TableType.create_model(
@@ -44,9 +45,9 @@ CHANNEL_TABLE = TableType.create_model(
     "channels",
     Channel,
     permissions=TablePermissions(
-        all=CHAT_PERMISSION,
-        read=CHAT_READ_PERMISSION,
-        write=CHAT_WRITE_PERMISSION,
+        all=CHAT_PERMISSION_ID,
+        read=CHAT_READ_PERMISSION_ID,
+        write=CHAT_WRITE_PERMISSION_ID,
     ),
 )
 PROVIDER_TABLE = TableType.create_model(
@@ -54,9 +55,9 @@ PROVIDER_TABLE = TableType.create_model(
     "providers",
     Provider,
     permissions=TablePermissions(
-        all=CHAT_PERMISSION,
-        read=CHAT_READ_PERMISSION,
-        write=CHAT_WRITE_PERMISSION,
+        all=CHAT_PERMISSION_ID,
+        read=CHAT_READ_PERMISSION_ID,
+        write=CHAT_WRITE_PERMISSION_ID,
     ),
 )
 ROOM_TABLE = TableType.create_model(
@@ -64,15 +65,16 @@ ROOM_TABLE = TableType.create_model(
     "rooms",
     Room,
     permissions=TablePermissions(
-        all=CHAT_PERMISSION,
-        read=CHAT_READ_PERMISSION,
-        write=CHAT_WRITE_PERMISSION,
+        all=CHAT_PERMISSION_ID,
+        read=CHAT_READ_PERMISSION_ID,
+        write=CHAT_WRITE_PERMISSION_ID,
     ),
 )
 CREATE_CHANNEL_TREE_ENDPOINT = EndpointType[str, List[Channel]].create_json(
     IDENTIFIER,
     "create_channel_tree",
     response_serializer=Serializer.model(Channel).to_array(),
+    permission_id=CHAT_CHANNEL_TREE_PERMISSION_ID,
 )
 
 
@@ -82,7 +84,7 @@ class Chat:
         client: Client,
     ):
         client.server.require(IDENTIFIER)
-        client.permissions.require(CHAT_PERMISSION)
+        client.permissions.require(CHAT_PERMISSION_ID)
         self.messages = client.tables.get(MESSAGE_TABLE)
         self.authors = client.tables.get(AUTHOR_TABLE)
         self.channels = client.tables.get(CHANNEL_TABLE)

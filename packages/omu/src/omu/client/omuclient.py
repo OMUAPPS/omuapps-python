@@ -81,9 +81,9 @@ class OmuClient(Client):
         self._tables = self.extensions.register(TABLE_EXTENSION_TYPE)
         self._registry = self.extensions.register(REGISTRY_EXTENSION_TYPE)
         self._signal = self.extensions.register(SIGNAL_EXTENSION_TYPE)
+        self._permissions = self.extensions.register(PERMISSION_EXTENSION_TYPE)
         self._server = self.extensions.register(SERVER_EXTENSION_TYPE)
         self._assets = self.extensions.register(ASSET_EXTENSION_TYPE)
-        self._permissions = self.extensions.register(PERMISSION_EXTENSION_TYPE)
         self._dashboard = self.extensions.register(DASHBOARD_EXTENSION_TYPE)
         self._i18n = self.extensions.register(I18N_EXTENSION_TYPE)
 

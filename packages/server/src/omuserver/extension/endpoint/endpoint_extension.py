@@ -4,6 +4,7 @@ import abc
 from typing import Dict, Tuple
 
 from loguru import logger
+from omu.errors import PermissionDenied
 from omu.extension.endpoint.endpoint_extension import (
     ENDPOINT_CALL_PACKET,
     ENDPOINT_ERROR_PACKET,
@@ -126,19 +127,19 @@ class EndpointExtension:
             ENDPOINT_ERROR_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
-            ENDPOINT_REGISTER_PACKET, self._on_endpoint_register
+            ENDPOINT_REGISTER_PACKET, self.handle_register
         )
         server.packet_dispatcher.add_packet_handler(
-            ENDPOINT_CALL_PACKET, self._on_endpoint_call
+            ENDPOINT_CALL_PACKET, self.handle_call
         )
         server.packet_dispatcher.add_packet_handler(
-            ENDPOINT_RECEIVE_PACKET, self._on_endpoint_receive
+            ENDPOINT_RECEIVE_PACKET, self.handle_receive
         )
         server.packet_dispatcher.add_packet_handler(
-            ENDPOINT_ERROR_PACKET, self._on_endpoint_error
+            ENDPOINT_ERROR_PACKET, self.handle_error
         )
 
-    async def _on_endpoint_register(
+    async def handle_register(
         self, session: Session, packet: EndpointRegisterPacket
     ) -> None:
         for endpoint, permission in packet.endpoints.items():
@@ -156,74 +157,67 @@ class EndpointExtension:
         if type.id in self._endpoints:
             raise ValueError(f"Endpoint {type.id.key()} already bound")
         endpoint = ServerEndpoint(
-            self._server,
-            type,
-            callback,
+            server=self._server,
+            endpoint=type,
+            callback=callback,
+            permission=type.permission_id,
         )
         self._endpoints[type.id] = endpoint
 
-    async def _on_endpoint_call(
-        self, session: Session, req: EndpointDataPacket
-    ) -> None:
-        endpoint = await self._get_endpoint(req, session)
+    def has_permission(self, endpoint: Endpoint, session: Session) -> bool:
+        if endpoint.permission is None:
+            return endpoint.id.is_subpart_of(session.app.identifier)
+        else:
+            return self._server.permissions.has_permission(session, endpoint.permission)
+
+    async def handle_call(self, session: Session, packet: EndpointDataPacket) -> None:
+        endpoint = await self._get_endpoint(packet, session)
         if endpoint is None:
             logger.warning(
-                f"{session.app.key()} tried to call unknown endpoint {req.id}"
+                f"{session.app.key()} tried to call unknown endpoint {packet.id}"
             )
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointErrorPacket(
-                    id=req.id,
-                    key=req.key,
-                    error=f"Endpoint {req.id} not found",
+                    id=packet.id,
+                    key=packet.key,
+                    error=f"Endpoint {packet.id} not found",
                 ),
             )
             return
-        if endpoint.permission is not None:
-            if endpoint.id.is_subpart_of(session.app.identifier):
-                has_permission = True
-            else:
-                has_permission = self._server.permissions.has_permission(
-                    session, endpoint.permission
-                )
-            if not has_permission:
-                logger.warning(
-                    f"{session.app.key()} tried to call "
-                    "endpoint {req.id} without permission"
-                )
-                await session.send(
-                    ENDPOINT_ERROR_PACKET,
-                    EndpointErrorPacket(
-                        id=req.id,
-                        key=req.key,
-                        error=f"Permission denied for endpoint {req.id}",
-                    ),
-                )
-                return
-        await endpoint.call(req, session)
-        key = (req.id, req.key)
-        self._calls[key] = EndpointCall(session, req)
+        if not self.has_permission(endpoint, session):
+            logger.warning(
+                f"{session.app.key()} tried to call endpoint {packet.id} "
+                f"without permission {endpoint.permission}"
+            )
+            error = (
+                f"Permission denied for endpoint {packet.id} "
+                f"with permission {endpoint.permission}"
+            )
+            raise PermissionDenied(error)
 
-    async def _on_endpoint_receive(
-        self, session: Session, req: EndpointDataPacket
+        await endpoint.call(packet, session)
+        key = (packet.id, packet.key)
+        self._calls[key] = EndpointCall(session, packet)
+
+    async def handle_receive(
+        self, session: Session, packet: EndpointDataPacket
     ) -> None:
-        key = (req.id, req.key)
+        key = (packet.id, packet.key)
         call = self._calls.get(key)
         if call is None:
             await session.send(
                 ENDPOINT_ERROR_PACKET,
                 EndpointErrorPacket(
-                    id=req.id,
-                    key=req.key,
-                    error=f"Endpoint not found {req.id}",
+                    id=packet.id,
+                    key=packet.key,
+                    error=f"Endpoint not found {packet.id}",
                 ),
             )
             return
-        await call.receive(req)
+        await call.receive(packet)
 
-    async def _on_endpoint_error(
-        self, session: Session, packet: EndpointErrorPacket
-    ) -> None:
+    async def handle_error(self, session: Session, packet: EndpointErrorPacket) -> None:
         key = (packet.id, packet.key)
         call = self._calls.get(key)
         if call is None:

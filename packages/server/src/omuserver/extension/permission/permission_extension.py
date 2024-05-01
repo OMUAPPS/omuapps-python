@@ -59,10 +59,11 @@ class PermissionExtension:
         self.permission_db.commit()
         self.load_permissions()
 
-    def register(self, permission: PermissionType) -> None:
-        if permission.id in self.permission_registry:
-            raise ValueError(f"Permission {permission.id} already registered")
-        self.permission_registry[permission.id] = permission
+    def register(self, *permission_types: PermissionType) -> None:
+        for permission in permission_types:
+            if permission.id in self.permission_registry:
+                raise ValueError(f"Permission {permission.id} already registered")
+            self.permission_registry[permission.id] = permission
 
     async def handle_register(
         self, session: Session, permissions: List[PermissionType]
@@ -119,7 +120,7 @@ class PermissionExtension:
             if permission is None:
                 raise ValueError(f"Permission {identifier} not registered")
             permissions.append(permission)
-        if session.is_plugin:
+        if session.is_plugin or session.is_dashboard:
             accepted = True
         else:
             accepted = await self.server.dashboard.request_permissions(
@@ -164,6 +165,4 @@ class PermissionExtension:
         return f"{self.request_id}-{time.time_ns()}"
 
     def has_permission(self, session: Session, permission_id: Identifier) -> bool:
-        if session.is_dashboard:
-            return True
         return permission_id in self.session_permissions.get(session.token, {})

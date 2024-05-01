@@ -8,8 +8,6 @@ from omuchat import App
 from omuchat.chat import (
     AUTHOR_TABLE,
     CHANNEL_TABLE,
-    CHAT_PERMISSION,
-    CHAT_READ_PERMISSION,
     CREATE_CHANNEL_TREE_ENDPOINT,
     IDENTIFIER,
     MESSAGE_TABLE,
@@ -17,6 +15,13 @@ from omuchat.chat import (
     ROOM_TABLE,
 )
 from omuchat.model.channel import Channel
+from omuchat.permissions import (
+    CHAT_CHANNEL_TREE_PERMISSION_ID,
+    CHAT_PERMISSION_ID,
+    CHAT_READ_PERMISSION_ID,
+    CHAT_SEND_PERMISSION_ID,
+    CHAT_WRITE_PERMISSION_ID,
+)
 
 app = App(
     IDENTIFIER,
@@ -27,7 +32,7 @@ client = OmuClient(app, address=address)
 
 client.permissions.register(
     PermissionType(
-        CHAT_PERMISSION,
+        CHAT_PERMISSION_ID,
         metadata={
             "level": "medium",
             "name": {
@@ -41,7 +46,7 @@ client.permissions.register(
         },
     ),
     PermissionType(
-        CHAT_READ_PERMISSION,
+        CHAT_READ_PERMISSION_ID,
         metadata={
             "level": "low",
             "name": {
@@ -51,6 +56,48 @@ client.permissions.register(
             "note": {
                 "ja": "チャットデータの読み取り",
                 "en": "Read chat data",
+            },
+        },
+    ),
+    PermissionType(
+        CHAT_WRITE_PERMISSION_ID,
+        metadata={
+            "level": "low",
+            "name": {
+                "ja": "チャットの書き込み",
+                "en": "Write chat",
+            },
+            "note": {
+                "ja": "チャットデータの書き込み",
+                "en": "Write chat data",
+            },
+        },
+    ),
+    PermissionType(
+        CHAT_SEND_PERMISSION_ID,
+        metadata={
+            "level": "low",
+            "name": {
+                "ja": "チャットの送信",
+                "en": "Send chat",
+            },
+            "note": {
+                "ja": "チャットデータの送信",
+                "en": "Send chat data",
+            },
+        },
+    ),
+    PermissionType(
+        CHAT_CHANNEL_TREE_PERMISSION_ID,
+        metadata={
+            "level": "medium",
+            "name": {
+                "ja": "チャンネルツリーの作成",
+                "en": "Create channel tree",
+            },
+            "note": {
+                "ja": "チャンネルツリーの作成",
+                "en": "Create channel tree",
             },
         },
     ),

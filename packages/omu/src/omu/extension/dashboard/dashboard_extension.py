@@ -23,10 +23,12 @@ class DashboardSetResponse(TypedDict):
     success: bool
 
 
+DASHBOARD_SET_PERMISSION_ID = DASHBOARD_EXTENSION_TYPE / "set"
 DASHBOARD_SET_ENDPOINT = EndpointType[Identifier, DashboardSetResponse].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "set",
     request_serializer=Serializer.model(Identifier),
+    permission_id=DASHBOARD_SET_PERMISSION_ID,
 )
 DASHBOARD_PERMISSION_REQUEST_PACKET = PacketType[PermissionRequest].create_json(
     DASHBOARD_EXTENSION_TYPE,
@@ -41,10 +43,12 @@ DASHBOARD_PERMISSION_DENY_PACKET = PacketType[str].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "permission_deny",
 )
+DASHBOARD_OPEN_APP_PERMISSION_ID = DASHBOARD_EXTENSION_TYPE / "open_app"
 DASHBOARD_OPEN_APP_ENDPOINT = EndpointType[App, DashboardOpenAppResponse].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "open_app",
     request_serializer=Serializer.model(App),
+    permission_id=DASHBOARD_OPEN_APP_PERMISSION_ID,
 )
 DASHBOARD_OPEN_APP_PACKET = PacketType[App].create_json(
     DASHBOARD_EXTENSION_TYPE,
@@ -65,4 +69,7 @@ class DashboardExtension(Extension):
         )
 
     async def open_app(self, app: App) -> None:
+        if not self.client.permissions.has(DASHBOARD_OPEN_APP_PERMISSION_ID):
+            error = f"Pemission {DASHBOARD_OPEN_APP_PERMISSION_ID} required to open app {app}"
+            raise PermissionError(error)
         await self.client.endpoints.call(DASHBOARD_OPEN_APP_ENDPOINT, app)

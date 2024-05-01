@@ -50,3 +50,37 @@ class PermissionType(Model[PermissionTypeJson]):
             id=Identifier.from_key(json["id"]),
             metadata=json["metadata"],
         )
+
+
+NO_PERMISSION_ID = Identifier("omu", "no_permission")
+NO_PERMISSION = PermissionType.create(
+    NO_PERMISSION_ID,
+    "No Permission",
+    {
+        "name": {
+            "en": "No Permission",
+            "ja": "権限なし",
+        },
+        "note": {
+            "en": "No permission required.",
+            "ja": "権限は必要ありません。",
+        },
+        "level": "low",
+    },
+)
+GENERAL_PERMISSION_ID = Identifier("omu", "general_permission")
+GENERAL_PERMISSION = PermissionType.create(
+    GENERAL_PERMISSION_ID,
+    "General Permission",
+    {
+        "name": {
+            "en": "General Permission",
+            "ja": "一般権限",
+        },
+        "note": {
+            "en": "General permission required.",
+            "ja": "一般権限が必要です。",
+        },
+        "level": "medium",
+    },
+)

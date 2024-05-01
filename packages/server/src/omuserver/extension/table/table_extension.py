@@ -4,8 +4,17 @@ from pathlib import Path
 from typing import Callable, Dict, List
 
 from omu.errors import PermissionDenied
-from omu.extension.table import Table, TableType
-from omu.extension.table.table import TablePermissions
+from omu.extension.permission import PermissionType
+from omu.extension.table import Table, TablePermissions, TableType
+from omu.extension.table.packets import (
+    SetConfigPacket,
+    SetPermissionPacket,
+    TableFetchPacket,
+    TableItemsPacket,
+    TableKeysPacket,
+    TablePacket,
+    TableProxyPacket,
+)
 from omu.extension.table.table_extension import (
     TABLE_FETCH_ALL_ENDPOINT,
     TABLE_FETCH_ENDPOINT,
@@ -15,30 +24,39 @@ from omu.extension.table.table_extension import (
     TABLE_ITEM_REMOVE_PACKET,
     TABLE_ITEM_UPDATE_PACKET,
     TABLE_LISTEN_PACKET,
+    TABLE_PERMISSION_ID,
     TABLE_PROXY_LISTEN_PACKET,
     TABLE_PROXY_PACKET,
     TABLE_SET_CONFIG_PACKET,
     TABLE_SET_PERMISSION_PACKET,
     TABLE_SIZE_ENDPOINT,
-    SetConfigPacket,
-    SetPermissionPacket,
-    TableFetchPacket,
-    TableItemsPacket,
-    TableKeysPacket,
-    TablePacket,
-    TableProxyPacket,
 )
 from omu.identifier import Identifier
 from omu.interface import Keyable
 
-from omuserver.extension.table.serialized_table import SerializedTable
 from omuserver.server import Server
 from omuserver.session import Session
 
 from .adapters.sqlitetable import SqliteTableAdapter
 from .adapters.tableadapter import TableAdapter
 from .cached_table import CachedTable
+from .serialized_table import SerializedTable
 from .server_table import ServerTable
+
+TABLE_PERMISSION = PermissionType(
+    TABLE_PERMISSION_ID,
+    {
+        "level": "low",
+        "name": {
+            "en": "Table Permission",
+            "ja": "テーブル権限",
+        },
+        "note": {
+            "en": "Permission to read, write, and remove items in a table",
+            "ja": "テーブル内のアイテムを読み書き、削除する権限",
+        },
+    },
+)
 
 
 class TableExtension:
@@ -46,6 +64,7 @@ class TableExtension:
         self.server = server
         self._tables: Dict[Identifier, ServerTable] = {}
         self._adapters: List[TableAdapter] = []
+        server.permissions.register(TABLE_PERMISSION)
         server.packet_dispatcher.register(
             TABLE_SET_PERMISSION_PACKET,
             TABLE_SET_CONFIG_PACKET,

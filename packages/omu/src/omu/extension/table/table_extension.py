@@ -58,6 +58,7 @@ class TableExtension(Extension):
         self,
         table_type: TableType[T],
     ) -> Table[T]:
+        self._client.permissions.require(TABLE_PERMISSION_ID)
         if self.has(table_type.identifier):
             raise ValueError(
                 f"Table with identifier {table_type.identifier} already exists"
@@ -75,12 +76,12 @@ class TableExtension(Extension):
         return self.create(type)
 
     def model[T: Keyable, D](
-        self, identifier: Identifier, name: str, model_type: type[ModelType[T, D]]
+        self, id: Identifier, name: str, model_type: type[ModelType[T, D]]
     ) -> Table[T]:
-        identifier = identifier / name
-        if self.has(identifier):
-            raise ValueError(f"Table with identifier {identifier} already exists")
-        table_type = TableType.create_model(identifier, name, model_type)
+        id = id / name
+        if self.has(id):
+            raise ValueError(f"Table with identifier {id} already exists")
+        table_type = TableType.create_model(id, name, model_type)
         return self.create(table_type)
 
     def has(self, identifier: Identifier) -> bool:
@@ -91,6 +92,7 @@ TABLE_EXTENSION_TYPE = ExtensionType(
     "table", lambda client: TableExtension(client), lambda: []
 )
 
+TABLE_PERMISSION_ID = TABLE_EXTENSION_TYPE / "permission"
 
 TABLE_SET_PERMISSION_PACKET = PacketType[SetPermissionPacket].create(
     TABLE_EXTENSION_TYPE,
@@ -139,6 +141,7 @@ TABLE_ITEM_GET_ENDPOINT = EndpointType[
     "item_get",
     request_serializer=TableKeysPacket,
     response_serializer=TableItemsPacket,
+    permission_id=TABLE_PERMISSION_ID,
 )
 TABLE_FETCH_ENDPOINT = EndpointType[
     TableFetchPacket, TableItemsPacket
@@ -147,6 +150,7 @@ TABLE_FETCH_ENDPOINT = EndpointType[
     "fetch",
     request_serializer=TableFetchPacket,
     response_serializer=TableItemsPacket,
+    permission_id=TABLE_PERMISSION_ID,
 )
 TABLE_FETCH_ALL_ENDPOINT = EndpointType[
     TablePacket, TableItemsPacket
@@ -155,12 +159,14 @@ TABLE_FETCH_ALL_ENDPOINT = EndpointType[
     "fetch_all",
     request_serializer=TablePacket,
     response_serializer=TableItemsPacket,
+    permission_id=TABLE_PERMISSION_ID,
 )
 TABLE_SIZE_ENDPOINT = EndpointType[TablePacket, int].create_serialized(
     TABLE_EXTENSION_TYPE,
     "size",
     request_serializer=TablePacket,
     response_serializer=Serializer.json(),
+    permission_id=TABLE_PERMISSION_ID,
 )
 TABLE_ITEM_CLEAR_PACKET = PacketType[TablePacket].create(
     TABLE_EXTENSION_TYPE,

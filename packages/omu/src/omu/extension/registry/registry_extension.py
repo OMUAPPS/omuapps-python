@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Callable, List
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
+from omu.extension.registry.packets import RegistryPacket
 from omu.helper import Coro
 from omu.identifier import Identifier
-from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
 from omu.serializer import Serializable, SerializeError, Serializer
 
@@ -20,36 +19,12 @@ REGISTRY_EXTENSION_TYPE = ExtensionType(
     lambda: [],
 )
 
-
-@dataclass(frozen=True)
-class RegistryPacket:
-    identifier: Identifier
-    value: bytes | None
-
-
-class REGISTRY_DATA_SERIALIZER:
-    @classmethod
-    def serialize(cls, item: RegistryPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.identifier.key())
-        writer.write_boolean(item.value is not None)
-        if item.value is not None:
-            writer.write_byte_array(item.value)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> RegistryPacket:
-        with ByteReader(item) as reader:
-            key = Identifier.from_key(reader.read_string())
-            existing = reader.read_boolean()
-            value = reader.read_byte_array() if existing else None
-        return RegistryPacket(key, value)
-
+REGISTRY_PERMISSION_ID = REGISTRY_EXTENSION_TYPE / "permission"
 
 REGISTRY_UPDATE_PACKET = PacketType[RegistryPacket].create_serialized(
     REGISTRY_EXTENSION_TYPE,
     "update",
-    serializer=REGISTRY_DATA_SERIALIZER,
+    serializer=RegistryPacket,
 )
 REGISTRY_LISTEN_PACKET = PacketType[Identifier].create_json(
     REGISTRY_EXTENSION_TYPE,
@@ -60,7 +35,8 @@ REGISTRY_GET_ENDPOINT = EndpointType[Identifier, RegistryPacket].create_serializ
     REGISTRY_EXTENSION_TYPE,
     "get",
     request_serializer=Serializer.model(Identifier).to_json(),
-    response_serializer=REGISTRY_DATA_SERIALIZER,
+    response_serializer=RegistryPacket,
+    permission_id=REGISTRY_PERMISSION_ID,
 )
 
 
@@ -70,6 +46,7 @@ class RegistryExtension(Extension):
         client.network.register_packet(REGISTRY_UPDATE_PACKET)
 
     def get[T](self, registry_type: RegistryType[T]) -> Registry[T]:
+        self.client.permissions.require(REGISTRY_PERMISSION_ID)
         return RegistryImpl(
             self.client,
             registry_type.identifier,
@@ -78,6 +55,7 @@ class RegistryExtension(Extension):
         )
 
     def create[T](self, name: str, default_value: T) -> Registry[T]:
+        self.client.permissions.require(REGISTRY_PERMISSION_ID)
         identifier = self.client.app.identifier / name
         return RegistryImpl(self.client, identifier, default_value, Serializer.json())
 
