@@ -2,64 +2,43 @@ from asyncio import Future
 
 from omu.app import App
 from omu.errors import PermissionDenied
-from omu.extension.dashboard.dashboard import PermissionRequest
+from omu.extension.dashboard import PermissionRequest
 from omu.extension.dashboard.dashboard_extension import (
+    DASHBOARD_APP_TABLE_TYPE,
     DASHBOARD_OPEN_APP_ENDPOINT,
     DASHBOARD_OPEN_APP_PACKET,
-    DASHBOARD_OPEN_APP_PERMISSION_ID,
     DASHBOARD_PERMISSION_ACCEPT_PACKET,
     DASHBOARD_PERMISSION_DENY_PACKET,
     DASHBOARD_PERMISSION_REQUEST_PACKET,
     DASHBOARD_SET_ENDPOINT,
-    DASHBOARD_SET_PERMISSION_ID,
     DashboardOpenAppResponse,
     DashboardSetResponse,
 )
-from omu.extension.permission.permission import PermissionType
 from omu.identifier import Identifier
 
 from omuserver.server import Server
 from omuserver.session import Session
 
-DASHBOARD_SET_PERMISSION = PermissionType(
-    DASHBOARD_SET_PERMISSION_ID,
-    {
-        "level": "low",
-        "name": {
-            "en": "Dashboard Set Permission",
-            "ja": "ダッシュボード設定権限",
-        },
-        "note": {
-            "en": "Permission to set the dashboard session",
-            "ja": "ダッシュボードセッションを設定する権限",
-        },
-    },
-)
-DASHBOARD_OPEN_APP_PERMISSION = PermissionType(
-    DASHBOARD_OPEN_APP_PERMISSION_ID,
-    {
-        "level": "low",
-        "name": {
-            "en": "Dashboard Open App Permission",
-            "ja": "アプリを開く権限",
-        },
-        "note": {
-            "en": "Permission to open an app on the dashboard",
-            "ja": "アプリを開く権限",
-        },
-    },
+from .permission import (
+    DASHBOARD_OPEN_APP_PERMISSION,
+    DASHBOARD_SET_PERMISSION,
+    DASHOBARD_APP_EDIT_PERMISSION,
+    DASHOBARD_APP_READ_PERMISSION,
 )
 
 
 class DashboardExtension:
     def __init__(self, server: Server) -> None:
         self.server = server
+        self.apps = server.tables.register(DASHBOARD_APP_TABLE_TYPE)
         self.dashboard_session: Session | None = None
         self.pending_permission_requests: dict[str, PermissionRequest] = {}
         self.permission_requests: dict[str, Future[bool]] = {}
         server.permissions.register(
             DASHBOARD_SET_PERMISSION,
             DASHBOARD_OPEN_APP_PERMISSION,
+            DASHOBARD_APP_READ_PERMISSION,
+            DASHOBARD_APP_EDIT_PERMISSION,
         )
         server.packet_dispatcher.register(
             DASHBOARD_PERMISSION_REQUEST_PACKET,

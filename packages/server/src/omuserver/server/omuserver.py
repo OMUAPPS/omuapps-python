@@ -63,10 +63,10 @@ class OmuServer(Server):
         self._running = False
         self._endpoints = EndpointExtension(self)
         self._permissions = PermissionExtension(self)
+        self._tables = TableExtension(self)
         self._dashboard = DashboardExtension(self)
         self._registry = RegistryExtension(self)
         self._server = ServerExtension(self)
-        self._tables = TableExtension(self)
         self._signal = SignalExtension(self)
         self._plugins = PluginExtension(self)
         self._assets = AssetExtension(self)

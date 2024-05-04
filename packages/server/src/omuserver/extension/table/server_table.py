@@ -19,6 +19,12 @@ type Json = str | int | float | bool | None | dict[str, Json] | list[Json]
 
 
 class ServerTable(abc.ABC):
+    @abc.abstractmethod
+    async def load(self) -> None: ...
+
+    @abc.abstractmethod
+    async def store(self) -> None: ...
+
     @property
     @abc.abstractmethod
     def id(self) -> Identifier: ...
@@ -60,9 +66,6 @@ class ServerTable(abc.ABC):
     async def proxy(
         self, session: Session, key: int, items: Mapping[str, bytes]
     ) -> int: ...
-
-    @abc.abstractmethod
-    async def store(self) -> None: ...
 
     @abc.abstractmethod
     async def get(self, key: str) -> bytes | None: ...

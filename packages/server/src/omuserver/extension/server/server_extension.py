@@ -5,9 +5,11 @@ from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from loguru import logger
+from omu.extension.permission.permission import PermissionType
 from omu.extension.server.server_extension import (
     APP_TABLE_TYPE,
     REQUIRE_APPS_PACKET_TYPE,
+    SERVER_SHUTDOWN_PERMISSION_ID,
     SHUTDOWN_ENDPOINT_TYPE,
     VERSION_REGISTRY_TYPE,
 )
@@ -27,13 +29,31 @@ class WaitHandle:
         self.ids = ids
 
 
+SERVER_SHUTDOWN_PERMISSION = PermissionType(
+    id=SERVER_SHUTDOWN_PERMISSION_ID,
+    metadata={
+        "level": "high",
+        "name": {
+            "en": "Shutdown Server",
+            "ja": "サーバーをシャットダウン",
+        },
+        "note": {
+            "en": "Permission to shutdown the server",
+            "ja": "サーバーをシャットダウンできる権限",
+        },
+    },
+)
+
+
 class ServerExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         server.packet_dispatcher.register(
             REQUIRE_APPS_PACKET_TYPE,
         )
+        server.permissions.register(SERVER_SHUTDOWN_PERMISSION)
         self.version_registry = self._server.registry.create(VERSION_REGISTRY_TYPE)
+        self.apps = self._server.tables.register(APP_TABLE_TYPE)
         server.network.listeners.connected += self.on_connected
         server.network.listeners.disconnected += self.on_disconnected
         server.listeners.start += self.on_start
@@ -77,7 +97,6 @@ class ServerExtension:
 
     async def on_start(self) -> None:
         await self.version_registry.set(__version__)
-        self.apps = await self._server.tables.register_table(APP_TABLE_TYPE)
         await self.apps.clear()
 
     async def on_connected(self, session: Session) -> None:

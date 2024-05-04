@@ -45,11 +45,16 @@ class CachedTable(ServerTable):
     def permissions(self) -> TablePermissions | None:
         return self._permissions
 
-    def set_permissions(self, permissions: TablePermissions) -> None:
+    def set_permissions(self, permissions: TablePermissions | None) -> None:
         self._permissions = permissions
 
     def set_adapter(self, adapter: TableAdapter) -> None:
         self._adapter = adapter
+
+    async def load(self) -> None:
+        if self._adapter is None:
+            raise Exception("Table not set")
+        await self._adapter.load()
 
     async def store(self) -> None:
         if self._adapter is None:

@@ -6,6 +6,7 @@ from omu.app import App
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
+from omu.extension.table.table import TablePermissions, TableType
 from omu.identifier import Identifier
 from omu.network.packet import PacketType
 from omu.serializer import Serializer
@@ -43,7 +44,7 @@ DASHBOARD_PERMISSION_DENY_PACKET = PacketType[str].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "permission_deny",
 )
-DASHBOARD_OPEN_APP_PERMISSION_ID = DASHBOARD_EXTENSION_TYPE / "open_app"
+DASHBOARD_OPEN_APP_PERMISSION_ID = DASHBOARD_EXTENSION_TYPE / "app" / "open"
 DASHBOARD_OPEN_APP_ENDPOINT = EndpointType[App, DashboardOpenAppResponse].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "open_app",
@@ -55,18 +56,30 @@ DASHBOARD_OPEN_APP_PACKET = PacketType[App].create_json(
     "open_app",
     Serializer.model(App),
 )
+DASHOBARD_APP_READ_PERMISSION_ID = DASHBOARD_EXTENSION_TYPE / "app" / "read"
+DASHOBARD_APP_EDIT_PERMISSION_ID = DASHBOARD_EXTENSION_TYPE / "app" / "edit"
+DASHBOARD_APP_TABLE_TYPE = TableType.create_model(
+    DASHBOARD_EXTENSION_TYPE,
+    "apps",
+    App,
+    permissions=TablePermissions(
+        read=DASHOBARD_APP_READ_PERMISSION_ID,
+        write=DASHOBARD_APP_EDIT_PERMISSION_ID,
+        remove=DASHOBARD_APP_EDIT_PERMISSION_ID,
+    ),
+)
 
 
 class DashboardExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-
         self.client.network.register_packet(
             DASHBOARD_PERMISSION_REQUEST_PACKET,
             DASHBOARD_PERMISSION_ACCEPT_PACKET,
             DASHBOARD_PERMISSION_DENY_PACKET,
             DASHBOARD_OPEN_APP_PACKET,
         )
+        self.apps = client.tables.get(DASHBOARD_APP_TABLE_TYPE)
 
     async def open_app(self, app: App) -> None:
         if not self.client.permissions.has(DASHBOARD_OPEN_APP_PERMISSION_ID):

@@ -128,6 +128,7 @@ class TableExtension:
             TABLE_SIZE_ENDPOINT,
             self.handle_table_size,
         )
+        server.listeners.start += self.on_server_start
         server.listeners.stop += self.on_server_stop
 
     async def handle_item_get(
@@ -283,6 +284,10 @@ class TableExtension:
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
+    async def on_server_start(self) -> None:
+        for table in self._tables.values():
+            await table.load()
+
     async def on_server_stop(self) -> None:
         for table in self._tables.values():
             await table.store()
@@ -307,3 +312,11 @@ class TableExtension:
         raise PermissionDenied(
             f"Table {table.id} does not have permission {table.permissions}"
         )
+
+    def register[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
+        table = CachedTable(self.server, table_type.identifier)
+        table.set_permissions(table_type.permissions)
+        adapter = SqliteTableAdapter.create(self.get_table_path(table_type.identifier))
+        table.set_adapter(adapter)
+        self._tables[table_type.identifier] = table
+        return SerializedTable(table, table_type)

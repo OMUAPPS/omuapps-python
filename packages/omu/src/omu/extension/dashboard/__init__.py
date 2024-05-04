@@ -1,8 +1,19 @@
 from .dashboard import PermissionRequest
-from .dashboard_extension import DASHBOARD_EXTENSION_TYPE, DashboardExtension
+from .dashboard_extension import (
+    DASHBOARD_EXTENSION_TYPE,
+    DASHBOARD_OPEN_APP_PERMISSION_ID,
+    DASHBOARD_SET_PERMISSION_ID,
+    DASHOBARD_APP_EDIT_PERMISSION_ID,
+    DASHOBARD_APP_READ_PERMISSION_ID,
+    DashboardExtension,
+)
 
 __all__ = [
-    "PermissionRequest",
-    "DashboardExtension",
     "DASHBOARD_EXTENSION_TYPE",
+    "DASHBOARD_SET_PERMISSION_ID",
+    "DASHBOARD_OPEN_APP_PERMISSION_ID",
+    "DASHOBARD_APP_READ_PERMISSION_ID",
+    "DASHOBARD_APP_EDIT_PERMISSION_ID",
+    "DashboardExtension",
+    "PermissionRequest",
 ]
