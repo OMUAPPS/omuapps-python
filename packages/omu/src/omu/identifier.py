@@ -79,7 +79,7 @@ class Identifier(Model[str], Keyable):
         )
         return Path(namespace, *self.path)
 
-    def is_subpart_of(self, base: Identifier) -> bool:
+    def is_subpath_of(self, base: Identifier) -> bool:
         return (
             self.namespace == base.namespace
             and self.path[: len(base.path)] == base.path

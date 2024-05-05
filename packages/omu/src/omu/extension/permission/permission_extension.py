@@ -39,7 +39,7 @@ class PermissionExtension(Extension):
             if permission.id in self.registered_permissions:
                 raise ValueError(f"Permission {permission.id} already registered")
             base_identifier = self.client.app.id
-            if not permission.id.is_subpart_of(base_identifier):
+            if not permission.id.is_subpath_of(base_identifier):
                 raise ValueError(
                     f"Permission identifier {permission.id} is not a subpart of app identifier {base_identifier}"
                 )

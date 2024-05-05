@@ -298,7 +298,7 @@ class TableExtension:
         table: ServerTable,
         get_permission: Callable[[TablePermissions], list[Identifier | None]],
     ):
-        if table.id.is_subpart_of(session.app.id):
+        if table.id.is_subpath_of(session.app.id):
             return
         if table.permissions is None:
             raise PermissionDenied(f"Table {table.id} does not have a permission set")

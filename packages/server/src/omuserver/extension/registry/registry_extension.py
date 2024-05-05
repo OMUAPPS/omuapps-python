@@ -69,7 +69,7 @@ class RegistryExtension:
         self, session: Session, packet: RegistryRegisterPacket
     ) -> None:
         registry = await self.get(packet.id)
-        if not registry.id.is_subpart_of(session.app.id):
+        if not registry.id.is_subpath_of(session.app.id):
             msg = f"App {session.app.id=} not allowed to register {packet.id=}"
             raise PermissionDenied(msg)
         registry.permissions = packet.permissions
@@ -120,7 +120,7 @@ class RegistryExtension:
         session: Session,
         get_permissions: Callable[[RegistryPermissions], list[Identifier | None]],
     ) -> None:
-        if registry.id.is_subpart_of(session.app.id):
+        if registry.id.is_subpath_of(session.app.id):
             return
         require_permissions = get_permissions(registry.permissions)
         if not any(

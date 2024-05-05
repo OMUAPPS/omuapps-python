@@ -140,7 +140,7 @@ class RegistryImpl[T](Registry[T]):
             await listener(self.value)
 
     async def _on_ready_task(self) -> None:
-        if not self.type.id.is_subpart_of(self.client.app.id):
+        if not self.type.id.is_subpath_of(self.client.app.id):
             return
         packet = RegistryRegisterPacket(
             id=self.type.id,

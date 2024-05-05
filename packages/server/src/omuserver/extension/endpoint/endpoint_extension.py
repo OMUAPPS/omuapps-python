@@ -165,7 +165,7 @@ class EndpointExtension:
 
     def has_permission(self, endpoint: Endpoint, session: Session) -> bool:
         if endpoint.permission is None:
-            return endpoint.id.is_subpart_of(session.app.id)
+            return endpoint.id.is_subpath_of(session.app.id)
         else:
             return self._server.permissions.has_permission(session, endpoint.permission)
 

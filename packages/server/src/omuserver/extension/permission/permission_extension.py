@@ -69,7 +69,7 @@ class PermissionExtension:
         self, session: Session, permissions: list[PermissionType]
     ) -> None:
         for permission in permissions:
-            if not permission.id.is_subpart_of(session.app.id):
+            if not permission.id.is_subpath_of(session.app.id):
                 raise ValueError(
                     f"Permission identifier {permission.id} "
                     f"is not a subpart of app identifier {session.app.id}"
