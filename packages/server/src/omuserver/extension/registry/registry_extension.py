@@ -139,6 +139,7 @@ class RegistryExtension:
             registry = ServerRegistry(
                 server=self._server,
                 id=registry_type.id,
+                permissions=registry_type.permissions,
             )
             self.registries[registry_type.id] = registry
             self._startup_registries.append(registry)
