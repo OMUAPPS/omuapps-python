@@ -76,16 +76,31 @@ class RegistryExtension:
 
     async def handle_listen(self, session: Session, identifier: Identifier) -> None:
         registry = await self.get(identifier)
+        self.check_permission(
+            registry,
+            session,
+            lambda permissions: [permissions.all, permissions.read],
+        )
         await registry.attach_session(session)
 
     async def handle_update(self, session: Session, packet: RegistryPacket) -> None:
         registry = await self.get(packet.id)
+        self.check_permission(
+            registry,
+            session,
+            lambda permissions: [permissions.all, permissions.write],
+        )
         await registry.store(packet.value)
 
     async def handle_get(
         self, session: Session, identifier: Identifier
     ) -> RegistryPacket:
         registry = await self.get(identifier)
+        self.check_permission(
+            registry,
+            session,
+            lambda permissions: [permissions.all, permissions.read],
+        )
         return RegistryPacket(identifier, registry.data)
 
     async def get(self, id: Identifier) -> ServerRegistry:
@@ -103,18 +118,19 @@ class RegistryExtension:
         self,
         registry: ServerRegistry,
         session: Session,
-        get_permissions: Callable[[RegistryPermissions], list[Identifier]],
+        get_permissions: Callable[[RegistryPermissions], list[Identifier | None]],
     ) -> None:
-        if registry.permissions is None:
-            if not registry.id.is_subpart_of(session.app.id):
-                msg = f"App {session.app.id=} not allowed to access {registry.id=}"
-                raise PermissionDenied(msg)
+        if registry.id.is_subpart_of(session.app.id):
+            return
         require_permissions = get_permissions(registry.permissions)
-        if not self._server.permissions.has_permission(session, *require_permissions):
+        if not any(
+            self._server.permissions.has_permission(session, permission)
+            for permission in filter(None, require_permissions)
+        ):
             msg = f"App {session.app.id=} not allowed to access {registry.id=}"
             raise PermissionDenied(msg)
 
-    def create[T](
+    def register[T](
         self,
         registry_type: RegistryType[T],
     ) -> Registry[T]:

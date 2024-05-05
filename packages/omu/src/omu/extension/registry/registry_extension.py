@@ -10,8 +10,8 @@ from omu.identifier import Identifier
 from omu.network.packet import PacketType
 from omu.serializer import SerializeError, Serializer
 
-from .packets import RegistryPacket, RegistryPermissions, RegistryRegisterPacket
-from .registry import Registry, RegistryType
+from .packets import RegistryPacket, RegistryRegisterPacket
+from .registry import Registry, RegistryPermissions, RegistryType
 
 REGISTRY_EXTENSION_TYPE = ExtensionType(
     "registry",
@@ -57,6 +57,8 @@ class RegistryExtension(Extension):
 
     def create_registry[T](self, registry_type: RegistryType[T]) -> Registry[T]:
         self.client.permissions.require(REGISTRY_PERMISSION_ID)
+        if registry_type.id in self.registries:
+            raise ValueError(f"Registry {registry_type.id} already exists")
         return RegistryImpl(
             self.client,
             registry_type,
@@ -83,11 +85,16 @@ class RegistryImpl[T](Registry[T]):
     ) -> None:
         self.client = client
         self.type = registry_type
+        self._value = registry_type.default_value
         self.permissions: RegistryPermissions = registry_type.permissions
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
         client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._handle_update)
         client.network.add_task(self._on_ready_task)
+
+    @property
+    def value(self) -> T:
+        return self._value
 
     async def get(self) -> T:
         result = await self.client.endpoints.call(REGISTRY_GET_ENDPOINT, self.type.id)
@@ -126,15 +133,13 @@ class RegistryImpl[T](Registry[T]):
             return
         if event.value is not None:
             try:
-                value = self.type.serializer.deserialize(event.value)
+                self._value = self.type.serializer.deserialize(event.value)
             except SerializeError as e:
                 raise SerializeError(
                     f"Failed to deserialize registry value for identifier {self.type.id}"
                 ) from e
-        else:
-            value = self.type.default_value
         for listener in self.listeners:
-            await listener(value)
+            await listener(self.value)
 
     async def _on_ready_task(self) -> None:
         if not self.type.id.is_subpart_of(self.client.app.id):
