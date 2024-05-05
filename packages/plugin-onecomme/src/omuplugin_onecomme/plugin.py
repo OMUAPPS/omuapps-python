@@ -5,14 +5,12 @@ from typing import TypedDict
 
 from aiohttp import web
 from loguru import logger
-from omu.identifier import Identifier
 from omuchat import App, Client, events, model
 
-IDENTIFIER = Identifier("cc.omuchat", "plugin-onesync")
 from .onecomme import Badge, Comment, CommentData, CommentServiceData
 
 APP = App(
-    IDENTIFIER,
+    "cc.omuchat:onesync/plugin",
     version="0.1.0",
 )
 client = Client(APP)
