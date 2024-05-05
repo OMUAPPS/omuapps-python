@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from omuserver.extension.asset import AssetExtension
     from omuserver.extension.dashboard import DashboardExtension
     from omuserver.extension.endpoint import EndpointExtension
+    from omuserver.extension.i18n import I18nExtension
     from omuserver.extension.permission import PermissionExtension
     from omuserver.extension.plugin import PluginExtension
     from omuserver.extension.registry import RegistryExtension
@@ -90,6 +91,10 @@ class Server(abc.ABC):
     @property
     @abc.abstractmethod
     def assets(self) -> AssetExtension: ...
+
+    @property
+    @abc.abstractmethod
+    def i18n(self) -> I18nExtension: ...
 
     @property
     @abc.abstractmethod
