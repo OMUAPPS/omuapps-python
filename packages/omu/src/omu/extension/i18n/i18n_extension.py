@@ -11,7 +11,7 @@ I18N_EXTENSION_TYPE = ExtensionType(
 )
 I18N_SET_LOCALES_PERMISSION_ID = I18N_EXTENSION_TYPE / "locales" / "set"
 I18N_GET_LOCALES_PERMISSION_ID = I18N_EXTENSION_TYPE / "locales" / "get"
-LOCALES_REGISTRY = RegistryType[List[Locale]].create_json(
+I18N_LOCALES_REGISTRY_TYPE = RegistryType[List[Locale]].create_json(
     I18N_EXTENSION_TYPE,
     name="locales",
     default_value=[],
@@ -26,7 +26,7 @@ class I18nExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
         client.permissions.require(I18N_GET_LOCALES_PERMISSION_ID)
-        self.locales_registry = client.registry.get(LOCALES_REGISTRY)
+        self.locales_registry = client.registry.get(I18N_LOCALES_REGISTRY_TYPE)
         self.locales: List[Locale] = []
 
     def translate(self, localized_text: LocalizedText) -> str:
