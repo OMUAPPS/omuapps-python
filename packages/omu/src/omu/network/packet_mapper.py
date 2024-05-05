@@ -26,14 +26,14 @@ class PacketMapper(Serializable[Packet, PacketData]):
         )
 
     def deserialize(self, item: PacketData) -> Packet:
-        identifier = Identifier.from_key(item.type)
-        packet_type = self._map.get(identifier)
+        id = Identifier.from_key(item.type)
+        packet_type = self._map.get(id)
         if not packet_type:
-            raise InvalidPacket(identifier, f"Packet type {identifier} not registered")
+            raise InvalidPacket(id, f"Packet type {id} not registered")
         try:
             data = packet_type.serializer.deserialize(item.data)
         except Exception as e:
-            raise InvalidPacket(identifier, "Failed to deserialize packet data") from e
+            raise InvalidPacket(id, "Failed to deserialize packet data") from e
         return Packet(
             type=packet_type,
             data=data,

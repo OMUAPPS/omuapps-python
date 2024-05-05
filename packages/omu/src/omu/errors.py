@@ -44,7 +44,9 @@ class InvalidVersion(NetworkError, DisconnectReason):
         super().__init__(DisconnectType.INVALID_VERSION, *args, **kwargs)
 
 
-class InvalidPacket(NetworkError, DisconnectReason): ...
+class InvalidPacket(NetworkError, DisconnectReason):
+    def __init__(self, *args, **kwargs):
+        super().__init__(DisconnectType.INVALID_PACKET, *args, **kwargs)
 
 
 class InvalidPacketType(InvalidPacket):
