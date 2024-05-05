@@ -6,7 +6,7 @@ class OmuError(Exception):
     pass
 
 
-class DisconnectReason:
+class DisconnectReason(OmuError):
     def __init__(
         self, type: DisconnectType, message: str | None = None, *args, **kwargs
     ):
