@@ -4,8 +4,7 @@ from typing import Final, List, NotRequired, TypedDict
 
 from omu.identifier import Identifier
 from omu.interface import Keyable
-from omu.localization import LocalizedText
-from omu.localization.locale import Locale
+from omu.localization import Locale, LocalizedText
 from omu.model import Model
 
 
@@ -22,7 +21,7 @@ class AppMetadata(TypedDict):
 
 
 class AppJson(TypedDict):
-    identifier: str
+    id: str
     version: NotRequired[str] | None
     url: NotRequired[str] | None
     metadata: NotRequired[AppMetadata] | None
@@ -31,24 +30,24 @@ class AppJson(TypedDict):
 class App(Keyable, Model[AppJson]):
     def __init__(
         self,
-        identifier: Identifier | str,
+        id: Identifier | str,
         *,
         version: str | None = None,
         url: str | None = None,
         metadata: AppMetadata | None = None,
     ) -> None:
-        if isinstance(identifier, str):
-            identifier = Identifier.from_key(identifier)
-        self.identifier: Final[Identifier] = identifier
+        if isinstance(id, str):
+            id = Identifier.from_key(id)
+        self.id: Final[Identifier] = id
         self.version = version
         self.url = url
         self.metadata = metadata
 
     @classmethod
     def from_json(cls, json: AppJson) -> App:
-        identifier = Identifier.from_key(json["identifier"])
+        id = Identifier.from_key(json["id"])
         return cls(
-            identifier,
+            id,
             version=json.get("version"),
             url=json.get("url"),
             metadata=json.get("metadata"),
@@ -56,14 +55,14 @@ class App(Keyable, Model[AppJson]):
 
     def to_json(self) -> AppJson:
         return AppJson(
-            identifier=self.key(),
+            id=self.key(),
             version=self.version,
             url=self.url,
             metadata=self.metadata,
         )
 
     def key(self) -> str:
-        return self.identifier.key()
+        return self.id.key()
 
     def __hash__(self) -> int:
         return hash(self.key())

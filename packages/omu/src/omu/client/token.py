@@ -26,7 +26,7 @@ class JsonTokenProvider(TokenProvider):
         self._path = path
 
     def get_store_key(self, server_address: Address, app: App) -> str:
-        return f"{server_address.host}:{server_address.port}:{app.identifier.key()}"
+        return f"{server_address.host}:{server_address.port}:{app.id.key()}"
 
     def get(self, server_address: Address, app: App) -> str | None:
         if not self._path.exists():

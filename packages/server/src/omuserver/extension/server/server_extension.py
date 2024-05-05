@@ -105,8 +105,8 @@ class ServerExtension:
         session.listeners.ready += self.on_session_ready
 
     async def on_session_ready(self, session: Session) -> None:
-        for waiter in self._app_waiters.get(session.app.identifier, []):
-            waiter.ids.remove(session.app.identifier)
+        for waiter in self._app_waiters.get(session.app.id, []):
+            waiter.ids.remove(session.app.id)
             if len(waiter.ids) == 0:
                 waiter.future.set_result(True)
 

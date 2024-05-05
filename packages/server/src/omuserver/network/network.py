@@ -69,7 +69,7 @@ class Network:
         if origin is None:
             return
         origin_namespace = Identifier.namespace_from_url(origin)
-        namespace = session.app.identifier.namespace
+        namespace = session.app.id.namespace
         if origin_namespace == namespace:
             return
 
@@ -102,12 +102,12 @@ class Network:
     async def process_session(self, session: Session) -> None:
         if self.is_connected(session.app):
             logger.warning(f"Session {session.app} already connected")
-            old_session = self._sessions[session.app.identifier]
+            old_session = self._sessions[session.app.id]
             await old_session.disconnect(
                 DisconnectType.ANOTHER_CONNECTION,
                 f"Another connection from {session.app}",
             )
-        self._sessions[session.app.identifier] = session
+        self._sessions[session.app.id] = session
         session.listeners.disconnected += self.handle_disconnection
         await self._listeners.connected.emit(session)
         await session.send(PACKET_TYPES.CONNECT, ConnectPacket(app=session.app))
@@ -115,12 +115,12 @@ class Network:
         await listen_task
 
     def is_connected(self, app: App) -> bool:
-        return app.identifier in self._sessions
+        return app.id in self._sessions
 
     async def handle_disconnection(self, session: Session) -> None:
-        if session.app.identifier not in self._sessions:
+        if session.app.id not in self._sessions:
             return
-        del self._sessions[session.app.identifier]
+        del self._sessions[session.app.id]
         await self._listeners.disconnected.emit(session)
 
     async def _handle_start(self, app: web.Application) -> None:

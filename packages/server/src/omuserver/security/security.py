@@ -68,7 +68,7 @@ class ServerAuthenticator(Security):
             """,
             (
                 token,
-                app.identifier.key(),
+                app.id.key(),
                 datetime.datetime.now(),
                 datetime.datetime.now(),
             ),
@@ -85,7 +85,7 @@ class ServerAuthenticator(Security):
             FROM tokens
             WHERE token = ? AND identifier = ?
             """,
-            (token, app.identifier.key()),
+            (token, app.id.key()),
         )
         result = cursor.fetchone()
         if result is None:

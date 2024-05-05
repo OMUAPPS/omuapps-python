@@ -64,7 +64,7 @@ class SignalExtension(Extension):
         )
 
     def create[T](self, name: str, _t: type[T] | None = None) -> Signal[T]:
-        identifier = self.client.app.identifier / name
+        identifier = self.client.app.id / name
         if identifier in self.signals:
             raise Exception(f"Signal {identifier} already exists")
         self.signals.append(identifier)
