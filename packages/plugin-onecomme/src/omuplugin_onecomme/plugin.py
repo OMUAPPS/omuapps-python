@@ -10,7 +10,7 @@ from omuchat import App, Client, events, model
 from .onecomme import Badge, Comment, CommentData, CommentServiceData
 
 APP = App(
-    "cc.omuchat:onesync/plugin",
+    "cc.omuchat:onecomme/plugin",
     version="0.1.0",
 )
 client = Client(APP)
