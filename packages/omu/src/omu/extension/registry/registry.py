@@ -4,6 +4,7 @@ import abc
 from dataclasses import dataclass
 from typing import Callable
 
+from omu.extension.registry.packets import RegistryPermissions
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
@@ -11,9 +12,10 @@ from omu.serializer import Serializable, Serializer
 
 @dataclass(frozen=True)
 class RegistryType[T]:
-    identifier: Identifier
+    id: Identifier
     default_value: T
     serializer: Serializable[T, bytes]
+    permissions: RegistryPermissions = RegistryPermissions()
 
     @classmethod
     def create_json(
@@ -21,8 +23,14 @@ class RegistryType[T]:
         identifier: Identifier,
         name: str,
         default_value: T,
+        permissions: RegistryPermissions | None = None,
     ) -> RegistryType[T]:
-        return cls(identifier / name, default_value, Serializer.json())
+        return cls(
+            identifier / name,
+            default_value,
+            Serializer.json(),
+            permissions or RegistryPermissions(),
+        )
 
     @classmethod
     def create_serialized(
@@ -31,8 +39,14 @@ class RegistryType[T]:
         name: str,
         default_value: T,
         serializer: Serializable[T, bytes],
+        permissions: RegistryPermissions | None = None,
     ) -> RegistryType[T]:
-        return cls(identifier / name, default_value, serializer)
+        return cls(
+            identifier / name,
+            default_value,
+            serializer,
+            permissions or RegistryPermissions(),
+        )
 
 
 class Registry[T](abc.ABC):

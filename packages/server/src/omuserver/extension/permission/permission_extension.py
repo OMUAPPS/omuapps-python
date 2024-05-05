@@ -164,5 +164,8 @@ class PermissionExtension:
         self.request_id += 1
         return f"{self.request_id}-{time.time_ns()}"
 
-    def has_permission(self, session: Session, permission_id: Identifier) -> bool:
-        return permission_id in self.session_permissions.get(session.token, {})
+    def has_permission(self, session: Session, *permission_ids: Identifier) -> bool:
+        return any(
+            permission_id in self.session_permissions.get(session.token, [])
+            for permission_id in permission_ids
+        )
