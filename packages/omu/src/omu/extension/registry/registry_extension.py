@@ -91,6 +91,7 @@ class RegistryImpl[T](Registry[T]):
         self.listening = False
         client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._handle_update)
         client.network.add_task(self._on_ready_task)
+        client.listeners.ready += self._on_ready
 
     @property
     def value(self) -> T:
@@ -120,9 +121,6 @@ class RegistryImpl[T](Registry[T]):
 
     def listen(self, handler: Coro[[T], None]) -> Callable[[], None]:
         if not self.listening:
-            self.client.network.add_task(
-                lambda: self.client.send(REGISTRY_LISTEN_PACKET, self.type.id)
-            )
             self.listening = True
 
         self.listeners.append(handler)
@@ -149,3 +147,7 @@ class RegistryImpl[T](Registry[T]):
             permissions=self.permissions,
         )
         await self.client.send(REGISTRY_REGISTER_PACKET, packet)
+
+    async def _on_ready(self) -> None:
+        if self.listening:
+            await self.client.send(REGISTRY_LISTEN_PACKET, self.type.id)
