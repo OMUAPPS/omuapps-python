@@ -11,7 +11,7 @@ from omu.network.packet import PacketType
 from omu.serializer import SerializeError, Serializer
 
 from .packets import RegistryPacket, RegistryRegisterPacket
-from .registry import Registry, RegistryPermissions, RegistryType
+from .registry import Registry, RegistryType
 
 REGISTRY_EXTENSION_TYPE = ExtensionType(
     "registry",
@@ -86,7 +86,6 @@ class RegistryImpl[T](Registry[T]):
         self.client = client
         self.type = registry_type
         self._value = registry_type.default_value
-        self.permissions: RegistryPermissions = registry_type.permissions
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
         client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._handle_update)
@@ -144,7 +143,7 @@ class RegistryImpl[T](Registry[T]):
             return
         packet = RegistryRegisterPacket(
             id=self.type.id,
-            permissions=self.permissions,
+            permissions=self.type.permissions,
         )
         await self.client.send(REGISTRY_REGISTER_PACKET, packet)
 
