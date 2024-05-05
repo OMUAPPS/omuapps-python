@@ -8,14 +8,14 @@ class Flags:
         self.value = value & ((1 << length) - 1)
         self.length = length
 
-    def has(self, flag: int) -> bool:
-        return bool(self.value & (1 << flag))
+    def has(self, position: int) -> bool:
+        return bool(self.value & (1 << position))
 
-    def set(self, flag: int, value: bool) -> Flags:
+    def set(self, position: int, value: bool) -> Flags:
         if value:
-            self.value |= 1 << flag
+            self.value |= 1 << position
         else:
-            self.value &= ~(1 << flag)
+            self.value &= ~(1 << position)
         return self
 
     def write(self, writer: ByteWriter) -> ByteWriter:
