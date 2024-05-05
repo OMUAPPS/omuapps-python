@@ -52,7 +52,7 @@ class ServerExtension:
             REQUIRE_APPS_PACKET_TYPE,
         )
         server.permissions.register(SERVER_SHUTDOWN_PERMISSION)
-        self.version_registry = self._server.registry.create(VERSION_REGISTRY_TYPE)
+        self.version_registry = self._server.registry.register(VERSION_REGISTRY_TYPE)
         self.apps = self._server.tables.register(APP_TABLE_TYPE)
         server.network.listeners.connected += self.on_connected
         server.network.listeners.disconnected += self.on_disconnected
@@ -105,8 +105,8 @@ class ServerExtension:
         session.listeners.ready += self.on_session_ready
 
     async def on_session_ready(self, session: Session) -> None:
-        for waiter in self._app_waiters.get(session.app.identifier, []):
-            waiter.ids.remove(session.app.identifier)
+        for waiter in self._app_waiters.get(session.app.id, []):
+            waiter.ids.remove(session.app.id)
             if len(waiter.ids) == 0:
                 waiter.future.set_result(True)
 

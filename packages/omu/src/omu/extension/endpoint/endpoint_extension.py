@@ -119,7 +119,7 @@ class EndpointExtension(Extension):
     ) -> Callable[[Coro], Coro]:
         def decorator(func: Coro) -> Coro:
             type = EndpointType.create_json(
-                self.client.app.identifier,
+                self.client.app.id,
                 name or func.__name__,
             )
             self.register(type, func)

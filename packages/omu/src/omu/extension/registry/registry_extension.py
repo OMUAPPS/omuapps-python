@@ -5,13 +5,13 @@ from typing import Callable, List
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
-from omu.extension.registry.packets import RegistryPacket
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.network.packet import PacketType
-from omu.serializer import Serializable, SerializeError, Serializer
+from omu.serializer import SerializeError, Serializer
 
-from .registry import Registry, RegistryType
+from .packets import RegistryPacket, RegistryRegisterPacket
+from .registry import Registry, RegistryPermissions, RegistryType
 
 REGISTRY_EXTENSION_TYPE = ExtensionType(
     "registry",
@@ -21,6 +21,11 @@ REGISTRY_EXTENSION_TYPE = ExtensionType(
 
 REGISTRY_PERMISSION_ID = REGISTRY_EXTENSION_TYPE / "permission"
 
+REGISTRY_REGISTER_PACKET = PacketType[RegistryRegisterPacket].create_serialized(
+    REGISTRY_EXTENSION_TYPE,
+    "register",
+    serializer=RegistryRegisterPacket,
+)
 REGISTRY_UPDATE_PACKET = PacketType[RegistryPacket].create_serialized(
     REGISTRY_EXTENSION_TYPE,
     "update",
@@ -43,50 +48,64 @@ REGISTRY_GET_ENDPOINT = EndpointType[Identifier, RegistryPacket].create_serializ
 class RegistryExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        client.network.register_packet(REGISTRY_UPDATE_PACKET)
-
-    def get[T](self, registry_type: RegistryType[T]) -> Registry[T]:
-        self.client.permissions.require(REGISTRY_PERMISSION_ID)
-        return RegistryImpl(
-            self.client,
-            registry_type.identifier,
-            registry_type.default_value,
-            registry_type.serializer,
+        self.registries: dict[Identifier, Registry] = {}
+        client.network.register_packet(
+            REGISTRY_REGISTER_PACKET,
+            REGISTRY_LISTEN_PACKET,
+            REGISTRY_UPDATE_PACKET,
         )
 
-    def create[T](self, name: str, default_value: T) -> Registry[T]:
+    def create_registry[T](self, registry_type: RegistryType[T]) -> Registry[T]:
         self.client.permissions.require(REGISTRY_PERMISSION_ID)
-        identifier = self.client.app.identifier / name
-        return RegistryImpl(self.client, identifier, default_value, Serializer.json())
+        if registry_type.id in self.registries:
+            raise ValueError(f"Registry {registry_type.id} already exists")
+        return RegistryImpl(
+            self.client,
+            registry_type,
+        )
+
+    def get[T](self, registry_type: RegistryType[T]) -> Registry[T]:
+        return self.create_registry(registry_type)
+
+    def create[T](self, name: str, default_value: T) -> Registry[T]:
+        identifier = self.client.app.id / name
+        registry_type = RegistryType(
+            identifier,
+            default_value,
+            Serializer.json(),
+        )
+        return self.create_registry(registry_type)
 
 
 class RegistryImpl[T](Registry[T]):
     def __init__(
         self,
         client: Client,
-        identifier: Identifier,
-        default_value: T,
-        serializer: Serializable[T, bytes],
+        registry_type: RegistryType[T],
     ) -> None:
         self.client = client
-        self.identifier = identifier
-        self.default_value = default_value
-        self.serializer = serializer
+        self.type = registry_type
+        self._value = registry_type.default_value
+        self.permissions: RegistryPermissions = registry_type.permissions
         self.listeners: List[Coro[[T], None]] = []
         self.listening = False
-        client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._on_update)
+        client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._handle_update)
+        client.network.add_task(self._on_ready_task)
+        client.listeners.ready += self._on_ready
+
+    @property
+    def value(self) -> T:
+        return self._value
 
     async def get(self) -> T:
-        result = await self.client.endpoints.call(
-            REGISTRY_GET_ENDPOINT, self.identifier
-        )
+        result = await self.client.endpoints.call(REGISTRY_GET_ENDPOINT, self.type.id)
         if result.value is None:
-            return self.default_value
+            return self.type.default_value
         try:
-            return self.serializer.deserialize(result.value)
+            return self.type.serializer.deserialize(result.value)
         except SerializeError as e:
             raise SerializeError(
-                f"Failed to deserialize registry value for identifier {self.identifier}"
+                f"Failed to deserialize registry value for identifier {self.type.id}"
             ) from e
 
     async def update(self, handler: Coro[[T], T]) -> None:
@@ -95,32 +114,40 @@ class RegistryImpl[T](Registry[T]):
         await self.client.send(
             REGISTRY_UPDATE_PACKET,
             RegistryPacket(
-                identifier=self.identifier,
-                value=self.serializer.serialize(new_value),
+                id=self.type.id,
+                value=self.type.serializer.serialize(new_value),
             ),
         )
 
     def listen(self, handler: Coro[[T], None]) -> Callable[[], None]:
         if not self.listening:
-            self.client.network.add_task(
-                lambda: self.client.send(REGISTRY_LISTEN_PACKET, self.identifier)
-            )
             self.listening = True
 
         self.listeners.append(handler)
         return lambda: self.listeners.remove(handler)
 
-    async def _on_update(self, event: RegistryPacket) -> None:
-        if event.identifier != self.identifier:
+    async def _handle_update(self, event: RegistryPacket) -> None:
+        if event.id != self.type.id:
             return
         if event.value is not None:
             try:
-                value = self.serializer.deserialize(event.value)
+                self._value = self.type.serializer.deserialize(event.value)
             except SerializeError as e:
                 raise SerializeError(
-                    f"Failed to deserialize registry value for identifier {self.identifier}"
+                    f"Failed to deserialize registry value for identifier {self.type.id}"
                 ) from e
-        else:
-            value = self.default_value
         for listener in self.listeners:
-            await listener(value)
+            await listener(self.value)
+
+    async def _on_ready_task(self) -> None:
+        if not self.type.id.is_subpart_of(self.client.app.id):
+            return
+        packet = RegistryRegisterPacket(
+            id=self.type.id,
+            permissions=self.permissions,
+        )
+        await self.client.send(REGISTRY_REGISTER_PACKET, packet)
+
+    async def _on_ready(self) -> None:
+        if self.listening:
+            await self.client.send(REGISTRY_LISTEN_PACKET, self.type.id)

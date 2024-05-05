@@ -5,6 +5,8 @@ import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from loguru import logger
+from omu.errors import DisconnectReason
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
 from omu.network.packet.packet_types import (
@@ -174,11 +176,14 @@ class Session:
             if packet is None:
                 await self.disconnect(DisconnectType.CLOSE)
                 return
-            await self.dispatch_packet(packet)
+            asyncio.create_task(self.dispatch_packet(packet))
 
     async def dispatch_packet(self, packet: Packet) -> None:
-        coro = self.listeners.packet.emit(self, packet)
-        asyncio.create_task(coro)
+        try:
+            await self.listeners.packet.emit(self, packet)
+        except DisconnectReason as reason:
+            logger.opt(exception=reason).error("Disconnecting session")
+            await self.disconnect(reason.type, reason.message)
 
     async def send[T](self, packet_type: PacketType[T], data: T) -> None:
         await self.connection.send(Packet(packet_type, data), self.packet_mapper)

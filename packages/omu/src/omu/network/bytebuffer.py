@@ -3,6 +3,52 @@ from __future__ import annotations
 import io
 
 
+class Flags:
+    def __init__(self, value: int = 0, length: int = 32) -> None:
+        self.value = value & ((1 << length) - 1)
+        self.length = length
+
+    def has(self, position: int) -> bool:
+        return bool(self.value & (1 << position))
+
+    def set(self, position: int, value: bool) -> Flags:
+        if value:
+            self.value |= 1 << position
+        else:
+            self.value &= ~(1 << position)
+        return self
+
+    def write(self, writer: ByteWriter) -> ByteWriter:
+        bits = self.value.to_bytes((self.length + 7) // 8, "big")
+        writer.write(bits)
+        return writer
+
+    @classmethod
+    def read(cls, reader: ByteReader, length: int) -> Flags:
+        bits = int.from_bytes(reader.read((length + 7) // 8), "big")
+        return Flags(bits, length)
+
+    def __or__(self, other: Flags) -> Flags:
+        return Flags(self.value | other.value, max(self.length, other.length))
+
+    def __and__(self, other: Flags) -> Flags:
+        return Flags(self.value & other.value, max(self.length, other.length))
+
+    def __xor__(self, other: Flags) -> Flags:
+        return Flags(self.value ^ other.value, max(self.length, other.length))
+
+    def __invert__(self) -> Flags:
+        return Flags(~self.value, self.length)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Flags):
+            return False
+        return self.value == other.value
+
+    def __hash__(self) -> int:
+        return hash(self.value)
+
+
 class ByteWriter:
     def __init__(self, init: bytes | None = None) -> None:
         self.stream = io.BytesIO(init or b"")
@@ -43,6 +89,10 @@ class ByteWriter:
 
     def write_string(self, value: str) -> ByteWriter:
         self.write_byte_array(value.encode("utf-8"))
+        return self
+
+    def write_flags(self, flags: Flags) -> ByteWriter:
+        flags.write(self)
         return self
 
     def finish(self) -> bytes:
@@ -102,3 +152,6 @@ class ByteReader:
 
     def read_string(self) -> str:
         return self.read_byte_array().decode("utf-8")
+
+    def read_flags(self, length: int) -> Flags:
+        return Flags.read(self, length)

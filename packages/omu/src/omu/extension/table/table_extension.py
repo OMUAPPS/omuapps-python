@@ -332,7 +332,7 @@ class TableImpl[T](Table[T]):
     async def _on_network_task(self) -> None:
         if self._permissions is None:
             return
-        if not self._id.is_subpart_of(self._client.app.identifier):
+        if not self._id.is_subpart_of(self._client.app.id):
             return
         await self._client.send(
             TABLE_SET_PERMISSION_PACKET,

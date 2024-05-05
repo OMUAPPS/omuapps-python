@@ -14,6 +14,7 @@ from omuserver.directories import Directories
 from omuserver.extension.asset import AssetExtension
 from omuserver.extension.dashboard import DashboardExtension
 from omuserver.extension.endpoint import EndpointExtension
+from omuserver.extension.i18n import I18nExtension
 from omuserver.extension.permission import PermissionExtension
 from omuserver.extension.plugin import PluginExtension
 from omuserver.extension.registry import RegistryExtension
@@ -70,6 +71,7 @@ class OmuServer(Server):
         self._signal = SignalExtension(self)
         self._plugins = PluginExtension(self)
         self._assets = AssetExtension(self)
+        self._i18n = I18nExtension(self)
 
     async def _handle_proxy(self, request: web.Request) -> web.StreamResponse:
         url = request.query.get("url")
@@ -208,6 +210,10 @@ class OmuServer(Server):
     @property
     def assets(self) -> AssetExtension:
         return self._assets
+
+    @property
+    def i18n(self) -> I18nExtension:
+        return self._i18n
 
     @property
     def running(self) -> bool:

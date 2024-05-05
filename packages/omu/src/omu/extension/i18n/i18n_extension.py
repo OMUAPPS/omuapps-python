@@ -3,21 +3,30 @@ from typing import List
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.registry import RegistryType
+from omu.extension.registry.packets import RegistryPermissions
 from omu.localization import Locale, LocalizedText
 
 I18N_EXTENSION_TYPE = ExtensionType(
     "i18n", lambda client: I18nExtension(client), lambda: []
 )
-
-LOCALES_REGISTRY = RegistryType[List[Locale]].create_json(
-    I18N_EXTENSION_TYPE, name="locales", default_value=[]
+I18N_SET_LOCALES_PERMISSION_ID = I18N_EXTENSION_TYPE / "locales" / "set"
+I18N_GET_LOCALES_PERMISSION_ID = I18N_EXTENSION_TYPE / "locales" / "get"
+I18N_LOCALES_REGISTRY_TYPE = RegistryType[List[Locale]].create_json(
+    I18N_EXTENSION_TYPE,
+    name="locales",
+    default_value=[],
+    permissions=RegistryPermissions(
+        read=I18N_GET_LOCALES_PERMISSION_ID,
+        write=I18N_SET_LOCALES_PERMISSION_ID,
+    ),
 )
 
 
 class I18nExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self.locales_registry = client.registry.get(LOCALES_REGISTRY)
+        client.permissions.require(I18N_GET_LOCALES_PERMISSION_ID)
+        self.locales_registry = client.registry.get(I18N_LOCALES_REGISTRY_TYPE)
         self.locales: List[Locale] = []
 
     def translate(self, localized_text: LocalizedText) -> str:
