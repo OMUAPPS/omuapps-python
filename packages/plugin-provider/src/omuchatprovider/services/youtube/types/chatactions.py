@@ -268,6 +268,7 @@ class AddLiveChatTickerItemAction(TypedDict):
 class ChatActionsItem(TypedDict):
     clickTrackingParams: str
     addChatItemAction: NotRequired[AddChatItemAction]
+    removeChatItemByAuthorAction: NotRequired[dict]
     markChatItemAsDeletedAction: NotRequired[MarkChatItemAsDeletedAction]
     addLiveChatTickerItemAction: NotRequired[AddLiveChatTickerItemAction]
 
