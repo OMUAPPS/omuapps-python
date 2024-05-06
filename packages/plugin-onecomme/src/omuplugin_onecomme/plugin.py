@@ -5,75 +5,16 @@ from typing import TypedDict
 
 from aiohttp import web
 from loguru import logger
-from omu.identifier import Identifier
 from omuchat import App, Client, events, model
-from omuchat.model.author import Author
 
-IDENTIFIER = Identifier("cc.omuchat", "plugin-onesync")
+from .onecomme import Badge, Comment, CommentData, CommentServiceData
+
 APP = App(
-    IDENTIFIER,
+    "cc.omuchat:onecomme/plugin",
     version="0.1.0",
 )
 client = Client(APP)
 app = web.Application()
-
-
-class Color(TypedDict):
-    r: int
-    g: int
-    b: int
-
-
-class Badge(TypedDict):
-    label: str
-    url: str
-
-
-class CommentData(TypedDict):
-    id: str
-    liveId: str
-    userId: str
-    name: str
-    screenName: str
-    hasGift: bool
-    isOwner: bool
-    isAnonymous: bool
-    profileImage: str
-    badges: list[Badge]
-    timestamp: str
-    comment: str
-    displayName: str
-    originalProfileImage: str
-    isFirstTime: bool
-
-
-class CommentMeta(TypedDict):
-    no: int
-    tc: int
-
-
-class CommentServiceData(TypedDict):
-    id: str
-    name: str
-    url: str
-    write: bool
-    speech: bool
-    options: dict
-    enabled: bool
-    persist: bool
-    translate: list
-    color: Color
-
-
-class Comment(TypedDict):
-    id: str
-    service: str
-    name: str
-    url: str
-    color: Color
-    data: CommentData
-    meta: CommentMeta
-    serviceData: CommentServiceData
 
 
 def format_content(*components: model.content.Component | None) -> str:
@@ -98,7 +39,7 @@ def format_content(*components: model.content.Component | None) -> str:
 
 async def to_comment(message: model.Message) -> Comment | None:
     room = await client.chat.rooms.get(message.room_id.key())
-    author: Author | None = None
+    author: model.Author | None = None
     if message.author_id:
         author = await client.chat.authors.get(message.author_id.key())
     if not room or not author:
