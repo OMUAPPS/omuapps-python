@@ -64,36 +64,47 @@ class SignalExtension(Extension):
 
 
 class SignalImpl[T](Signal):
-    def __init__(self, client: Client, signal_type: SignalType[T]):
+    def __init__(self, client: Client, type: SignalType[T]):
         self.client = client
-        self.identifier = signal_type.id
-        self.serializer = signal_type.serializer
-        self.listeners = []
+        self.type = type
+        self.listeners: list[Coro[[T], None]] = []
         self.listening = False
         client.network.add_packet_handler(SIGNAL_NOTIFY_PACKET, self._on_broadcast)
+        client.listeners.ready += self._on_ready
 
     async def send(self, body: T) -> None:
-        data = self.serializer.serialize(body)
+        data = self.type.serializer.serialize(body)
         await self.client.send(
             SIGNAL_NOTIFY_PACKET,
-            SignalPacket(id=self.identifier, body=data),
+            SignalPacket(id=self.type.id, body=data),
         )
 
     def listen(self, listener: Coro[[T], None]) -> Callable[[], None]:
         if not self.listening:
-            self.client.network.add_task(self._send_listen)
             self.listening = True
 
         self.listeners.append(listener)
         return lambda: self.listeners.remove(listener)
 
-    async def _send_listen(self) -> None:
-        await self.client.send(SIGNAL_LISTEN_PACKET, self.identifier)
+    async def _on_task(self) -> None:
+        if not self.type.id.is_subpath_of(self.client.app.id):
+            return
+        packet = SignalRegisterPacket(
+            id=self.type.id,
+            permissions=self.type.permissions,
+        )
+        await self.client.send(
+            SIGNAL_REGISTER_PACKET,
+            packet,
+        )
+
+    async def _on_ready(self) -> None:
+        await self.client.send(SIGNAL_LISTEN_PACKET, self.type.id)
 
     async def _on_broadcast(self, data: SignalPacket) -> None:
-        if data.id != self.identifier:
+        if data.id != self.type.id:
             return
 
-        body = self.serializer.deserialize(data.body)
+        body = self.type.serializer.deserialize(data.body)
         for listener in self.listeners:
             await listener(body)
