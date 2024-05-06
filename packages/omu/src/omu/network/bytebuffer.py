@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from typing import Callable
 
 
 class Flags:
@@ -10,6 +11,14 @@ class Flags:
 
     def has(self, position: int) -> bool:
         return bool(self.value & (1 << position))
+
+    def get(self, position: int) -> bool:
+        return bool(self.value & (1 << position))
+
+    def if_set[T](self, position: int, callback: Callable[[], T]) -> T | None:
+        if self.has(position):
+            callback()
+        return None
 
     def set(self, position: int, value: bool) -> Flags:
         if value:

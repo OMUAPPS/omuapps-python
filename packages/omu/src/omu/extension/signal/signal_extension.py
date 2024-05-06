@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable, List
+from typing import Callable, Dict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
 from omu.identifier import Identifier
-from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import PacketType
 from omu.serializer import Serializer
 
+from .packets import SignalPacket, SignalRegisterPacket
 from .signal import Signal, SignalType
 
 SIGNAL_EXTENSION_TYPE = ExtensionType(
@@ -20,59 +19,48 @@ SIGNAL_EXTENSION_TYPE = ExtensionType(
 )
 
 
-@dataclass
-class SignalPacket:
-    id: Identifier
-    body: bytes
-
-
-class SignalSerializer:
-    @classmethod
-    def serialize(cls, item: SignalPacket) -> bytes:
-        writer = ByteWriter()
-        writer.write_string(item.id.key())
-        writer.write_byte_array(item.body)
-        return writer.finish()
-
-    @classmethod
-    def deserialize(cls, item: bytes) -> SignalPacket:
-        with ByteReader(item) as reader:
-            key = Identifier.from_key(reader.read_string())
-            body = reader.read_byte_array()
-        return SignalPacket(id=key, body=body)
-
-
 SIGNAL_LISTEN_PACKET = PacketType[Identifier].create_json(
     SIGNAL_EXTENSION_TYPE,
     "listen",
     serializer=Serializer.model(Identifier),
 )
-SIGNAL_BROADCAST_PACKET = PacketType[SignalPacket].create_serialized(
+SIGNAL_NOTIFY_PACKET = PacketType[SignalPacket].create_serialized(
     SIGNAL_EXTENSION_TYPE,
-    "broadcast",
-    SignalSerializer,
+    "notify",
+    SignalPacket,
+)
+SIGNAL_REGISTER_PACKET = PacketType[SignalRegisterPacket].create_serialized(
+    SIGNAL_EXTENSION_TYPE,
+    "register",
+    SignalRegisterPacket,
 )
 
 
 class SignalExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self.signals: List[Identifier] = []
+        self.signals: Dict[Identifier, Signal] = {}
         client.network.register_packet(
+            SIGNAL_REGISTER_PACKET,
             SIGNAL_LISTEN_PACKET,
-            SIGNAL_BROADCAST_PACKET,
+            SIGNAL_NOTIFY_PACKET,
         )
+
+    def create_signal[T](self, signal_type: SignalType[T]) -> Signal[T]:
+        if signal_type.identifier in self.signals:
+            raise Exception(f"Signal {signal_type.identifier} already exists")
+        return SignalImpl(self.client, signal_type)
 
     def create[T](self, name: str, _t: type[T] | None = None) -> Signal[T]:
         identifier = self.client.app.id / name
-        if identifier in self.signals:
-            raise Exception(f"Signal {identifier} already exists")
-        self.signals.append(identifier)
-        type = SignalType.create_json(identifier, name)
-        return SignalImpl(self.client, type)
+        type = SignalType[T].create_json(
+            identifier,
+            name,
+        )
+        return self.create_signal(type)
 
     def get[T](self, signal_type: SignalType[T]) -> Signal[T]:
-        return SignalImpl(self.client, signal_type)
+        return self.create_signal(signal_type)
 
 
 class SignalImpl[T](Signal):
@@ -82,12 +70,12 @@ class SignalImpl[T](Signal):
         self.serializer = signal_type.serializer
         self.listeners = []
         self.listening = False
-        client.network.add_packet_handler(SIGNAL_BROADCAST_PACKET, self._on_broadcast)
+        client.network.add_packet_handler(SIGNAL_NOTIFY_PACKET, self._on_broadcast)
 
     async def broadcast(self, body: T) -> None:
         data = self.serializer.serialize(body)
         await self.client.send(
-            SIGNAL_BROADCAST_PACKET,
+            SIGNAL_NOTIFY_PACKET,
             SignalPacket(id=self.identifier, body=data),
         )
 
