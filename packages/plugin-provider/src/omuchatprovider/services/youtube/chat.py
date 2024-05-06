@@ -290,17 +290,19 @@ class YoutubeChatService(ChatService):
         authors: list[Author] = []
         for action in chat_data.chat_actions:
             if "addChatItemAction" in action:
-                message, author = await self.process_message_item(
-                    action["addChatItemAction"]["item"]
+                await self.process_message_item(
+                    action["addChatItemAction"]["item"],
+                    messages,
+                    authors,
                 )
-                if message:
-                    messages.append(message)
-                if author:
-                    authors.append(author)
+            elif "addLiveChatTickerItemAction" in action:
+                pass
             elif "markChatItemAsDeletedAction" in action:
                 await self.process_deleted_item(action["markChatItemAsDeletedAction"])
             elif "removeChatItemAction" in action:
                 await self.process_deleted_item(action["removeChatItemAction"])
+            elif "removeChatItemByAuthorAction" in action:
+                pass
             else:
                 logger.warning(f"Unknown chat action: {action}")
         if len(authors) > 0:
@@ -346,8 +348,11 @@ class YoutubeChatService(ChatService):
         return new_metadata
 
     async def process_message_item(
-        self, item: AddChatItemActionItem
-    ) -> tuple[Message | None, Author | None]:
+        self,
+        item: AddChatItemActionItem,
+        messages: list[Message],
+        authors: list[Author],
+    ) -> None:
         if "liveChatTextMessageRenderer" in item:
             data = item["liveChatTextMessageRenderer"]
             author = self._parse_author(data)
@@ -360,7 +365,8 @@ class YoutubeChatService(ChatService):
                 content=message,
                 created_at=created_at,
             )
-            return message, author
+            messages.append(message)
+            authors.append(author)
         elif "liveChatPaidMessageRenderer" in item:
             data = item["liveChatPaidMessageRenderer"]
             author = self._parse_author(data)
@@ -375,7 +381,8 @@ class YoutubeChatService(ChatService):
                 paid=paid,
                 created_at=created_at,
             )
-            return message, author
+            messages.append(message)
+            authors.append(author)
         elif "liveChatMembershipItemRenderer" in item:
             data = item["liveChatMembershipItemRenderer"]
             author = self._parse_author(data)
@@ -388,7 +395,8 @@ class YoutubeChatService(ChatService):
                 content=component,
                 created_at=created_at,
             )
-            return message, author
+            messages.append(message)
+            authors.append(author)
         elif "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer" in item:
             data = item["liveChatSponsorshipsGiftRedemptionAnnouncementRenderer"]
             author = self._parse_author(data)
@@ -401,7 +409,8 @@ class YoutubeChatService(ChatService):
                 content=component,
                 created_at=created_at,
             )
-            return message, author
+            messages.append(message)
+            authors.append(author)
         elif "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer" in item:
             data = item["liveChatSponsorshipsGiftPurchaseAnnouncementRenderer"]
             created_at = self._parse_created_at(data)
@@ -427,7 +436,8 @@ class YoutubeChatService(ChatService):
                 created_at=created_at,
                 gifts=[gift],
             )
-            return message, author
+            messages.append(message)
+            authors.append(author)
         elif "liveChatPlaceholderItemRenderer" in item:
             """
             item["liveChatPlaceholderItemRenderer"] = {'id': 'ChwKGkNJdml3ZUg0aDRRREZSTEV3Z1FkWUlJTkNR', 'timestampUsec': '1706714981296711'}}
@@ -453,10 +463,10 @@ class YoutubeChatService(ChatService):
                 gifts=[sticker],
                 created_at=created_at,
             )
-            return message, author
+            messages.append(message)
+            authors.append(author)
         else:
             raise ProviderError(f"Unknown message type: {list(item.keys())} {item=}")
-        return None, None
 
     async def process_deleted_item(self, item: MarkChatItemAsDeletedAction):
         id = self._room.id / item["targetItemId"]
