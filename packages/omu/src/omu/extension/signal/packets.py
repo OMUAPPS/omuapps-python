@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from omu.extension.signal.signal import SignalPermissions
 from omu.identifier import Identifier
 from omu.network.bytebuffer import ByteReader, ByteWriter
+
+from .signal import SignalPermissions
 
 
 @dataclass

@@ -19,6 +19,11 @@ SIGNAL_EXTENSION_TYPE = ExtensionType(
 )
 
 
+SIGNAL_REGISTER_PACKET = PacketType[SignalRegisterPacket].create_serialized(
+    SIGNAL_EXTENSION_TYPE,
+    "register",
+    SignalRegisterPacket,
+)
 SIGNAL_LISTEN_PACKET = PacketType[Identifier].create_json(
     SIGNAL_EXTENSION_TYPE,
     "listen",
@@ -28,11 +33,6 @@ SIGNAL_NOTIFY_PACKET = PacketType[SignalPacket].create_serialized(
     SIGNAL_EXTENSION_TYPE,
     "notify",
     SignalPacket,
-)
-SIGNAL_REGISTER_PACKET = PacketType[SignalRegisterPacket].create_serialized(
-    SIGNAL_EXTENSION_TYPE,
-    "register",
-    SignalRegisterPacket,
 )
 
 
@@ -47,8 +47,8 @@ class SignalExtension(Extension):
         )
 
     def create_signal[T](self, signal_type: SignalType[T]) -> Signal[T]:
-        if signal_type.identifier in self.signals:
-            raise Exception(f"Signal {signal_type.identifier} already exists")
+        if signal_type.id in self.signals:
+            raise Exception(f"Signal {signal_type.id} already exists")
         return SignalImpl(self.client, signal_type)
 
     def create[T](self, name: str, _t: type[T] | None = None) -> Signal[T]:
@@ -66,7 +66,7 @@ class SignalExtension(Extension):
 class SignalImpl[T](Signal):
     def __init__(self, client: Client, signal_type: SignalType[T]):
         self.client = client
-        self.identifier = signal_type.identifier
+        self.identifier = signal_type.id
         self.serializer = signal_type.serializer
         self.listeners = []
         self.listening = False

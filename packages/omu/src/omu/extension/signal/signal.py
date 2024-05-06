@@ -40,7 +40,7 @@ class SignalPermissions:
 
 @dataclass(frozen=True)
 class SignalType[T]:
-    identifier: Identifier
+    id: Identifier
     serializer: Serializable[T, bytes]
     permissions: SignalPermissions = SignalPermissions()
 
@@ -52,7 +52,7 @@ class SignalType[T]:
         permissions: SignalPermissions | None = None,
     ):
         return cls(
-            identifier=identifier / name,
+            id=identifier / name,
             serializer=Serializer.json(),
             permissions=permissions or SignalPermissions(),
         )
@@ -66,7 +66,7 @@ class SignalType[T]:
         permissions: SignalPermissions | None = None,
     ):
         return cls(
-            identifier=identifier / name,
+            id=identifier / name,
             serializer=serializer,
             permissions=permissions or SignalPermissions(),
         )
