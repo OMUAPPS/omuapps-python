@@ -70,10 +70,11 @@ class PermissionExtension:
     ) -> None:
         for permission in permissions:
             if not permission.id.is_subpath_of(session.app.id):
-                raise ValueError(
+                msg = (
                     f"Permission identifier {permission.id} "
                     f"is not a subpart of app identifier {session.app.id}"
                 )
+                raise ValueError(msg)
             self.permission_registry[permission.id] = permission
 
     def load_permissions(self) -> None:

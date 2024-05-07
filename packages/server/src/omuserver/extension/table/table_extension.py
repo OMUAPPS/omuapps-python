@@ -173,7 +173,7 @@ class TableExtension:
         self, session: Session, packet: SetPermissionPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all],
@@ -191,7 +191,7 @@ class TableExtension:
         self, session: Session, packet: SetConfigPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all],
@@ -200,7 +200,7 @@ class TableExtension:
 
     async def handler_listen(self, session: Session, id: Identifier) -> None:
         table = await self.get_table(id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all, perms.read],
@@ -209,7 +209,7 @@ class TableExtension:
 
     async def handle_proxy_listen(self, session: Session, id: Identifier) -> None:
         table = await self.get_table(id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all, perms.proxy],
@@ -218,7 +218,7 @@ class TableExtension:
 
     async def handle_proxy(self, session: Session, packet: TableProxyPacket) -> None:
         table = await self.get_table(packet.id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all, perms.proxy],
@@ -227,7 +227,7 @@ class TableExtension:
 
     async def handle_item_add(self, session: Session, packet: TableItemsPacket) -> None:
         table = await self.get_table(packet.id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all, perms.write],
@@ -238,7 +238,7 @@ class TableExtension:
         self, session: Session, packet: TableItemsPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all, perms.write],
@@ -249,7 +249,7 @@ class TableExtension:
         self, session: Session, packet: TableItemsPacket
     ) -> None:
         table = await self.get_table(packet.id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all, perms.remove],
@@ -258,7 +258,7 @@ class TableExtension:
 
     async def handle_item_clear(self, session: Session, packet: TablePacket) -> None:
         table = await self.get_table(packet.id)
-        await self.check_permission(
+        await self.verify_permission(
             session,
             table,
             lambda perms: [perms.all, perms.remove],
@@ -292,17 +292,17 @@ class TableExtension:
         for table in self._tables.values():
             await table.store()
 
-    async def check_permission(
+    async def verify_permission(
         self,
         session: Session,
         table: ServerTable,
-        get_permission: Callable[[TablePermissions], list[Identifier | None]],
+        get_scopes: Callable[[TablePermissions], list[Identifier | None]],
     ):
-        if table.id.is_subpath_of(session.app.id):
+        if table.id.is_namepath_equal(session.app.id, path_length=1):
             return
         if table.permissions is None:
             raise PermissionDenied(f"Table {table.id} does not have a permission set")
-        permissions: list[Identifier | None] = get_permission(table.permissions)
+        permissions: list[Identifier | None] = get_scopes(table.permissions)
         for permission in permissions:
             if permission is None:
                 continue
