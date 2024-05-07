@@ -104,6 +104,8 @@ setuptools==69.5.1
     # via nodeenv
 soupsieve==2.5
     # via beautifulsoup4
+uv==0.1.39
+    # via omuserver
 win32-setctime==1.1.0
     # via loguru
 yarl==1.9.4
