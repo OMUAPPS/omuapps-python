@@ -76,7 +76,7 @@ class RegistryExtension:
 
     async def handle_listen(self, session: Session, identifier: Identifier) -> None:
         registry = await self.get(identifier)
-        self.check_permission(
+        self.verify_permission(
             registry,
             session,
             lambda permissions: [permissions.all, permissions.read],
@@ -85,7 +85,7 @@ class RegistryExtension:
 
     async def handle_update(self, session: Session, packet: RegistryPacket) -> None:
         registry = await self.get(packet.id)
-        self.check_permission(
+        self.verify_permission(
             registry,
             session,
             lambda permissions: [permissions.all, permissions.write],
@@ -96,7 +96,7 @@ class RegistryExtension:
         self, session: Session, identifier: Identifier
     ) -> RegistryPacket:
         registry = await self.get(identifier)
-        self.check_permission(
+        self.verify_permission(
             registry,
             session,
             lambda permissions: [permissions.all, permissions.read],
@@ -114,15 +114,15 @@ class RegistryExtension:
             await registry.load()
         return registry
 
-    def check_permission(
+    def verify_permission(
         self,
         registry: ServerRegistry,
         session: Session,
-        get_permissions: Callable[[RegistryPermissions], list[Identifier | None]],
+        get_scopes: Callable[[RegistryPermissions], list[Identifier | None]],
     ) -> None:
-        if registry.id.is_subpath_of(session.app.id):
+        if registry.id.is_namepath_equal(session.app.id, path_length=1):
             return
-        require_permissions = get_permissions(registry.permissions)
+        require_permissions = get_scopes(registry.permissions)
         if not any(
             self._server.permissions.has_permission(session, permission)
             for permission in filter(None, require_permissions)

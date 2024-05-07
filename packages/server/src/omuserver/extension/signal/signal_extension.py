@@ -55,7 +55,7 @@ class SignalExtension:
         session: Session,
         get_scopes: Callable[[SignalPermissions], list[Identifier | None]],
     ) -> None:
-        if signal.id.is_subpath_of(session.app.id):
+        if signal.id.is_namepath_equal(session.app.id, path_length=1):
             return
         for permission in get_scopes(signal.permissions):
             if permission is None:
@@ -68,12 +68,9 @@ class SignalExtension:
     async def handle_register(
         self, session: Session, data: SignalRegisterPacket
     ) -> None:
+        if not data.id.is_subpath_of(session.app.id):
+            raise PermissionDenied("App not allowed to register signal")
         signal = self.get_signal(data.id)
-        self.verify_permission(
-            signal,
-            session,
-            lambda permissions: [permissions.all],
-        )
         signal.permissions = data.permissions
 
     async def handle_listen(self, session: Session, identifier: Identifier) -> None:
@@ -117,3 +114,4 @@ class ServerSignal:
         if session not in self.listeners:
             raise Exception("Session not attached")
         self.listeners.remove(session)
+        session.listeners.disconnected -= self.detach_session

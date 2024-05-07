@@ -38,10 +38,9 @@ class PermissionExtension(Extension):
         for permission in permission_types:
             if permission.id in self.registered_permissions:
                 raise ValueError(f"Permission {permission.id} already registered")
-            if not permission.id.is_subpath_of(base_identifier):
-                raise ValueError(
-                    f"Permission identifier {permission.id} is not a subpart of app identifier {base_identifier}"
-                )
+            if not permission.id.is_namepath_equal(base_identifier, path_length=1):
+                msg = f"Permission identifier {permission.id} is not a subpath of {base_identifier}"
+                raise ValueError(msg)
             self.registered_permissions[permission.id] = permission
 
     def require(self, permission_id: Identifier):

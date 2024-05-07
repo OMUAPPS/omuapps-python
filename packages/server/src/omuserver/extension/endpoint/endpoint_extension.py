@@ -141,10 +141,13 @@ class EndpointExtension:
     async def handle_register(
         self, session: Session, packet: EndpointRegisterPacket
     ) -> None:
-        for endpoint, permission in packet.endpoints.items():
-            self._endpoints[endpoint] = SessionEndpoint(
+        for id, permission in packet.endpoints.items():
+            if not id.is_subpath_of(session.app.id):
+                msg = f"App {session.app.key()} not allowed to register endpoint {id}"
+                raise PermissionDenied(msg)
+            self._endpoints[id] = SessionEndpoint(
                 session=session,
-                id=endpoint,
+                id=id,
                 permission=permission,
             )
 
@@ -163,11 +166,22 @@ class EndpointExtension:
         )
         self._endpoints[type.id] = endpoint
 
-    def has_permission(self, endpoint: Endpoint, session: Session) -> bool:
-        if endpoint.permission is None:
-            return endpoint.id.is_subpath_of(session.app.id)
-        else:
-            return self._server.permissions.has_permission(session, endpoint.permission)
+    def verify_permission(self, endpoint: Endpoint, session: Session):
+        if endpoint.id.is_namepath_equal(session.app.id, path_length=1):
+            return
+        if endpoint.permission is not None and self._server.permissions.has_permission(
+            session, endpoint.permission
+        ):
+            return
+        logger.warning(
+            f"{session.app.key()} tried to call endpoint {endpoint.id} "
+            f"without permission {endpoint.permission}"
+        )
+        error = (
+            f"Permission denied for endpoint {endpoint.id} "
+            f"with permission {endpoint.permission}"
+        )
+        raise PermissionDenied(error)
 
     async def handle_call(self, session: Session, packet: EndpointDataPacket) -> None:
         endpoint = await self._get_endpoint(packet, session)
@@ -184,16 +198,7 @@ class EndpointExtension:
                 ),
             )
             return
-        if not self.has_permission(endpoint, session):
-            logger.warning(
-                f"{session.app.key()} tried to call endpoint {packet.id} "
-                f"without permission {endpoint.permission}"
-            )
-            error = (
-                f"Permission denied for endpoint {packet.id} "
-                f"with permission {endpoint.permission}"
-            )
-            raise PermissionDenied(error)
+        self.verify_permission(endpoint, session)
 
         await endpoint.call(packet, session)
         key = (packet.id, packet.key)

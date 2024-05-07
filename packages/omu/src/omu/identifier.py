@@ -85,6 +85,18 @@ class Identifier(Model[str], Keyable):
             and self.path[: len(base.path)] == base.path
         )
 
+    def is_namepath_equal(
+        self,
+        other: Identifier,
+        path_length: int | None = None,
+    ) -> bool:
+        if path_length is None:
+            path_length = len(self.path)
+        return (
+            self.namespace == other.namespace
+            and self.path[:path_length] == other.path[:path_length]
+        )
+
     def join(self, *path: str) -> Identifier:
         return Identifier(self.namespace, *self.path, *path)
 
