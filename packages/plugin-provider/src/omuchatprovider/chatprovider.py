@@ -21,11 +21,13 @@ client = Client(APP)
 services: dict[Identifier, ProviderService] = {}
 chat_services: dict[Identifier, ChatService] = {}
 
+for service_class in get_services():
+    service = service_class(client)
+    services[service.provider.id] = service
+
 
 async def register_services():
-    for service_class in get_services():
-        service = service_class(client)
-        services[service.provider.id] = service
+    for service in services.values():
         await client.chat.providers.add(service.provider)
 
 

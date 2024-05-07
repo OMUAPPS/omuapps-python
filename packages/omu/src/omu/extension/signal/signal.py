@@ -14,20 +14,20 @@ from omu.serializer import Serializable, Serializer
 class SignalPermissions:
     all: Identifier | None = None
     listen: Identifier | None = None
-    send: Identifier | None = None
+    notify: Identifier | None = None
 
     def serialize(self, writer: ByteWriter) -> None:
         flags = Flags(length=3)
         flags.set(0, self.all is not None)
         flags.set(1, self.listen is not None)
-        flags.set(2, self.send is not None)
+        flags.set(2, self.notify is not None)
         writer.write_byte(flags.value)
         if self.all is not None:
             writer.write_string(self.all.key())
         if self.listen is not None:
             writer.write_string(self.listen.key())
-        if self.send is not None:
-            writer.write_string(self.send.key())
+        if self.notify is not None:
+            writer.write_string(self.notify.key())
 
     @classmethod
     def deserialize(cls, reader: ByteReader) -> SignalPermissions:
@@ -35,7 +35,7 @@ class SignalPermissions:
         all = flags.if_set(0, lambda: Identifier.from_key(reader.read_string()))
         listen = flags.if_set(1, lambda: Identifier.from_key(reader.read_string()))
         send = flags.if_set(2, lambda: Identifier.from_key(reader.read_string()))
-        return SignalPermissions(all=all, listen=listen, send=send)
+        return SignalPermissions(all=all, listen=listen, notify=send)
 
 
 @dataclass(frozen=True)

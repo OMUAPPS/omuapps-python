@@ -70,6 +70,7 @@ class SignalImpl[T](Signal):
         self.listeners: list[Coro[[T], None]] = []
         self.listening = False
         client.network.add_packet_handler(SIGNAL_NOTIFY_PACKET, self._on_broadcast)
+        client.network.add_task(self._on_task)
         client.listeners.ready += self._on_ready
 
     async def send(self, body: T) -> None:

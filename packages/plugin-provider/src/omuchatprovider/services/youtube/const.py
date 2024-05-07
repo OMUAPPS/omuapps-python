@@ -1,6 +1,8 @@
 from typing import TypedDict
 
+from omu.extension.permission.permission import PermissionType
 from omu.extension.signal import SignalType
+from omu.extension.signal.signal import SignalPermissions
 from omuchat.model import Provider
 
 from omuchatprovider.chatprovider import BASE_PROVIDER_IDENTIFIER
@@ -38,12 +40,30 @@ BASE_PAYLOAD = {
 }
 
 
-class ReactionMessage(TypedDict):
+class ReactionSignal(TypedDict):
     room_id: str
     reactions: dict[str, int]
 
 
-REACTION_SIGNAL_TYPE = SignalType[ReactionMessage].create_json(
+REACTION_PERMISSION_ID = YOUTUBE_IDENTIFIER / "reaction"
+REACTION_PERMISSION_TYPE = PermissionType(
+    id=REACTION_PERMISSION_ID,
+    metadata={
+        "level": "low",
+        "name": {
+            "en": "Reaction",
+            "ja": "リアクション",
+        },
+        "note": {
+            "en": "Permission to get reactions from Youtube",
+            "ja": "Youtubeのリアクションを取得する権限",
+        },
+    },
+)
+REACTION_SIGNAL_TYPE = SignalType[ReactionSignal].create_json(
     identifier=YOUTUBE_IDENTIFIER,
     name="reaction",
+    permissions=SignalPermissions(
+        all=REACTION_PERMISSION_ID,
+    ),
 )
