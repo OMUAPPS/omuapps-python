@@ -31,14 +31,13 @@ class PermissionExtension(Extension):
             PERMISSION_GRANT_PACKET,
             self.handle_grant,
         )
-        client.network.listeners.connected += self.on_connected
         client.network.add_task(self.on_network_task)
 
     def register(self, *permission_types: PermissionType):
+        base_identifier = self.client.app.id
         for permission in permission_types:
             if permission.id in self.registered_permissions:
                 raise ValueError(f"Permission {permission.id} already registered")
-            base_identifier = self.client.app.id
             if not permission.id.is_subpath_of(base_identifier):
                 raise ValueError(
                     f"Permission identifier {permission.id} is not a subpart of app identifier {base_identifier}"
@@ -60,17 +59,16 @@ class PermissionExtension(Extension):
     def has(self, permission_identifier: Identifier):
         return permission_identifier in self.permissions
 
-    async def on_connected(self):
-        await self.client.send(
-            PERMISSION_REGISTER_PACKET,
-            [*self.registered_permissions.values()],
-        )
-
     async def on_network_task(self):
         if len(self.required_permission_ids) > 0:
             await self.client.send(
                 PERMISSION_REQUIRE_PACKET,
                 [*self.required_permission_ids],
+            )
+        if len(self.registered_permissions) > 0:
+            await self.client.send(
+                PERMISSION_REGISTER_PACKET,
+                [*self.registered_permissions.values()],
             )
 
     async def handle_grant(self, permissions: List[PermissionType]):
