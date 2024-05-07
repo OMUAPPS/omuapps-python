@@ -4,6 +4,7 @@ import asyncio
 import importlib.metadata
 import importlib.util
 import sys
+import tempfile
 from collections.abc import Mapping
 from multiprocessing import Process
 from typing import (
@@ -11,6 +12,7 @@ from typing import (
     Protocol,
 )
 
+import uv
 from loguru import logger
 from omu import Address
 from omu.app import App
@@ -50,52 +52,30 @@ class DependencyResolver:
                 args.append(dependency)
         return args
 
-    async def _install(self, to_install: Mapping[str, SpecifierSet]) -> None:
-        if len(to_install) == 0:
+    async def update_requirements(self, requirements: dict[str, SpecifierSet]) -> None:
+        if len(requirements) == 0:
             return
-        logger.info(
-            "Installing dependencies " + ", ".join(self.format_dependencies(to_install))
-        )
-        install_process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            *self.format_dependencies(to_install),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await install_process.communicate()
-        if install_process.returncode != 0:
-            logger.error(f"Error installing dependencies: {stderr}")
+        with tempfile.NamedTemporaryFile(mode="wb", delete=True) as req_file:
+            dependency_lines = self.format_dependencies(requirements)
+            req_file.write("\n".join(dependency_lines).encode("utf-8"))
+            req_file.flush()
+            process = await asyncio.create_subprocess_exec(
+                uv.find_uv_bin(),
+                "pip",
+                "install",
+                "--upgrade",
+                "-r",
+                req_file.name,
+                "--python",
+                sys.executable,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            logger.error(f"Error running uv command: {stderr}")
             return
-        logger.info(f"Installed dependencies: {stdout}")
-
-    async def _update(self, to_update: Mapping[str, SpecifierSet]) -> None:
-        if len(to_update) == 0:
-            return
-        logger.info(
-            "Updating dependencies " + ", ".join(self.format_dependencies(to_update))
-        )
-        update_process = await asyncio.create_subprocess_exec(
-            sys.executable,
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            *[
-                f"{dependency}{specifier}"
-                for dependency, specifier in to_update.items()
-            ],
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await update_process.communicate()
-        if update_process.returncode != 0:
-            logger.error(f"Error updating dependencies: {stderr}")
-            return
-        logger.info(f"Updated dependencies: {stdout}")
+        logger.info(f"Ran uv command: {stdout or stderr}")
 
     def add_dependencies(self, dependencies: Mapping[str, SpecifierSet | None]) -> bool:
         changed = False
@@ -113,8 +93,7 @@ class DependencyResolver:
         return changed
 
     async def resolve(self):
-        to_install: dict[str, SpecifierSet] = {}
-        to_update: dict[str, SpecifierSet] = {}
+        requirements: dict[str, SpecifierSet] = {}
         skipped: dict[str, SpecifierSet] = {}
         packages_distributions: Mapping[str, importlib.metadata.Distribution] = {
             dist.name: dist for dist in importlib.metadata.distributions()
@@ -122,7 +101,7 @@ class DependencyResolver:
         for dependency, specifier in self._dependencies.items():
             package = packages_distributions.get(dependency)
             if package is None:
-                to_install[dependency] = specifier
+                requirements[dependency] = specifier
                 continue
             distribution = packages_distributions[package.name]
             installed_version = Version(distribution.version)
@@ -130,10 +109,9 @@ class DependencyResolver:
             if installed_version in specifier_set:
                 skipped[dependency] = specifier_set
                 continue
-            to_update[dependency] = specifier_set
+            requirements[dependency] = specifier_set
 
-        await self._install(to_install)
-        await self._update(to_update)
+        await self.update_requirements(requirements)
         logger.info(
             f"Skipped dependencies: {", ".join(self.format_dependencies(skipped))}"
         )
