@@ -6,6 +6,7 @@ from typing import (
     Literal,
     LiteralString,
     Protocol,
+    Self,
     TypedDict,
 )
 
@@ -28,6 +29,9 @@ class Component[T: LiteralString, D](abc.ABC):
 
     @abc.abstractmethod
     def to_json(self) -> D: ...
+
+    @abc.abstractmethod
+    def copy(self) -> Self: ...
 
     def walk(self, cb: Callable[[Component], None]) -> None:
         stack: list[Component] = [self]
@@ -110,6 +114,9 @@ class Root(Component[Literal["root"], RootData], Parent):
     def to_json(self) -> RootData:
         return [serialize(child) for child in self.children]
 
+    def copy(self) -> Root:
+        return Root([child.copy() for child in self.children])
+
     def get_children(self) -> list[Component]:
         return self.children
 
@@ -147,6 +154,9 @@ class Text(Component[Literal["text"], TextData]):
     def to_json(self) -> TextData:
         return self.text
 
+    def copy(self) -> Text:
+        return Text(self.text)
+
     @classmethod
     def of(cls, text: str) -> Text:
         return cls(text)
@@ -178,6 +188,9 @@ class Image(Component[Literal["image"], ImageData]):
             "id": self.id,
             "name": self.name,
         }
+
+    def copy(self) -> Image:
+        return Image(self.url, self.id, self.name)
 
     @classmethod
     def of(cls, *, url: str, id: str, name: str | None = None) -> Image:
@@ -212,6 +225,9 @@ class Link(Component[Literal["link"], LinkData], Parent):
             "children": [serialize(child) for child in self.children],
         }
 
+    def copy(self) -> Link:
+        return Link(self.url, [child.copy() for child in self.children])
+
     def get_children(self) -> list[Component]:
         return self.children
 
@@ -237,6 +253,9 @@ class System(Component[Literal["system"], RootData], Parent):
 
     def to_json(self) -> RootData:
         return [serialize(child) for child in self.children]
+
+    def copy(self) -> System:
+        return System([child.copy() for child in self.children])
 
     def get_children(self) -> list[Component]:
         return self.children
@@ -275,6 +294,9 @@ class Log(Component[Literal["log"], LogData]):
             "level": self.level,
             "message": self.message,
         }
+
+    def copy(self) -> Log:
+        return Log(self.level, self.message)
 
 
 for component_type in {Root, Text, Image, Link, System, Log}:

@@ -6,6 +6,7 @@ from typing import TypedDict
 from aiohttp import web
 from loguru import logger
 from omuchat import App, Client, events, model
+from omuchat.model import content
 
 from .onecomme import Badge, Comment, CommentData, CommentServiceData
 
@@ -17,23 +18,29 @@ client = Client(APP)
 app = web.Application()
 
 
-def format_content(*components: model.content.Component | None) -> str:
+def format_content(*components: content.Component | None) -> str:
     if not components:
         return ""
     parts = []
     stack = [*components]
     while stack:
         component = stack.pop(0)
-        if isinstance(component, model.content.Text):
+        if isinstance(component, content.Text):
             parts.append(component.text)
-        elif isinstance(component, model.content.Image):
+        elif isinstance(component, content.Image):
             parts.append(f'<img src="{component.url}" alt="{component.id}" />')
-        elif isinstance(component, model.content.Link):
+        elif isinstance(component, content.Link):
             parts.append(
                 f'<a href="{component.url}">{format_content(*component.children)}</a>'
             )
-        elif isinstance(component, model.content.Parent):
-            stack.extend(component.get_children())
+        elif isinstance(component, content.System):
+            parts.append(
+                f"<div><span>{format_content(*component.get_children())}</span></div>"
+            )
+        elif isinstance(component, content.Parent):
+            parts.append(f"<span>{format_content(*component.get_children())}</span>")
+        else:
+            raise ValueError(f"Unknown component type: {component}")
     return "".join(parts)
 
 

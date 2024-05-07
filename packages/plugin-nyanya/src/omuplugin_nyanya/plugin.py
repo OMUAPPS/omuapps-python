@@ -15,7 +15,9 @@ replaces = {
 }
 
 
-async def translate(component: content.Component) -> content.Component:
+async def translate(
+    component: content.Component,
+) -> content.Component:
     for child in component.iter():
         if not isinstance(child, content.Text):
             continue
