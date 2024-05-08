@@ -6,7 +6,7 @@ import aiohttp
 from aiohttp import web
 from loguru import logger
 from omu import Identifier
-from omu.network import Address
+from omu.address import Address
 
 from omuserver import __version__
 from omuserver.config import Config

@@ -4,9 +4,9 @@ import json
 from dataclasses import dataclass
 from typing import Mapping, Sequence
 
+from omu.bytebuffer import ByteReader, ByteWriter
 from omu.helper import map_optional
 from omu.identifier import Identifier
-from omu.network.bytebuffer import ByteReader, ByteWriter
 
 from .table import TableConfig
 

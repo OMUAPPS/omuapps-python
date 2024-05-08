@@ -8,13 +8,12 @@ import tempfile
 from collections.abc import Mapping
 from multiprocessing import Process
 from typing import (
-    TYPE_CHECKING,
     Protocol,
 )
 
 import uv
 from loguru import logger
-from omu import Address
+from omu.address import Address
 from omu.app import App
 from omu.client.token import TokenProvider
 from omu.network.websocket_connection import WebsocketsConnection
@@ -22,13 +21,11 @@ from omu.plugin import Plugin
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
+from omuserver.server import Server
 from omuserver.session import Session
 
 from .plugin_connection import PluginConnection
 from .plugin_session_connection import PluginSessionConnection
-
-if TYPE_CHECKING:
-    from omuserver.server import Server
 
 PLUGIN_GROUP = "omu.plugins"
 

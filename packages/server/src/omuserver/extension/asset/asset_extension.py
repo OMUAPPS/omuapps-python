@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from omu.extension.asset.asset_extension import (
     ASSET_DOWNLOAD_ENDPOINT,
@@ -14,10 +13,8 @@ from omu.extension.asset.asset_extension import (
 from omu.identifier import Identifier
 
 from omuserver.helper import safe_path_join
-
-if TYPE_CHECKING:
-    from omuserver.server import Server
-    from omuserver.session import Session
+from omuserver.server import Server
+from omuserver.session import Session
 
 
 class AssetStorage(abc.ABC):

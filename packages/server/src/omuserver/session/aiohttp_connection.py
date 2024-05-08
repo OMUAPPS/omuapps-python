@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from aiohttp import web
 from loguru import logger
-from omu.network.bytebuffer import ByteReader, ByteWriter
+from omu.bytebuffer import ByteReader, ByteWriter
 from omu.network.packet import Packet, PacketData
 from omu.network.packet_mapper import PacketMapper
 

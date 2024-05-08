@@ -4,10 +4,10 @@ import abc
 import asyncio
 from typing import TYPE_CHECKING
 
+from omu.app import App
 from omu.event_emitter import EventEmitter
 
 if TYPE_CHECKING:
-    from omu.app import App
     from omu.extension import ExtensionRegistry
     from omu.extension.dashboard import DashboardExtension
     from omu.extension.endpoint import EndpointExtension

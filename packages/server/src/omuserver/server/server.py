@@ -4,11 +4,10 @@ import abc
 import asyncio
 from typing import TYPE_CHECKING
 
+from omu.address import Address
 from omu.event_emitter import EventEmitter
 
 if TYPE_CHECKING:
-    from omu.network import Address
-
     from omuserver.config import Config
     from omuserver.directories import Directories
     from omuserver.extension.asset import AssetExtension

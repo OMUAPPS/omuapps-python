@@ -1,13 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any, Protocol
 
 from omu.identifier import Identifier
-from omu.serializer import Serializer
-
-if TYPE_CHECKING:
-    from omu.serializer import Serializable
+from omu.serializer import Serializable, Serializer
 
 
 @dataclass(frozen=True)

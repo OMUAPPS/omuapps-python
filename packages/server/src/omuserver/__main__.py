@@ -5,7 +5,7 @@ import tracemalloc
 
 import click
 from loguru import logger
-from omu import Address
+from omu.address import Address
 
 from omuserver.config import Config
 from omuserver.server.omuserver import OmuServer

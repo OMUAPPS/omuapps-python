@@ -3,11 +3,11 @@ from __future__ import annotations
 import aiohttp
 from aiohttp import web
 
+from omu.address import Address
+from omu.bytebuffer import ByteReader, ByteWriter
 from omu.client import Client
 from omu.serializer import Serializable
 
-from .address import Address
-from .bytebuffer import ByteReader, ByteWriter
 from .connection import Connection
 from .packet import Packet, PacketData
 

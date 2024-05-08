@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict
+from typing import Dict
 
-if TYPE_CHECKING:
-    from omu.client import Client
-    from omu.extension import Extension, ExtensionType
+from omu.client import Client
+from omu.extension import Extension, ExtensionType
 
 
 class ExtensionRegistry:

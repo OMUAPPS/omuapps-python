@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import List
 
+from omu.bytebuffer import ByteReader, ByteWriter
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.identifier import Identifier
-from omu.network.bytebuffer import ByteReader, ByteWriter
 from omu.serializer import Serializer
 
 ASSET_EXTENSION_TYPE = ExtensionType(

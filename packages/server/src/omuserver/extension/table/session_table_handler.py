@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from omu.extension.table.table_extension import (
     TABLE_ITEM_ADD_PACKET,
@@ -14,9 +14,7 @@ from omu.extension.table.table_extension import (
 from omu.identifier import Identifier
 
 from omuserver.extension.table.server_table import ServerTable
-
-if TYPE_CHECKING:
-    from omuserver.session import Session
+from omuserver.session import Session
 
 
 class SessionTableListener:

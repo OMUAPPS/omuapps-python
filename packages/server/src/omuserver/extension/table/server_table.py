@@ -2,18 +2,15 @@ from __future__ import annotations
 
 import abc
 from collections.abc import AsyncGenerator, Mapping
-from typing import TYPE_CHECKING
 
 from omu.event_emitter import EventEmitter
+from omu.extension.table import TableConfig
 from omu.extension.table.table import TablePermissions
 from omu.identifier import Identifier
 
-if TYPE_CHECKING:
-    from omu.extension.table import TableConfig
+from omuserver.session import Session
 
-    from omuserver.session import Session
-
-    from .adapters.tableadapter import TableAdapter
+from .adapters.tableadapter import TableAdapter
 
 type Json = str | int | float | bool | None | dict[str, Json] | list[Json]
 

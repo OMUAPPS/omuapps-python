@@ -3,11 +3,10 @@ from __future__ import annotations
 import abc
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict
+from typing import Dict
 
-if TYPE_CHECKING:
-    from omu.app import App
-    from omu.network.address import Address
+from omu.address import Address
+from omu.app import App
 
 
 class TokenProvider(abc.ABC):

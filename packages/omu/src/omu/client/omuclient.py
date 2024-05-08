@@ -4,6 +4,7 @@ import asyncio
 
 from loguru import logger
 
+from omu.address import Address
 from omu.app import App
 from omu.client.token import JsonTokenProvider, TokenProvider
 from omu.extension import ExtensionRegistry
@@ -47,7 +48,7 @@ from omu.extension.table import (
     TABLE_EXTENSION_TYPE,
     TableExtension,
 )
-from omu.network import Address, Network
+from omu.network import Network
 from omu.network.packet import Packet, PacketType
 from omu.network.websocket_connection import WebsocketsConnection
 

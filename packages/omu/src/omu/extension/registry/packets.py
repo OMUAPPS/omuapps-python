@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from omu.bytebuffer import ByteReader, ByteWriter
 from omu.identifier import Identifier
-from omu.network.bytebuffer import ByteReader, ByteWriter
 
 from .registry import RegistryPermissions
 

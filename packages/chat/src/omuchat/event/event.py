@@ -5,10 +5,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from omu.event_emitter import EventEmitter
+from omu.extension.table import Table
 
 if TYPE_CHECKING:
-    from omu.extension.table import Table
-
     from omuchat.client import Client
 
 type EventHandler[**P] = Callable[P, Coroutine[None, None, None]]

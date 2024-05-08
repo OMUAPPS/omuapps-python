@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import sqlite3
 import time
-from typing import TYPE_CHECKING
 
 from omu.extension.dashboard.dashboard import PermissionRequest
 from omu.extension.permission import PermissionType
@@ -16,10 +15,8 @@ from omu.extension.permission.permission_extension import (
 from omu.identifier import Identifier
 from omu.network.packet.packet_types import DisconnectType
 
+from omuserver.server import Server
 from omuserver.session import Session
-
-if TYPE_CHECKING:
-    from omuserver.server import Server
 
 
 class PermissionExtension:

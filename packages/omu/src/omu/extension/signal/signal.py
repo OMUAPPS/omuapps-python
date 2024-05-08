@@ -4,9 +4,9 @@ import abc
 from dataclasses import dataclass
 from typing import Callable
 
+from omu.bytebuffer import ByteReader, ByteWriter, Flags
 from omu.helper import Coro
 from omu.identifier import Identifier
-from omu.network.bytebuffer import ByteReader, ByteWriter, Flags
 from omu.serializer import Serializable, Serializer
 
 

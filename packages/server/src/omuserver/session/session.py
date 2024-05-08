@@ -3,9 +3,9 @@ from __future__ import annotations
 import abc
 import asyncio
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 from loguru import logger
+from omu import App
 from omu.errors import DisconnectReason
 from omu.event_emitter import EventEmitter
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
@@ -14,12 +14,9 @@ from omu.network.packet.packet_types import (
     DisconnectPacket,
     DisconnectType,
 )
+from omu.network.packet_mapper import PacketMapper
 
-if TYPE_CHECKING:
-    from omu import App
-    from omu.network.packet_mapper import PacketMapper
-
-    from omuserver.server import Server
+from omuserver.server import Server
 
 
 class SessionConnection(abc.ABC):

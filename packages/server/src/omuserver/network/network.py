@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import socket
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
 import psutil
 from aiohttp import web
@@ -15,11 +14,9 @@ from omu.network.packet import PACKET_TYPES, PacketType
 from omu.network.packet.packet_types import ConnectPacket, DisconnectType
 
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
+from omuserver.server import Server
 from omuserver.session import Session
 from omuserver.session.aiohttp_connection import WebsocketsConnection
-
-if TYPE_CHECKING:
-    from omuserver.server import Server
 
 
 @dataclass(frozen=True)

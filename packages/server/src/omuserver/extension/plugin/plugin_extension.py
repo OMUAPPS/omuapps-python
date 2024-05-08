@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from typing import (
-    TYPE_CHECKING,
-)
 
 from omu.extension.plugin.plugin_extension import (
     PLUGIN_PERMISSION_TYPE,
@@ -11,12 +8,10 @@ from omu.extension.plugin.plugin_extension import (
 )
 from packaging.specifiers import SpecifierSet
 
+from omuserver.server import Server
 from omuserver.session import Session
 
 from .plugin_loader import DependencyResolver, PluginLoader
-
-if TYPE_CHECKING:
-    from omuserver.server import Server
 
 
 class PluginExtension:

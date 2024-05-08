@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Callable, List
+from typing import Callable, List
 
+from omu.client import Client
 from omu.identifier import Identifier
-
-if TYPE_CHECKING:
-    from omu.client import Client
 
 
 class Extension(abc.ABC):

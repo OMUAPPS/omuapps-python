@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from omu import Address
+from omu.address import Address
 
 from omuserver.directories import Directories
 

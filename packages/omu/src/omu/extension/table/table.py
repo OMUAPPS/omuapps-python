@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass
 from typing import (
-    TYPE_CHECKING,
     AsyncGenerator,
     Callable,
     Dict,
@@ -13,13 +12,10 @@ from typing import (
 )
 
 from omu.event_emitter import EventEmitter
+from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
 from omu.interface import Keyable
-from omu.serializer import Serializer
-
-if TYPE_CHECKING:
-    from omu.helper import AsyncCallback, Coro
-    from omu.serializer import JsonSerializable, Serializable
+from omu.serializer import JsonSerializable, Serializable, Serializer
 
 
 class TableConfig(TypedDict):

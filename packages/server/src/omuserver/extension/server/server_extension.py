@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from asyncio import Future
 from collections import defaultdict
-from typing import TYPE_CHECKING
 
 from loguru import logger
 from omu.extension.permission.permission import PermissionType
@@ -17,10 +16,8 @@ from omu.identifier import Identifier
 
 from omuserver import __version__
 from omuserver.helper import get_launch_command
-
-if TYPE_CHECKING:
-    from omuserver.server import Server
-    from omuserver.session import Session
+from omuserver.server import Server
+from omuserver.session import Session
 
 
 class WaitHandle:
