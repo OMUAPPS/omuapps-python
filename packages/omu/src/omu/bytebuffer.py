@@ -17,7 +17,7 @@ class Flags:
 
     def if_set[T](self, position: int, callback: Callable[[], T]) -> T | None:
         if self.has(position):
-            callback()
+            return callback()
         return None
 
     def set(self, position: int, value: bool) -> Flags:
