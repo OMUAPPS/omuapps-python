@@ -105,6 +105,8 @@ class PermissionExtension:
     async def handle_require(
         self, session: Session, permission_identifiers: list[Identifier]
     ):
+        if session.is_plugin:
+            return
         if set(permission_identifiers) == set(
             self.session_permissions.get(session.token, {})
         ):
@@ -166,4 +168,6 @@ class PermissionExtension:
         return f"{self.request_id}-{time.time_ns()}"
 
     def has_permission(self, session: Session, permission_id: Identifier) -> bool:
+        if session.is_plugin:
+            return True
         return permission_id in self.session_permissions.get(session.token, [])
