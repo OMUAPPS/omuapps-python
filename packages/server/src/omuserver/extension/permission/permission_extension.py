@@ -4,7 +4,7 @@ import json
 import sqlite3
 import time
 
-from omu.extension.dashboard.dashboard import PermissionRequest
+from omu.extension.dashboard.packets import PermissionRequestPacket
 from omu.extension.permission import PermissionType
 from omu.extension.permission.permission_extension import (
     PERMISSION_GRANT_PACKET,
@@ -124,7 +124,7 @@ class PermissionExtension:
             accepted = True
         else:
             accepted = await self.server.dashboard.request_permissions(
-                PermissionRequest(request_id, session.app, permissions)
+                PermissionRequestPacket(request_id, session.app, permissions)
             )
         if accepted:
             self.set_permissions(session.token, [p.id for p in permissions])
@@ -148,7 +148,7 @@ class PermissionExtension:
                 permissions.append(permission)
 
         accepted = await self.server.dashboard.request_permissions(
-            PermissionRequest(request_id, session.app, permissions)
+            PermissionRequestPacket(request_id, session.app, permissions)
         )
         if accepted:
             self.set_permissions(session.token, [p.id for p in permissions])

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 
+from omu.extension.dashboard.packets import PluginRequestPacket
+from omu.extension.plugin import PackageInfo
 from omu.extension.plugin.plugin_extension import (
-    PLUGIN_PERMISSION_TYPE,
+    PLUGIN_ALLOWED_PACKAGE_TABLE,
     PLUGIN_REQUIRE_PACKET,
 )
 from packaging.specifiers import SpecifierSet
@@ -16,11 +18,7 @@ from .plugin_loader import DependencyResolver, PluginLoader
 
 class PluginExtension:
     def __init__(self, server: Server) -> None:
-        self._server = server
-        self.lock = asyncio.Lock()
-        server.network.listeners.start += self.on_network_start
-        self.loader = PluginLoader(server)
-        self.dependency_resolver = DependencyResolver()
+        self.server = server
         server.packet_dispatcher.register(
             PLUGIN_REQUIRE_PACKET,
         )
@@ -28,16 +26,49 @@ class PluginExtension:
             PLUGIN_REQUIRE_PACKET,
             self.handle_require_packet,
         )
-        server.permissions.register(
-            PLUGIN_PERMISSION_TYPE,
-        )
+        server.network.listeners.start += self.on_network_start
+        self.server_id = 0
+        self.lock = asyncio.Lock()
+        self.loader = PluginLoader(server)
+        self.dependency_resolver = DependencyResolver()
+        self.allowed_packages = server.tables.register(PLUGIN_ALLOWED_PACKAGE_TABLE)
 
     async def on_network_start(self) -> None:
         await self.loader.run_plugins()
 
+    async def request_plugins(
+        self, session: Session, packages: dict[str, str | None]
+    ) -> None:
+        to_request: list[PackageInfo] = []
+        for package, version in packages.items():
+            package_info = await self.dependency_resolver.get_installed_package_info(
+                package
+            )
+            if package_info is None:
+                package_info = await self.dependency_resolver.fetch_package_info(
+                    package
+                )
+                to_request.append(package_info)
+                continue
+            await self.allowed_packages.add(package_info)
+        if len(to_request) == 0:
+            return
+        request = PluginRequestPacket(
+            request_id="",
+            app=session.app,
+            packages=to_request,
+        )
+        accepted = await self.server.dashboard.request_plugins(request)
+        if not accepted:
+            raise Exception("Request was not accepted")
+
     async def handle_require_packet(
         self, session: Session, packages: dict[str, str | None]
     ) -> None:
+        if not packages:
+            return
+        await self.request_plugins(session, packages)
+
         changed = False
         for package, version in packages.items():
             specifier = None

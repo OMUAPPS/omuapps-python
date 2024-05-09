@@ -2,7 +2,7 @@ from asyncio import Future
 
 from omu.app import App
 from omu.errors import PermissionDenied
-from omu.extension.dashboard import PermissionRequest
+from omu.extension.dashboard import PermissionRequestPacket
 from omu.extension.dashboard.dashboard_extension import (
     DASHBOARD_APP_TABLE_TYPE,
     DASHBOARD_OPEN_APP_ENDPOINT,
@@ -10,10 +10,13 @@ from omu.extension.dashboard.dashboard_extension import (
     DASHBOARD_PERMISSION_ACCEPT_PACKET,
     DASHBOARD_PERMISSION_DENY_PACKET,
     DASHBOARD_PERMISSION_REQUEST_PACKET,
+    DASHBOARD_PLUGIN_ACCEPT_PACKET,
+    DASHBOARD_PLUGIN_DENY_PACKET,
+    DASHBOARD_PLUGIN_REQUEST_PACKET,
     DASHBOARD_SET_ENDPOINT,
-    DashboardOpenAppResponse,
     DashboardSetResponse,
 )
+from omu.extension.dashboard.packets import PluginRequestPacket
 from omu.identifier import Identifier
 
 from omuserver.server import Server
@@ -29,22 +32,20 @@ from .permission import (
 
 class DashboardExtension:
     def __init__(self, server: Server) -> None:
-        self.server = server
-        self.apps = server.tables.register(DASHBOARD_APP_TABLE_TYPE)
-        self.dashboard_session: Session | None = None
-        self.pending_permission_requests: dict[str, PermissionRequest] = {}
-        self.permission_requests: dict[str, Future[bool]] = {}
+        server.packet_dispatcher.register(
+            DASHBOARD_PERMISSION_REQUEST_PACKET,
+            DASHBOARD_PERMISSION_ACCEPT_PACKET,
+            DASHBOARD_PERMISSION_DENY_PACKET,
+            DASHBOARD_PLUGIN_REQUEST_PACKET,
+            DASHBOARD_PLUGIN_ACCEPT_PACKET,
+            DASHBOARD_PLUGIN_DENY_PACKET,
+            DASHBOARD_OPEN_APP_PACKET,
+        )
         server.permissions.register(
             DASHBOARD_SET_PERMISSION,
             DASHBOARD_OPEN_APP_PERMISSION,
             DASHOBARD_APP_READ_PERMISSION,
             DASHOBARD_APP_EDIT_PERMISSION,
-        )
-        server.packet_dispatcher.register(
-            DASHBOARD_PERMISSION_REQUEST_PACKET,
-            DASHBOARD_PERMISSION_ACCEPT_PACKET,
-            DASHBOARD_PERMISSION_DENY_PACKET,
-            DASHBOARD_OPEN_APP_PACKET,
         )
         server.packet_dispatcher.add_packet_handler(
             DASHBOARD_PERMISSION_ACCEPT_PACKET,
@@ -54,6 +55,15 @@ class DashboardExtension:
             DASHBOARD_PERMISSION_DENY_PACKET,
             self.handle_permission_deny,
         )
+        server.packet_dispatcher.add_packet_handler(
+            DASHBOARD_PLUGIN_ACCEPT_PACKET,
+            self.handle_plugin_accept,
+        )
+        server.packet_dispatcher.add_packet_handler(
+            DASHBOARD_PLUGIN_DENY_PACKET,
+            self.handle_plugin_deny,
+        )
+
         server.endpoints.bind_endpoint(
             DASHBOARD_SET_ENDPOINT,
             self.handle_dashboard_set,
@@ -62,25 +72,21 @@ class DashboardExtension:
             DASHBOARD_OPEN_APP_ENDPOINT,
             self.handle_dashboard_open_app,
         )
+        self.server = server
+        self.apps = server.tables.register(DASHBOARD_APP_TABLE_TYPE)
+        self.dashboard_session: Session | None = None
+        self.pending_permission_requests: dict[str, PermissionRequestPacket] = {}
+        self.permission_requests: dict[str, Future[bool]] = {}
+        self.pending_plugin_requests: dict[str, PluginRequestPacket] = {}
+        self.plugin_requests: dict[str, Future[bool]] = {}
 
-    async def handle_dashboard_open_app(
-        self, session: Session, app: App
-    ) -> DashboardOpenAppResponse:
+    async def handle_dashboard_open_app(self, session: Session, app: App) -> None:
         if self.dashboard_session is None:
-            return {
-                "success": False,
-                "already_open": False,
-                "dashboard_not_connected": True,
-            }
+            raise ValueError("Dashboard session not set")
         await self.dashboard_session.send(
             DASHBOARD_OPEN_APP_PACKET,
             app,
         )
-        return {
-            "success": True,
-            "already_open": False,
-            "dashboard_not_connected": False,
-        }
 
     async def handle_dashboard_set(
         self, session: Session, identifier: Identifier
@@ -126,22 +132,58 @@ class DashboardExtension:
         future = self.permission_requests.pop(request_id)
         future.set_result(False)
 
-    async def request_permissions(self, request: PermissionRequest) -> bool:
+    async def request_permissions(self, request: PermissionRequestPacket) -> bool:
         if request.request_id in self.permission_requests:
             raise ValueError(
                 f"Permission request with id {request.request_id} already exists"
             )
         future = Future[bool]()
         self.permission_requests[request.request_id] = future
-        await self.send_dashboard_permission_request(request)
+        await self.notify_dashboard_permission_request(request)
         return await future
 
-    async def send_dashboard_permission_request(
-        self, request: PermissionRequest
+    async def notify_dashboard_permission_request(
+        self, request: PermissionRequestPacket
     ) -> None:
         self.pending_permission_requests[request.request_id] = request
         if self.dashboard_session is not None:
             await self.dashboard_session.send(
                 DASHBOARD_PERMISSION_REQUEST_PACKET,
+                request,
+            )
+
+    async def handle_plugin_accept(self, session: Session, request_id: str) -> None:
+        self.verify_dashboard(session)
+        if request_id not in self.plugin_requests:
+            raise ValueError(f"Plugin request with id {request_id} does not exist")
+        del self.pending_plugin_requests[request_id]
+        future = self.plugin_requests.pop(request_id)
+        future.set_result(True)
+
+    async def handle_plugin_deny(self, session: Session, request_id: str) -> None:
+        self.verify_dashboard(session)
+        if request_id not in self.plugin_requests:
+            raise ValueError(f"Plugin request with id {request_id} does not exist")
+        del self.pending_plugin_requests[request_id]
+        future = self.plugin_requests.pop(request_id)
+        future.set_result(False)
+
+    async def request_plugins(self, request: PluginRequestPacket) -> bool:
+        if request.request_id in self.plugin_requests:
+            raise ValueError(
+                f"Plugin request with id {request.request_id} already exists"
+            )
+        future = Future[bool]()
+        self.plugin_requests[request.request_id] = future
+        await self.notify_dashboard_plugin_request(request)
+        return await future
+
+    async def notify_dashboard_plugin_request(
+        self, request: PluginRequestPacket
+    ) -> None:
+        self.pending_plugin_requests[request.request_id] = request
+        if self.dashboard_session is not None:
+            await self.dashboard_session.send(
+                DASHBOARD_PLUGIN_REQUEST_PACKET,
                 request,
             )
