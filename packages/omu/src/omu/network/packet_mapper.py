@@ -13,15 +13,13 @@ class PacketMapper(Serializable[Packet, PacketData]):
 
     def register(self, *packet_types: PacketType) -> None:
         for packet_type in packet_types:
-            if self._map.get(packet_type.identifier):
-                raise ValueError(
-                    f"Packet id {packet_type.identifier} already registered"
-                )
-            self._map[packet_type.identifier] = packet_type
+            if self._map.get(packet_type.id):
+                raise ValueError(f"Packet id {packet_type.id} already registered")
+            self._map[packet_type.id] = packet_type
 
     def serialize(self, item: Packet) -> PacketData:
         return PacketData(
-            type=item.type.identifier.key(),
+            type=item.type.id.key(),
             data=item.type.serializer.serialize(item.data),
         )
 

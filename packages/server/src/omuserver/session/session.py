@@ -98,7 +98,7 @@ class Session:
             )
             await connection.close()
             raise RuntimeError(
-                f"Expected {PACKET_TYPES.CONNECT.identifier} but got {packet.type}"
+                f"Expected {PACKET_TYPES.CONNECT.id} but got {packet.type}"
             )
         if not isinstance(packet.data, ConnectPacket):
             await connection.send(

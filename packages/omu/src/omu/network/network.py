@@ -112,22 +112,20 @@ class Network:
     def register_packet(self, *packet_types: PacketType) -> None:
         self._packet_mapper.register(*packet_types)
         for packet_type in packet_types:
-            if self._packet_handlers.get(packet_type.identifier):
-                raise ValueError(
-                    f"Event type {packet_type.identifier} already registered"
-                )
-            self._packet_handlers[packet_type.identifier] = PacketListeners(packet_type)
+            if self._packet_handlers.get(packet_type.id):
+                raise ValueError(f"Event type {packet_type.id} already registered")
+            self._packet_handlers[packet_type.id] = PacketListeners(packet_type)
 
     def add_packet_handler[T](
         self,
         packet_type: PacketType[T],
         packet_handler: Coro[[T], None] | None = None,
     ):
-        if not self._packet_handlers.get(packet_type.identifier):
-            raise ValueError(f"Event type {packet_type.identifier} not registered")
+        if not self._packet_handlers.get(packet_type.id):
+            raise ValueError(f"Event type {packet_type.id} not registered")
 
         def decorator(func: Coro[[T], None]) -> None:
-            self._packet_handlers[packet_type.identifier].handler = func
+            self._packet_handlers[packet_type.id].handler = func
 
         if packet_handler:
             decorator(packet_handler)
@@ -201,11 +199,11 @@ class Network:
 
     async def dispatch_packet(self, packet: Packet) -> None:
         await self._listeners.packet.emit(packet)
-        packet_handler = self._packet_handlers.get(packet.type.identifier)
+        packet_handler = self._packet_handlers.get(packet.type.id)
         if not packet_handler:
             return
         if packet_handler.handler is None:
-            raise RuntimeError(f"No handler for packet type {packet.type.identifier}")
+            raise RuntimeError(f"No handler for packet type {packet.type.id}")
         await packet_handler.handler(packet.data)
 
     @property

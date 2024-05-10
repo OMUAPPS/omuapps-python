@@ -27,7 +27,7 @@ class PacketClass[T](Protocol):
 
 @dataclass(frozen=True)
 class PacketType[T]:
-    identifier: Identifier
+    id: Identifier
     serializer: Serializable[T, bytes]
 
     @classmethod
@@ -38,7 +38,7 @@ class PacketType[T]:
         serializer: Serializable[_T, Any] | None = None,
     ) -> PacketType[_T]:
         return PacketType(
-            identifier=identifier / name,
+            id=identifier / name,
             serializer=Serializer.of(serializer or Serializer.noop()).to_json(),
         )
 
@@ -50,7 +50,7 @@ class PacketType[T]:
         serializer: Serializable[_T, bytes],
     ) -> PacketType[_T]:
         return PacketType(
-            identifier=identifier / name,
+            id=identifier / name,
             serializer=serializer,
         )
 
@@ -62,6 +62,6 @@ class PacketType[T]:
         type_class: PacketClass[_T],
     ) -> PacketType[_T]:
         return PacketType(
-            identifier=identifier / name,
+            id=identifier / name,
             serializer=type_class,
         )
