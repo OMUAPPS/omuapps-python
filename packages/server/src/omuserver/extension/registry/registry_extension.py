@@ -74,8 +74,8 @@ class RegistryExtension:
             raise PermissionDenied(msg)
         registry.permissions = packet.permissions
 
-    async def handle_listen(self, session: Session, identifier: Identifier) -> None:
-        registry = await self.get(identifier)
+    async def handle_listen(self, session: Session, id: Identifier) -> None:
+        registry = await self.get(id)
         self.verify_permission(
             registry,
             session,
@@ -92,16 +92,14 @@ class RegistryExtension:
         )
         await registry.store(packet.value)
 
-    async def handle_get(
-        self, session: Session, identifier: Identifier
-    ) -> RegistryPacket:
-        registry = await self.get(identifier)
+    async def handle_get(self, session: Session, id: Identifier) -> RegistryPacket:
+        registry = await self.get(id)
         self.verify_permission(
             registry,
             session,
             lambda permissions: [permissions.all, permissions.read],
         )
-        return RegistryPacket(identifier, registry.data)
+        return RegistryPacket(id, registry.data)
 
     async def get(self, id: Identifier) -> ServerRegistry:
         registry = self.registries.get(id)
@@ -149,6 +147,6 @@ class RegistryExtension:
             registry_type.serializer,
         )
 
-    async def store(self, identifier: Identifier, value: bytes) -> None:
-        registry = await self.get(identifier)
+    async def store(self, id: Identifier, value: bytes) -> None:
+        registry = await self.get(id)
         await registry.store(value)

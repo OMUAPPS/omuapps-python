@@ -115,10 +115,10 @@ class PermissionExtension:
 
         request_id = self._get_next_request_id()
         permissions: list[PermissionType] = []
-        for identifier in permission_identifiers:
-            permission = self.permission_registry.get(identifier)
+        for permission_id in permission_identifiers:
+            permission = self.permission_registry.get(permission_id)
             if permission is None:
-                raise ValueError(f"Permission {identifier} not registered")
+                raise ValueError(f"Permission {permission_id} not registered")
             permissions.append(permission)
         if session.is_plugin or session.is_dashboard:
             accepted = True

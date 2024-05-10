@@ -130,7 +130,7 @@ class TablePermissions:
 
 @dataclass(frozen=True)
 class TableType[T]:
-    identifier: Identifier
+    id: Identifier
     serializer: Serializable[T, bytes]
     key_function: Callable[[T], str]
     permissions: TablePermissions | None = None
@@ -144,7 +144,7 @@ class TableType[T]:
         permissions: TablePermissions | None = None,
     ) -> TableType[_T]:
         return TableType(
-            identifier=identifier / name,
+            id=identifier / name,
             serializer=Serializer.model(model_type).to_json(),
             key_function=lambda item: item.key(),
             permissions=permissions,
@@ -159,7 +159,7 @@ class TableType[T]:
         permissions: TablePermissions | None = None,
     ) -> TableType[_T]:
         return TableType(
-            identifier=identifier / name,
+            id=identifier / name,
             serializer=serializer,
             key_function=lambda item: item.key(),
             permissions=permissions,

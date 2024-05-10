@@ -266,7 +266,7 @@ class TableExtension:
         await table.clear()
 
     async def register_table[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
-        table = await self.get_table(table_type.identifier)
+        table = await self.get_table(table_type.id)
         return SerializedTable(table, table_type)
 
     async def get_table(self, id: Identifier) -> ServerTable:
@@ -279,8 +279,8 @@ class TableExtension:
         self._tables[id] = table
         return table
 
-    def get_table_path(self, identifier: Identifier) -> Path:
-        path = self.server.directories.get("tables") / identifier.get_sanitized_path()
+    def get_table_path(self, id: Identifier) -> Path:
+        path = self.server.directories.get("tables") / id.get_sanitized_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -314,9 +314,9 @@ class TableExtension:
         )
 
     def register[T: Keyable](self, table_type: TableType[T]) -> Table[T]:
-        table = CachedTable(self.server, table_type.identifier)
+        table = CachedTable(self.server, table_type.id)
         table.set_permissions(table_type.permissions)
-        adapter = SqliteTableAdapter.create(self.get_table_path(table_type.identifier))
+        adapter = SqliteTableAdapter.create(self.get_table_path(table_type.id))
         table.set_adapter(adapter)
-        self._tables[table_type.identifier] = table
+        self._tables[table_type.id] = table
         return SerializedTable(table, table_type)

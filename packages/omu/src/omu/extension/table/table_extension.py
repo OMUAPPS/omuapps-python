@@ -59,20 +59,18 @@ class TableExtension(Extension):
         table_type: TableType[T],
     ) -> Table[T]:
         self._client.permissions.require(TABLE_PERMISSION_ID)
-        if self.has(table_type.identifier):
-            raise ValueError(
-                f"Table with identifier {table_type.identifier} already exists"
-            )
+        if self.has(table_type.id):
+            raise ValueError(f"Table with identifier {table_type.id} already exists")
         table = TableImpl(
             self._client,
             table_type=table_type,
         )
-        self._tables[table_type.identifier] = table
+        self._tables[table_type.id] = table
         return table
 
     def get[T](self, type: TableType[T]) -> Table[T]:
-        if self.has(type.identifier):
-            return self._tables[type.identifier]
+        if self.has(type.id):
+            return self._tables[type.id]
         return self.create(type)
 
     def model[T: Keyable, D](
@@ -84,8 +82,8 @@ class TableExtension(Extension):
         table_type = TableType.create_model(id, name, model_type)
         return self.create(table_type)
 
-    def has(self, identifier: Identifier) -> bool:
-        return identifier in self._tables
+    def has(self, id: Identifier) -> bool:
+        return id in self._tables
 
 
 TABLE_EXTENSION_TYPE = ExtensionType(
@@ -182,7 +180,7 @@ class TableImpl[T](Table[T]):
         table_type: TableType,
     ):
         self._client = client
-        self._id = table_type.identifier
+        self._id = table_type.id
         self._serializer = table_type.serializer
         self._key_function = table_type.key_function
         self._cache: Dict[str, T] = {}

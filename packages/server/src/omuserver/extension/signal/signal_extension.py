@@ -73,8 +73,8 @@ class SignalExtension:
         signal = self.get_signal(data.id)
         signal.permissions = data.permissions
 
-    async def handle_listen(self, session: Session, identifier: Identifier) -> None:
-        signal = self.get_signal(identifier)
+    async def handle_listen(self, session: Session, id: Identifier) -> None:
+        signal = self.get_signal(id)
         self.verify_permission(
             signal,
             session,

@@ -26,7 +26,6 @@ class SerializedTable[T: Keyable](Table[T]):
         self._event = TableEvents[T](self)
         self._proxies: list[Coro[[T], T | None]] = []
         self._chunk_size = 100
-        self.key = type.identifier.key()
         self._permissions: TablePermissions | None = None
         self.permission_read: Identifier | None = None
         self.permission_write: Identifier | None = None
