@@ -8,7 +8,7 @@ type AsyncCallback[**P] = typing.Callable[P, typing.Coroutine[None, None, None]]
 type Coro[**P, T] = typing.Callable[P, typing.Coroutine[None, None, T]]
 
 
-def instance[T](cls: typing.Type[T]) -> T:
+def instance[T](cls: type[T]) -> T:
     return cls()
 
 

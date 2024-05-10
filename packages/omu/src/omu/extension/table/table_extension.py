@@ -1,12 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    AsyncGenerator,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-)
+from collections.abc import AsyncGenerator, Iterable, Mapping
 
 from omu.client import Client
 from omu.event_emitter import Unlisten
@@ -41,7 +35,7 @@ type ModelType[T: Keyable, D] = JsonSerializable[T, D]
 class TableExtension(Extension):
     def __init__(self, client: Client):
         self._client = client
-        self._tables: Dict[Identifier, Table] = {}
+        self._tables: dict[Identifier, Table] = {}
         client.network.register_packet(
             TABLE_SET_PERMISSION_PACKET,
             TABLE_SET_CONFIG_PACKET,
@@ -183,9 +177,9 @@ class TableImpl[T](Table[T]):
         self._id = table_type.id
         self._serializer = table_type.serializer
         self._key_function = table_type.key_function
-        self._cache: Dict[str, T] = {}
+        self._cache: dict[str, T] = {}
         self._event = TableEvents[T](self)
-        self._proxies: List[Coro[[T], T | None]] = []
+        self._proxies: list[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self._cache_size: int | None = None
         self._listening = False
@@ -230,7 +224,7 @@ class TableImpl[T](Table[T]):
             return items[key]
         return None
 
-    async def get_many(self, *keys: str) -> Dict[str, T]:
+    async def get_many(self, *keys: str) -> dict[str, T]:
         res = await self._client.endpoints.call(
             TABLE_ITEM_GET_ENDPOINT, TableKeysPacket(id=self._id, keys=keys)
         )
@@ -264,7 +258,7 @@ class TableImpl[T](Table[T]):
         before: int | None = None,
         after: int | None = None,
         cursor: str | None = None,
-    ) -> Dict[str, T]:
+    ) -> dict[str, T]:
         items_response = await self._client.endpoints.call(
             TABLE_FETCH_ENDPOINT,
             TableFetchPacket(id=self._id, before=before, after=after, cursor=cursor),
@@ -273,7 +267,7 @@ class TableImpl[T](Table[T]):
         await self.update_cache(items)
         return items
 
-    async def fetch_all(self) -> Dict[str, T]:
+    async def fetch_all(self) -> dict[str, T]:
         items_response = await self._client.endpoints.call(
             TABLE_FETCH_ALL_ENDPOINT, TablePacket(id=self._id)
         )
@@ -424,7 +418,7 @@ class TableImpl[T](Table[T]):
             self._cache = dict(cache_array[: self._cache_size])
         await self._event.cache_update(self._cache)
 
-    def _parse_items(self, items: Mapping[str, bytes]) -> Dict[str, T]:
+    def _parse_items(self, items: Mapping[str, bytes]) -> dict[str, T]:
         parsed_items: Mapping[str, T] = {}
         for key, item_bytes in items.items():
             item = self._serializer.deserialize(item_bytes)

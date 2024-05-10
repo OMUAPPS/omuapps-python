@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from asyncio import Future
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType

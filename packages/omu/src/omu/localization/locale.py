@@ -1,4 +1,5 @@
-from typing import Literal, Mapping
+from collections.abc import Mapping
+from typing import Literal
 
 # Locale Identifiers - https://gist.github.com/ndbroadbent/588fefab8e0f1b459fcec8181b41b39c
 type Locale = Literal[

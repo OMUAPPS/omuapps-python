@@ -26,12 +26,5 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 
-[tool.pylint]
-disable = [
-    "missing-module-docstring",
-    "missing-function-docstring",
-    "missing-class-docstring",
-]
-
 [tool.hatch.metadata]
 allow-direct-references = true

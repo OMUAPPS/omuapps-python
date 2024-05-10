@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import AsyncGenerator, Callable, Mapping
 from dataclasses import dataclass
 from typing import (
-    AsyncGenerator,
-    Callable,
-    Dict,
-    Mapping,
     NotRequired,
     TypedDict,
 )
@@ -34,7 +31,7 @@ class Table[T](abc.ABC):
     async def get(self, key: str) -> T | None: ...
 
     @abc.abstractmethod
-    async def get_many(self, *keys: str) -> Dict[str, T]: ...
+    async def get_many(self, *keys: str) -> dict[str, T]: ...
 
     @abc.abstractmethod
     async def add(self, *items: T) -> None: ...
@@ -57,7 +54,7 @@ class Table[T](abc.ABC):
     ) -> Mapping[str, T]: ...
 
     @abc.abstractmethod
-    async def fetch_all(self) -> Dict[str, T]: ...
+    async def fetch_all(self) -> dict[str, T]: ...
 
     @abc.abstractmethod
     async def iterate(
