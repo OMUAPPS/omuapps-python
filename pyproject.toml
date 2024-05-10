@@ -50,3 +50,10 @@ select = [
 
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true
+
+[tool.pylint]
+disable = [
+    "missing-module-docstring",
+    "missing-function-docstring",
+    "missing-class-docstring",
+]
