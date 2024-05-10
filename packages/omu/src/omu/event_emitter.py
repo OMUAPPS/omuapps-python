@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Callable, Self
+from collections.abc import Callable
+from typing import Self
 
 from omu.helper import Coro
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import urllib.parse
 from pathlib import Path
-from typing import Final, Tuple
+from typing import Final
 
 from omu.helper import generate_md5_hash, sanitize_filename
 from omu.model import Model
@@ -18,7 +18,7 @@ class Identifier(Model[str], Keyable):
     def __init__(self, namespace: str, *path: str) -> None:
         self.validate(namespace, *path)
         self.namespace: Final[str] = namespace
-        self.path: Final[Tuple[str, ...]] = path
+        self.path: Final[tuple[str, ...]] = path
 
     @classmethod
     def validate(cls, namespace: str, *path: str) -> None:

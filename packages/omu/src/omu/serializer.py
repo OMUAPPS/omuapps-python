@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import Callable, Mapping, Protocol
+from collections.abc import Callable, Mapping
+from typing import Protocol
 
 
 class SerializeError(Exception):

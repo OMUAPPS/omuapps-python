@@ -1,4 +1,3 @@
-from typing import Set
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -21,7 +20,7 @@ class PermissionExtension(Extension):
         self.client = client
         self.permissions: list[PermissionType] = []
         self.registered_permissions: dict[Identifier, PermissionType] = {}
-        self.required_permission_ids: Set[Identifier] = set()
+        self.required_permission_ids: set[Identifier] = set()
         client.network.register_packet(
             PERMISSION_REGISTER_PACKET,
             PERMISSION_REQUIRE_PACKET,

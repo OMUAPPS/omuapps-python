@@ -1,4 +1,3 @@
-from typing import Set
 
 from omu.app import App
 from omu.client import Client
@@ -48,7 +47,7 @@ class ServerExtension(Extension):
         )
         self.client = client
         self.apps = client.tables.get(APP_TABLE_TYPE)
-        self.required_apps: Set[Identifier] = set()
+        self.required_apps: set[Identifier] = set()
         client.network.add_task(self.on_task)
 
     async def on_task(self) -> None:
