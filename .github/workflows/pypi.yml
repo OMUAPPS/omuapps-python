@@ -11,13 +11,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5.1.0
         with:
-          python-version: "3.x"
+          python-version: "3.12"
 
       - name: Install rye
         uses: eifinger/setup-rye@v2.5.2
         with:
           enable-cache: true
           cache-prefix: "rye"
+
+      - name: Generate version file
+        run: |
+          python scripts/generate_version.py
 
       - name: Install dependencies
         run: |
