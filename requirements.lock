@@ -54,7 +54,7 @@ frozenlist==1.4.1
     # via aiosignal
 idna==3.7
     # via yarl
-iwashi==3.0.0
+iwashi==3.0.1
     # via omuplugin-chat
 loguru==0.7.2
     # via iwashi
