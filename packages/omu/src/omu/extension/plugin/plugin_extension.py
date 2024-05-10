@@ -2,8 +2,10 @@ from typing import Dict
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
-from omu.extension.permission.permission import PermissionType
-from omu.network.packet.packet import PacketType
+from omu.extension.table import TableType
+from omu.network.packet import PacketType
+
+from .plugin import PluginPackageInfo
 
 PLUGIN_EXTENSION_TYPE = ExtensionType(
     "plugin",
@@ -27,25 +29,14 @@ class PluginExtension(Extension):
 
     def require(self, plugins: Dict[str, str | None]):
         self.plugins.update(plugins)
-        self.client.permissions.require(PLUGIN_PERMISSION)
 
 
-PLUGIN_PERMISSION_TYPE = PermissionType(
-    PLUGIN_EXTENSION_TYPE / "request",
-    metadata={
-        "level": "high",
-        "name": {
-            "en": "Require plugin",
-            "ja": "プラグインの要求",
-        },
-        "note": {
-            "en": "Require plugin",
-            "ja": "プラグインの要求",
-        },
-    },
-)
-PLUGIN_PERMISSION = PLUGIN_PERMISSION_TYPE.id
 PLUGIN_REQUIRE_PACKET = PacketType[Dict[str, str | None]].create_json(
     PLUGIN_EXTENSION_TYPE,
     "require",
+)
+PLUGIN_ALLOWED_PACKAGE_TABLE = TableType.create_model(
+    PLUGIN_EXTENSION_TYPE,
+    "allowed_package",
+    PluginPackageInfo,
 )

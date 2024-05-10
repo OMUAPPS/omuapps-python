@@ -6,12 +6,15 @@ from omu.app import App
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
-from omu.extension.table.table import TablePermissions, TableType
+from omu.extension.table import TablePermissions, TableType
 from omu.identifier import Identifier
 from omu.network.packet import PacketType
 from omu.serializer import Serializer
 
-from .dashboard import DashboardOpenAppResponse, PermissionRequest
+from .packets import (
+    PermissionRequestPacket,
+    PluginRequestPacket,
+)
 
 DASHBOARD_EXTENSION_TYPE = ExtensionType(
     "dashboard",
@@ -31,10 +34,12 @@ DASHBOARD_SET_ENDPOINT = EndpointType[Identifier, DashboardSetResponse].create_j
     request_serializer=Serializer.model(Identifier),
     permission_id=DASHBOARD_SET_PERMISSION_ID,
 )
-DASHBOARD_PERMISSION_REQUEST_PACKET = PacketType[PermissionRequest].create_json(
+DASHBOARD_PERMISSION_REQUEST_PACKET = PacketType[
+    PermissionRequestPacket
+].create_serialized(
     DASHBOARD_EXTENSION_TYPE,
     "permission_request",
-    Serializer.model(PermissionRequest),
+    serializer=PermissionRequestPacket,
 )
 DASHBOARD_PERMISSION_ACCEPT_PACKET = PacketType[str].create_json(
     DASHBOARD_EXTENSION_TYPE,
@@ -44,8 +49,21 @@ DASHBOARD_PERMISSION_DENY_PACKET = PacketType[str].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "permission_deny",
 )
+DASHBOARD_PLUGIN_REQUEST_PACKET = PacketType[PluginRequestPacket].create_serialized(
+    DASHBOARD_EXTENSION_TYPE,
+    "plugin_request",
+    serializer=PluginRequestPacket,
+)
+DASHBOARD_PLUGIN_ACCEPT_PACKET = PacketType[str].create_json(
+    DASHBOARD_EXTENSION_TYPE,
+    "plugin_accept",
+)
+DASHBOARD_PLUGIN_DENY_PACKET = PacketType[str].create_json(
+    DASHBOARD_EXTENSION_TYPE,
+    "plugin_deny",
+)
 DASHBOARD_OPEN_APP_PERMISSION_ID = DASHBOARD_EXTENSION_TYPE / "app" / "open"
-DASHBOARD_OPEN_APP_ENDPOINT = EndpointType[App, DashboardOpenAppResponse].create_json(
+DASHBOARD_OPEN_APP_ENDPOINT = EndpointType[App, None].create_json(
     DASHBOARD_EXTENSION_TYPE,
     "open_app",
     request_serializer=Serializer.model(App),
@@ -77,6 +95,9 @@ class DashboardExtension(Extension):
             DASHBOARD_PERMISSION_REQUEST_PACKET,
             DASHBOARD_PERMISSION_ACCEPT_PACKET,
             DASHBOARD_PERMISSION_DENY_PACKET,
+            DASHBOARD_PLUGIN_REQUEST_PACKET,
+            DASHBOARD_PLUGIN_ACCEPT_PACKET,
+            DASHBOARD_PLUGIN_DENY_PACKET,
             DASHBOARD_OPEN_APP_PACKET,
         )
         self.apps = client.tables.get(DASHBOARD_APP_TABLE_TYPE)

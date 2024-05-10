@@ -11,11 +11,14 @@ from typing import (
     Protocol,
 )
 
+import aiohttp
 import uv
 from loguru import logger
 from omu.address import Address
 from omu.app import App
 from omu.client.token import TokenProvider
+from omu.extension.plugin import PackageInfo
+from omu.extension.plugin.plugin import PluginPackageInfo
 from omu.network.websocket_connection import WebsocketsConnection
 from omu.plugin import Plugin
 from packaging.specifiers import SpecifierSet
@@ -37,6 +40,23 @@ class PluginModule(Protocol):
 class DependencyResolver:
     def __init__(self) -> None:
         self._dependencies: dict[str, SpecifierSet] = {}
+
+    async def fetch_package_info(self, package: str) -> PackageInfo:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"https://pypi.org/pypi/{package}/json") as response:
+                return await response.json()
+
+    async def get_installed_package_info(
+        self, package: str
+    ) -> PluginPackageInfo | None:
+        try:
+            package_info = importlib.metadata.distribution(package)
+        except importlib.metadata.PackageNotFoundError:
+            return None
+        return PluginPackageInfo(
+            package=package_info.name,
+            version=package_info.version,
+        )
 
     def format_dependencies(
         self, dependencies: Mapping[str, SpecifierSet | None]
