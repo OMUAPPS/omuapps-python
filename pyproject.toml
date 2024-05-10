@@ -26,6 +26,7 @@ dev-dependencies = [
 
 [tool.rye.scripts]
 version = "python ./scripts/version.py"
+gen_version = "python ./scripts/generate_version.py"
 
 [tool.rye.workspace]
 members = ["packages/*"]
