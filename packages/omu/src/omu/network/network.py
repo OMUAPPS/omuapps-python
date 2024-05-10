@@ -34,8 +34,8 @@ from .packet_mapper import PacketMapper
 
 
 @dataclass
-class PacketListeners[T]:
-    event_type: PacketType[T]
+class PacketHandler[T]:
+    packet_type: PacketType[T]
     handler: Coro[[T], None] | None = None
 
 
@@ -56,7 +56,7 @@ class Network:
         self._listeners = NetworkListeners()
         self._tasks: List[Coro[[], None]] = []
         self._packet_mapper = PacketMapper()
-        self._packet_handlers: Dict[Identifier, PacketListeners] = {}
+        self._packet_handlers: Dict[Identifier, PacketHandler] = {}
         self.register_packet(
             PACKET_TYPES.CONNECT,
             PACKET_TYPES.DISCONNECT,
@@ -113,8 +113,8 @@ class Network:
         self._packet_mapper.register(*packet_types)
         for packet_type in packet_types:
             if self._packet_handlers.get(packet_type.id):
-                raise ValueError(f"Event type {packet_type.id} already registered")
-            self._packet_handlers[packet_type.id] = PacketListeners(packet_type)
+                raise ValueError(f"Packet type {packet_type.id} already registered")
+            self._packet_handlers[packet_type.id] = PacketHandler(packet_type)
 
     def add_packet_handler[T](
         self,
@@ -122,7 +122,7 @@ class Network:
         packet_handler: Coro[[T], None] | None = None,
     ):
         if not self._packet_handlers.get(packet_type.id):
-            raise ValueError(f"Event type {packet_type.id} not registered")
+            raise ValueError(f"Packet type {packet_type.id} not registered")
 
         def decorator(func: Coro[[T], None]) -> None:
             self._packet_handlers[packet_type.id].handler = func
