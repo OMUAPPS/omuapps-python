@@ -211,6 +211,8 @@ class Network:
         return self._listeners
 
     def add_task(self, task: Coro[[], None]) -> None:
+        if self._client.ready:
+            raise RuntimeError("Cannot add task after client is ready")
         self._tasks.append(task)
 
     def remove_task(self, task: Coro[[], None]) -> None:

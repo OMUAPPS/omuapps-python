@@ -66,6 +66,7 @@ class OmuClient(Client):
         loop: asyncio.AbstractEventLoop | None = None,
     ):
         self._loop = loop or asyncio.get_event_loop()
+        self._ready = False
         self._running = False
         self._listeners = ClientListeners()
         self._app = app
@@ -88,6 +89,9 @@ class OmuClient(Client):
         self._dashboard = self.extensions.register(DASHBOARD_EXTENSION_TYPE)
         self._i18n = self.extensions.register(I18N_EXTENSION_TYPE)
 
+    @property
+    def ready(self) -> bool:
+        return self._ready
 
     @property
     def app(self) -> App:

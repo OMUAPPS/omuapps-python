@@ -32,6 +32,10 @@ class ClientListeners:
 class Client(abc.ABC):
     @property
     @abc.abstractmethod
+    def ready(self) -> bool: ...
+
+    @property
+    @abc.abstractmethod
     def app(self) -> App: ...
 
     @property
