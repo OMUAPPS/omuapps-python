@@ -71,7 +71,7 @@ class SignalImpl[T](Signal):
         client.network.add_packet_handler(SIGNAL_NOTIFY_PACKET, self._on_broadcast)
         client.network.add_task(self._on_task)
 
-    async def send(self, body: T) -> None:
+    async def notify(self, body: T) -> None:
         data = self.type.serializer.serialize(body)
         await self.client.send(
             SIGNAL_NOTIFY_PACKET,
