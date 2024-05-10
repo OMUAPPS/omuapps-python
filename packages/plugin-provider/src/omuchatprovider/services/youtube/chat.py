@@ -181,9 +181,9 @@ class YoutubeChat:
         )
         self.metadata_continuation = (
             traverse(data)
-            .map(lambda x: x["continuation"])
-            .map(lambda x: x["timedContinuationData"])
-            .map(lambda x: x["continuation"])
+            .map(lambda x: x.get("continuation"))
+            .map(lambda x: x.get("timedContinuationData"))
+            .map(lambda x: x.get("continuation"))
             .get()
         )
         viewer_count: int | None = None
