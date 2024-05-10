@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from html import escape
 from typing import TypedDict
 
 from aiohttp import web
@@ -19,16 +20,20 @@ app = web.Application()
 
 
 def format_content(*components: content.Component | None) -> str:
-    if not components:
+    if components is None:
+        return ""
+    if len(components) == 0:
         return ""
     parts = []
     stack = [*components]
     while stack:
         component = stack.pop(0)
         if isinstance(component, content.Text):
-            parts.append(component.text)
+            parts.append(escape(component.text))
         elif isinstance(component, content.Image):
-            parts.append(f'<img src="{component.url}" alt="{component.id}" />')
+            parts.append(
+                f'<img src="{escape(component.url)}" alt="{escape(component.id)}">'
+            )
         elif isinstance(component, content.Link):
             parts.append(
                 f'<a href="{component.url}">{format_content(*component.children)}</a>'
