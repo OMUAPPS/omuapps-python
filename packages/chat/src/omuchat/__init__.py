@@ -14,7 +14,9 @@ from .model import (
     Room,
     content,
 )
+from .version import VERSION
 
+__version__ = VERSION
 __all__ = [
     "App",
     "permissions",
