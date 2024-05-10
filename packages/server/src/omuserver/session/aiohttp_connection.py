@@ -56,6 +56,3 @@ class WebsocketsConnection(SessionConnection):
         writer.write_string(packet_data.type)
         writer.write_byte_array(packet_data.data)
         await self.socket.send_bytes(writer.finish())
-
-    def __repr__(self) -> str:
-        return f"WebsocketsConnection(socket={self.socket})"
