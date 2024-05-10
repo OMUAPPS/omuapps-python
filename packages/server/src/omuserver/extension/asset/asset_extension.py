@@ -16,6 +16,13 @@ from omuserver.helper import safe_path_join
 from omuserver.server import Server
 from omuserver.session import Session
 
+from .permissions import (
+    ASSET_DOWNLOAD_MANY_PERMISSION,
+    ASSET_DOWNLOAD_PERMISSION,
+    ASSET_UPLOAD_MANY_PERMISSION,
+    ASSET_UPLOAD_PERMISSION,
+)
+
 
 class AssetStorage(abc.ABC):
     @abc.abstractmethod
@@ -46,13 +53,27 @@ class AssetExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.storage = FileStorage(server.directories.assets)
-        server.endpoints.bind_endpoint(ASSET_UPLOAD_ENDPOINT, self.handle_upload)
-        server.endpoints.bind_endpoint(
-            ASSET_UPLOAD_MANY_ENDPOINT, self.handle_upload_many
+        server.permissions.register(
+            ASSET_UPLOAD_PERMISSION,
+            ASSET_UPLOAD_MANY_PERMISSION,
+            ASSET_DOWNLOAD_PERMISSION,
+            ASSET_DOWNLOAD_MANY_PERMISSION,
         )
-        server.endpoints.bind_endpoint(ASSET_DOWNLOAD_ENDPOINT, self.handle_download)
         server.endpoints.bind_endpoint(
-            ASSET_DOWNLOAD_MANY_ENDPOINT, self.handle_download_many
+            ASSET_UPLOAD_ENDPOINT,
+            self.handle_upload,
+        )
+        server.endpoints.bind_endpoint(
+            ASSET_UPLOAD_MANY_ENDPOINT,
+            self.handle_upload_many,
+        )
+        server.endpoints.bind_endpoint(
+            ASSET_DOWNLOAD_ENDPOINT,
+            self.handle_download,
+        )
+        server.endpoints.bind_endpoint(
+            ASSET_DOWNLOAD_MANY_ENDPOINT,
+            self.handle_download_many,
         )
 
     async def handle_upload(self, session: Session, file: File) -> Identifier:
