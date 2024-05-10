@@ -22,16 +22,16 @@ class SessionTableListener:
         self.id = id
         self.session = session
         self.table = table
-        table.listeners.add += self.on_add
-        table.listeners.update += self.on_update
-        table.listeners.remove += self.on_remove
-        table.listeners.clear += self.on_clear
+        table.event.add += self.on_add
+        table.event.update += self.on_update
+        table.event.remove += self.on_remove
+        table.event.clear += self.on_clear
 
     def close(self) -> None:
-        self.table.listeners.add -= self.on_add
-        self.table.listeners.update -= self.on_update
-        self.table.listeners.remove -= self.on_remove
-        self.table.listeners.clear -= self.on_clear
+        self.table.event.add -= self.on_add
+        self.table.event.update -= self.on_update
+        self.table.event.remove -= self.on_remove
+        self.table.event.clear -= self.on_clear
 
     async def on_add(self, items: Mapping[str, Any]) -> None:
         if self.session.closed:

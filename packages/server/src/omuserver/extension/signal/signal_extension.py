@@ -108,10 +108,10 @@ class ServerSignal:
         if session in self.listeners:
             raise Exception("Session already attached")
         self.listeners.append(session)
-        session.listeners.disconnected += self.detach_session
+        session.event.disconnected += self.detach_session
 
     def detach_session(self, session: Session) -> None:
         if session not in self.listeners:
             raise Exception("Session not attached")
         self.listeners.remove(session)
-        session.listeners.disconnected -= self.detach_session
+        session.event.disconnected -= self.detach_session

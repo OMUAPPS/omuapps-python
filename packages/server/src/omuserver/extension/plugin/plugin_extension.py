@@ -27,7 +27,7 @@ class PluginExtension:
             PLUGIN_REQUIRE_PACKET,
             self.handle_require_packet,
         )
-        server.network.listeners.start += self.on_network_start
+        server.network.event.start += self.on_network_start
         self.request_id = 0
         self.lock = asyncio.Lock()
         self.loader = PluginLoader(server)

@@ -45,7 +45,7 @@ class EndpointExtension(Extension):
         client.network.add_packet_handler(ENDPOINT_RECEIVE_PACKET, self._on_receive)
         client.network.add_packet_handler(ENDPOINT_ERROR_PACKET, self._on_error)
         client.network.add_packet_handler(ENDPOINT_CALL_PACKET, self._on_call)
-        client.network.listeners.connected += self.on_connected
+        client.network.event.connected += self.on_connected
 
     async def _on_receive(self, packet: EndpointDataPacket) -> None:
         if packet.key not in self.response_futures:

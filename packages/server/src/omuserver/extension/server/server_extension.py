@@ -51,9 +51,9 @@ class ServerExtension:
         server.permissions.register(SERVER_SHUTDOWN_PERMISSION)
         self.version_registry = self._server.registry.register(VERSION_REGISTRY_TYPE)
         self.apps = self._server.tables.register(APP_TABLE_TYPE)
-        server.network.listeners.connected += self.on_connected
-        server.network.listeners.disconnected += self.on_disconnected
-        server.listeners.start += self.on_start
+        server.network.event.connected += self.on_connected
+        server.network.event.disconnected += self.on_disconnected
+        server.event.start += self.on_start
         server.endpoints.bind_endpoint(SHUTDOWN_ENDPOINT_TYPE, self.shutdown)
         server.packet_dispatcher.add_packet_handler(
             REQUIRE_APPS_PACKET_TYPE, self.handle_require_apps
@@ -99,7 +99,7 @@ class ServerExtension:
     async def on_connected(self, session: Session) -> None:
         logger.info(f"Connected: {session.app.key()}")
         await self.apps.add(session.app)
-        session.listeners.ready += self.on_session_ready
+        session.event.ready += self.on_session_ready
 
     async def on_session_ready(self, session: Session) -> None:
         for waiter in self._app_waiters.get(session.app.id, []):
@@ -110,4 +110,4 @@ class ServerExtension:
     async def on_disconnected(self, session: Session) -> None:
         logger.info(f"Disconnected: {session.app.key()}")
         await self.apps.remove(session.app)
-        session.listeners.ready -= self.on_session_ready
+        session.event.ready -= self.on_session_ready

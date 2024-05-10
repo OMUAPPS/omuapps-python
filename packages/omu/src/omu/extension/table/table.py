@@ -82,10 +82,10 @@ class Table[T](abc.ABC):
 
     @property
     @abc.abstractmethod
-    def listeners(self) -> TableListeners[T]: ...
+    def event(self) -> TableEvents[T]: ...
 
 
-class TableListeners[T]:
+class TableEvents[T]:
     def __init__(
         self,
         table: Table[T],

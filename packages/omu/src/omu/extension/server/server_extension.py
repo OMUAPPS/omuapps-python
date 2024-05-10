@@ -45,7 +45,7 @@ class ServerExtension(Extension):
         self.client = client
         self.apps = client.tables.get(APP_TABLE_TYPE)
         self.required_apps: Set[Identifier] = set()
-        client.network.listeners.connected += self.on_connect
+        client.network.event.connected += self.on_connect
 
     async def on_connect(self) -> None:
         await self.client.send(REQUIRE_APPS_PACKET_TYPE, [*self.required_apps])

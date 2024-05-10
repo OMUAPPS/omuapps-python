@@ -101,10 +101,10 @@ class ServerTable(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def listeners(self) -> ServerTableListeners: ...
+    def event(self) -> ServerTableEvents: ...
 
 
-class ServerTableListeners:
+class ServerTableEvents:
     def __init__(self) -> None:
         self.add = EventEmitter[Mapping[str, bytes]]()
         self.update = EventEmitter[Mapping[str, bytes]]()

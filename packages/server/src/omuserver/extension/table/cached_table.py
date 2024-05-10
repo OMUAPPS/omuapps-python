@@ -11,7 +11,7 @@ from omuserver.server import Server
 from omuserver.session import Session
 
 from .adapters.tableadapter import TableAdapter
-from .server_table import ServerTable, ServerTableListeners
+from .server_table import ServerTable, ServerTableEvents
 from .session_table_handler import SessionTableListener
 
 
@@ -23,7 +23,7 @@ class CachedTable(ServerTable):
     ):
         self._server = server
         self._id = id
-        self._listeners = ServerTableListeners()
+        self._event = ServerTableEvents()
         self._sessions: dict[Session, SessionTableListener] = {}
         self._permissions: TablePermissions | None = None
         self._proxy_sessions: dict[str, Session] = {}
@@ -71,7 +71,7 @@ class CachedTable(ServerTable):
             table=self,
         )
         self._sessions[session] = handler
-        session.listeners.disconnected += self.handle_disconnection
+        session.event.disconnected += self.handle_disconnection
 
     def detach_session(self, session: Session) -> None:
         if session in self._proxy_sessions:
@@ -121,7 +121,7 @@ class CachedTable(ServerTable):
             await self.send_proxy_event(items)
             return
         await self._adapter.set_all(items)
-        await self._listeners.add(items)
+        await self._event.add(items)
         await self.update_cache(items)
         self.mark_changed()
 
@@ -152,7 +152,7 @@ class CachedTable(ServerTable):
             if adapter is None:
                 raise Exception("Table not set")
             await adapter.set_all(items)
-            await self._listeners.add(items)
+            await self._event.add(items)
             await self.update_cache(items)
             self.mark_changed()
             return 0
@@ -171,7 +171,7 @@ class CachedTable(ServerTable):
         if self._adapter is None:
             raise Exception("Table not set")
         await self._adapter.set_all(items)
-        await self._listeners.update(items)
+        await self._event.update(items)
         await self.update_cache(items)
         self.mark_changed()
 
@@ -183,14 +183,14 @@ class CachedTable(ServerTable):
         for key in keys:
             if key in self._cache:
                 del self._cache[key]
-        await self._listeners.remove(removed)
+        await self._event.remove(removed)
         self.mark_changed()
 
     async def clear(self) -> None:
         if self._adapter is None:
             raise Exception("Table not set")
         await self._adapter.clear()
-        await self._listeners.clear()
+        await self._event.clear()
         self._cache.clear()
         self.mark_changed()
 
@@ -245,15 +245,15 @@ class CachedTable(ServerTable):
             self._cache[key] = item
             if len(self._cache) > self._cache_size:
                 del self._cache[next(iter(self._cache))]
-        await self._listeners.cache_update(self._cache)
+        await self._event.cache_update(self._cache)
 
     @property
     def cache(self) -> Mapping[str, bytes]:
         return self._cache
 
     @property
-    def listeners(self) -> ServerTableListeners:
-        return self._listeners
+    def event(self) -> ServerTableEvents:
+        return self._event
 
     @property
     def id(self) -> Identifier:

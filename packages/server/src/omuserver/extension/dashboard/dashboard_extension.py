@@ -94,7 +94,7 @@ class DashboardExtension:
         if session.token != self.server.config.dashboard_token:
             raise ValueError("Dashboard token does not match")
         self.dashboard_session = session
-        session.listeners.disconnected += self._on_dashboard_disconnected
+        session.event.disconnected += self._on_dashboard_disconnected
         await self.send_pending_permission_requests()
         return {"success": True}
 

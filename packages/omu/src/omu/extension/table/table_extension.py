@@ -30,7 +30,7 @@ from .packets import (
 from .table import (
     Table,
     TableConfig,
-    TableListeners,
+    TableEvents,
     TablePermissions,
     TableType,
 )
@@ -186,7 +186,7 @@ class TableImpl[T](Table[T]):
         self._serializer = table_type.serializer
         self._key_function = table_type.key_function
         self._cache: Dict[str, T] = {}
-        self._listeners = TableListeners[T](self)
+        self._event = TableEvents[T](self)
         self._proxies: List[Coro[[T], T | None]] = []
         self._chunk_size = 100
         self._cache_size: int | None = None
@@ -318,8 +318,8 @@ class TableImpl[T](Table[T]):
     ) -> Callable[[], None]:
         self._listening = True
         if listener is not None:
-            self._listeners.cache_update += listener
-            return lambda: self._listeners.cache_update.unsubscribe(listener)
+            self._event.cache_update += listener
+            return lambda: self._event.cache_update.unsubscribe(listener)
         return lambda: None
 
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
@@ -382,33 +382,33 @@ class TableImpl[T](Table[T]):
         if packet.id != self._id:
             return
         items = self._parse_items(packet.items)
-        await self._listeners.add(items)
+        await self._event.add(items)
         await self.update_cache(items)
 
     async def _on_item_update(self, packet: TableItemsPacket) -> None:
         if packet.id != self._id:
             return
         items = self._parse_items(packet.items)
-        await self._listeners.update(items)
+        await self._event.update(items)
         await self.update_cache(items)
 
     async def _on_item_remove(self, packet: TableItemsPacket) -> None:
         if packet.id != self._id:
             return
         items = self._parse_items(packet.items)
-        await self._listeners.remove(items)
+        await self._event.remove(items)
         for key in items.keys():
             if key not in self._cache:
                 continue
             del self._cache[key]
-        await self._listeners.cache_update(self._cache)
+        await self._event.cache_update(self._cache)
 
     async def _on_item_clear(self, packet: TablePacket) -> None:
         if packet.id != self._id:
             return
-        await self._listeners.clear()
+        await self._event.clear()
         self._cache.clear()
-        await self._listeners.cache_update(self._cache)
+        await self._event.cache_update(self._cache)
 
     async def update_cache(self, items: Mapping[str, T]) -> None:
         if self._cache_size is None:
@@ -417,7 +417,7 @@ class TableImpl[T](Table[T]):
             merged_cache = {**self._cache, **items}
             cache_array = tuple(merged_cache.items())
             self._cache = dict(cache_array[: self._cache_size])
-        await self._listeners.cache_update(self._cache)
+        await self._event.cache_update(self._cache)
 
     def _parse_items(self, items: Mapping[str, bytes]) -> Dict[str, T]:
         parsed_items: Mapping[str, T] = {}
@@ -439,5 +439,5 @@ class TableImpl[T](Table[T]):
         self._cache_size = size
 
     @property
-    def listeners(self) -> TableListeners[T]:
-        return self._listeners
+    def event(self) -> TableEvents[T]:
+        return self._event

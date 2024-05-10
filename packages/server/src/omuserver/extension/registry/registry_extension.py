@@ -58,7 +58,7 @@ class RegistryExtension:
             REGISTRY_UPDATE_PACKET, self.handle_update
         )
         server.endpoints.bind_endpoint(REGISTRY_GET_ENDPOINT, self.handle_get)
-        server.listeners.start += self._on_start
+        server.event.start += self._on_start
 
     async def _on_start(self) -> None:
         for registry in self._startup_registries:

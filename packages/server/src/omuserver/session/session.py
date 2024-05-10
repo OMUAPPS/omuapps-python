@@ -34,7 +34,7 @@ class SessionConnection(abc.ABC):
     def closed(self) -> bool: ...
 
 
-class SessionListeners:
+class SessionEvents:
     def __init__(self) -> None:
         self.packet = EventEmitter[Session, Packet]()
         self.disconnected = EventEmitter[Session]()
@@ -71,7 +71,7 @@ class Session:
         self.is_dashboard = is_dashboard
         self.is_plugin = is_plugin
         self.connection = connection
-        self.listeners = SessionListeners()
+        self.event = SessionEvents()
         self.ready_tasks: list[SessionTask] = []
         self.ready = False
 
@@ -165,7 +165,7 @@ class Session:
                 PACKET_TYPES.DISCONNECT, DisconnectPacket(disconnect_type, message)
             )
         await self.connection.close()
-        await self.listeners.disconnected.emit(self)
+        await self.event.disconnected.emit(self)
 
     async def listen(self) -> None:
         while not self.connection.closed:
@@ -177,7 +177,7 @@ class Session:
 
     async def dispatch_packet(self, packet: Packet) -> None:
         try:
-            await self.listeners.packet.emit(self, packet)
+            await self.event.packet.emit(self, packet)
         except DisconnectReason as reason:
             logger.opt(exception=reason).error("Disconnecting session")
             await self.disconnect(reason.type, reason.message)
@@ -209,4 +209,4 @@ class Session:
             await task.future
         self.ready_tasks.clear()
         self.ready = True
-        await self.listeners.ready.emit(self)
+        await self.event.ready.emit(self)

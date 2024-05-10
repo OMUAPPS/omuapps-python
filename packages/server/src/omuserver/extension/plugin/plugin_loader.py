@@ -138,8 +138,8 @@ class PluginLoader:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.plugins: dict[str, Plugin] = {}
-        server.listeners.start += self.handle_server_start
-        server.listeners.stop += self.handle_server_stop
+        server.event.start += self.handle_server_start
+        server.event.stop += self.handle_server_stop
 
     async def handle_server_start(self) -> None:
         for plugin in self.plugins.values():

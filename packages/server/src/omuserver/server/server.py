@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from omuserver.security import Security
 
 
-class ServerListeners:
+class ServerEvents:
     def __init__(self) -> None:
         self.start = EventEmitter[[]]()
         self.stop = EventEmitter[[]]()
@@ -110,4 +110,4 @@ class Server(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def listeners(self) -> ServerListeners: ...
+    def event(self) -> ServerEvents: ...

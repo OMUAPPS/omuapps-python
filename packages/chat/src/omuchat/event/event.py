@@ -45,28 +45,28 @@ class TableEvent[T](ListenerEvent[Mapping[str, T]]):
     def __init__(self, get_table: Callable[[Client], Table[T]]):
         self.get_table = get_table
         super().__init__(
-            lambda client: get_table(client).listeners.cache_update,
+            lambda client: get_table(client).event.cache_update,
         )
         self.add_batch = ListenerEvent(
-            lambda client: get_table(client).listeners.add,
+            lambda client: get_table(client).event.add,
         )
         self.update_batch = ListenerEvent(
-            lambda client: get_table(client).listeners.update,
+            lambda client: get_table(client).event.update,
         )
         self.remove_batch = ListenerEvent(
-            lambda client: get_table(client).listeners.remove,
+            lambda client: get_table(client).event.remove,
         )
         self.add = self._create_batch_subscriber(
-            lambda table: table.listeners.add,
+            lambda table: table.event.add,
         )
         self.update = self._create_batch_subscriber(
-            lambda table: table.listeners.update,
+            lambda table: table.event.update,
         )
         self.remove = self._create_batch_subscriber(
-            lambda table: table.listeners.remove,
+            lambda table: table.event.remove,
         )
         self.clear = ListenerEvent(
-            lambda client: get_table(client).listeners.clear,
+            lambda client: get_table(client).event.clear,
         )
         self.wrappers = {}
 

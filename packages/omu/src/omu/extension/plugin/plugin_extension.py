@@ -22,7 +22,7 @@ class PluginExtension(Extension):
         self.client.network.register_packet(
             PLUGIN_REQUIRE_PACKET,
         )
-        self.client.network.listeners.connected += self.on_connected
+        self.client.network.event.connected += self.on_connected
 
     async def on_connected(self):
         await self.client.send(PLUGIN_REQUIRE_PACKET, self.plugins)

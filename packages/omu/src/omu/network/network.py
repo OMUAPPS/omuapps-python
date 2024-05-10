@@ -53,7 +53,7 @@ class Network:
         self._connection = connection
         self._connected = False
         self._closed = False
-        self._listeners = NetworkListeners()
+        self._event = NetworkEvents()
         self._tasks: List[Coro[[], None]] = []
         self._packet_mapper = PacketMapper()
         self._packet_handlers: Dict[Identifier, PacketHandler] = {}
@@ -163,8 +163,8 @@ class Network:
         )
         listen_task = self._client.loop.create_task(self._listen_task())
 
-        await self._listeners.status.emit("connected")
-        await self._listeners.connected.emit()
+        await self._event.status.emit("connected")
+        await self._event.connected.emit()
         await self._dispatch_tasks()
 
         await self.send(Packet(PACKET_TYPES.READY, None))
@@ -184,8 +184,8 @@ class Network:
             return
         self._connected = False
         await self._connection.close()
-        await self._listeners.status.emit("disconnected")
-        await self._listeners.disconnected.emit()
+        await self._event.status.emit("disconnected")
+        await self._event.disconnected.emit()
 
     async def send(self, packet: Packet) -> None:
         if not self._connected:
@@ -198,7 +198,7 @@ class Network:
             self._client.loop.create_task(self.dispatch_packet(packet))
 
     async def dispatch_packet(self, packet: Packet) -> None:
-        await self._listeners.packet.emit(packet)
+        await self._event.packet.emit(packet)
         packet_handler = self._packet_handlers.get(packet.type.id)
         if not packet_handler:
             return
@@ -207,8 +207,8 @@ class Network:
         await packet_handler.handler(packet.data)
 
     @property
-    def listeners(self) -> NetworkListeners:
-        return self._listeners
+    def event(self) -> NetworkEvents:
+        return self._event
 
     def add_task(self, task: Coro[[], None]) -> None:
         if self._client.ready:
@@ -226,7 +226,7 @@ class Network:
 type NetworkStatus = Literal["connecting", "connected", "disconnected"]
 
 
-class NetworkListeners:
+class NetworkEvents:
     def __init__(self) -> None:
         self.connected = EventEmitter[[]]()
         self.disconnected = EventEmitter[[]]()

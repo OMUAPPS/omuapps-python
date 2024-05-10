@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import socket
-from dataclasses import dataclass, field
 
 import psutil
 from aiohttp import web
@@ -19,25 +18,19 @@ from omuserver.session import Session
 from omuserver.session.aiohttp_connection import WebsocketsConnection
 
 
-@dataclass(frozen=True)
-class PacketListeners[T]:
-    event_type: PacketType
-    listeners: EventEmitter[Session, T] = field(default_factory=EventEmitter)
-
-
 class Network:
     def __init__(
         self, server: Server, packet_dispatcher: ServerPacketDispatcher
     ) -> None:
         self._server = server
         self._packet_dispatcher = packet_dispatcher
-        self._listeners = NetworkListeners()
+        self._event = NetworkEvents()
         self._sessions: dict[Identifier, Session] = {}
         self._app = web.Application()
         self.add_websocket_route("/ws")
         self.register_packet(PACKET_TYPES.CONNECT, PACKET_TYPES.READY)
         self.add_packet_handler(PACKET_TYPES.READY, self._handle_ready)
-        self.listeners.connected += self._packet_dispatcher.process_connection
+        self.event.connected += self._packet_dispatcher.process_connection
 
     async def _handle_ready(self, session: Session, packet: None) -> None:
         await session.wait_for_tasks()
@@ -105,8 +98,8 @@ class Network:
                 f"Another connection from {session.app}",
             )
         self._sessions[session.app.id] = session
-        session.listeners.disconnected += self.handle_disconnection
-        await self._listeners.connected.emit(session)
+        session.event.disconnected += self.handle_disconnection
+        await self._event.connected.emit(session)
         listen_task = self._server.loop.create_task(session.listen())
         await listen_task
 
@@ -117,10 +110,10 @@ class Network:
         if session.app.id not in self._sessions:
             return
         del self._sessions[session.app.id]
-        await self._listeners.disconnected.emit(session)
+        await self._event.disconnected.emit(session)
 
     async def _handle_start(self, app: web.Application) -> None:
-        asyncio.create_task(self._listeners.start.emit())
+        asyncio.create_task(self._event.start.emit())
 
     def is_port_free(self) -> bool:
         try:
@@ -162,11 +155,11 @@ class Network:
         await site.start()
 
     @property
-    def listeners(self) -> NetworkListeners:
-        return self._listeners
+    def event(self) -> NetworkEvents:
+        return self._event
 
 
-class NetworkListeners:
+class NetworkEvents:
     def __init__(self) -> None:
         self.start = EventEmitter[[]]()
         self.connected = EventEmitter[Session]()

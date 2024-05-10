@@ -26,7 +26,7 @@ from omuserver.network import Network
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.security.security import Security, ServerAuthenticator
 
-from .server import Server, ServerListeners
+from .server import Server, ServerEvents
 
 client = aiohttp.ClientSession(
     headers={
@@ -52,12 +52,12 @@ class OmuServer(Server):
         self._config = config
         self._loop = loop or asyncio.get_event_loop()
         self._address = config.address
-        self._listeners = ServerListeners()
+        self._event = ServerEvents()
         self._directories = config.directories
         self._directories.mkdir()
         self._packet_dispatcher = ServerPacketDispatcher()
         self._network = Network(self, self._packet_dispatcher)
-        self._network.listeners.start += self._handle_network_start
+        self._network.event.start += self._handle_network_start
         self._network.add_http_route("/proxy", self._handle_proxy)
         self._network.add_http_route("/asset", self._handle_assets)
         self._security = ServerAuthenticator(self)
@@ -140,7 +140,7 @@ class OmuServer(Server):
     async def _handle_network_start(self) -> None:
         logger.info(f"Listening on {self.address}")
         try:
-            await self._listeners.start()
+            await self._event.start()
         except Exception as e:
             await self.shutdown()
             self.loop.stop()
@@ -152,7 +152,7 @@ class OmuServer(Server):
 
     async def shutdown(self) -> None:
         self._running = False
-        await self._listeners.stop()
+        await self._event.stop()
 
     @property
     def config(self) -> Config:
@@ -223,5 +223,5 @@ class OmuServer(Server):
         return self._running
 
     @property
-    def listeners(self) -> ServerListeners:
-        return self._listeners
+    def event(self) -> ServerEvents:
+        return self._event

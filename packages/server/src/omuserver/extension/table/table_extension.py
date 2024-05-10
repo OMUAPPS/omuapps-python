@@ -128,8 +128,8 @@ class TableExtension:
             TABLE_SIZE_ENDPOINT,
             self.handle_table_size,
         )
-        server.listeners.start += self.on_server_start
-        server.listeners.stop += self.on_server_stop
+        server.event.start += self.on_server_start
+        server.event.stop += self.on_server_stop
 
     async def handle_item_get(
         self, session: Session, packet: TableKeysPacket

@@ -52,7 +52,7 @@ class ServerRegistry:
         if session.app.id in self._listeners:
             raise Exception("Session already attached")
         self._listeners[session.app.id] = session
-        session.listeners.disconnected += self.detach_session
+        session.event.disconnected += self.detach_session
         await session.send(
             REGISTRY_UPDATE_PACKET,
             RegistryPacket(id=self.id, value=self.data),
@@ -62,7 +62,7 @@ class ServerRegistry:
         if session.app.id not in self._listeners:
             raise Exception("Session not attached")
         del self._listeners[session.app.id]
-        session.listeners.disconnected -= self.detach_session
+        session.event.disconnected -= self.detach_session
 
 
 class Registry[T]:
