@@ -11,7 +11,7 @@ from omu import App, Identifier
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES, PacketType
-from omu.network.packet.packet_types import ConnectPacket, DisconnectType
+from omu.network.packet.packet_types import DisconnectType
 
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.server import Server
@@ -107,7 +107,6 @@ class Network:
         self._sessions[session.app.id] = session
         session.listeners.disconnected += self.handle_disconnection
         await self._listeners.connected.emit(session)
-        await session.send(PACKET_TYPES.CONNECT, ConnectPacket(app=session.app))
         listen_task = self._server.loop.create_task(session.listen())
         await listen_task
 
