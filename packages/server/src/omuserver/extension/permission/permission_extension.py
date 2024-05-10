@@ -102,6 +102,8 @@ class PermissionExtension:
     async def handle_require(
         self, session: Session, permission_identifiers: list[Identifier]
     ):
+        if session.ready:
+            raise ValueError("Session is already ready")
         if session.is_plugin:
             return
         if set(permission_identifiers) == set(
