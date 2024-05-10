@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Literal
 
 from loguru import logger
@@ -33,10 +33,10 @@ from .packet.packet_types import (
 from .packet_mapper import PacketMapper
 
 
-@dataclass(frozen=True)
+@dataclass
 class PacketListeners[T]:
     event_type: PacketType[T]
-    listeners: EventEmitter[T] = field(default_factory=EventEmitter)
+    handler: Coro[[T], None] | None = None
 
 
 class Network:
@@ -127,7 +127,7 @@ class Network:
             raise ValueError(f"Event type {packet_type.identifier} not registered")
 
         def decorator(func: Coro[[T], None]) -> None:
-            self._packet_handlers[packet_type.identifier].listeners.subscribe(func)
+            self._packet_handlers[packet_type.identifier].handler = func
 
         if packet_handler:
             decorator(packet_handler)
@@ -204,7 +204,9 @@ class Network:
         packet_handler = self._packet_handlers.get(packet.type.identifier)
         if not packet_handler:
             return
-        await packet_handler.listeners.emit(packet.data)
+        if packet_handler.handler is None:
+            raise RuntimeError(f"No handler for packet type {packet.type.identifier}")
+        await packet_handler.handler(packet.data)
 
     @property
     def listeners(self) -> NetworkListeners:
