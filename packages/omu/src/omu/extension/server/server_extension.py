@@ -5,7 +5,7 @@ from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.extension.registry import RegistryType
-from omu.extension.table import TableType
+from omu.extension.table import TablePermissions, TableType
 from omu.identifier import Identifier
 from omu.network.packet import PacketType
 from omu.serializer import Serializer
@@ -14,10 +14,14 @@ SERVER_EXTENSION_TYPE = ExtensionType(
     "server", lambda client: ServerExtension(client), lambda: []
 )
 
+SERVER_APPS_READ_PERMISSION_ID = SERVER_EXTENSION_TYPE / "apps" / "read"
 APP_TABLE_TYPE = TableType.create_model(
     SERVER_EXTENSION_TYPE,
     "apps",
     App,
+    permissions=TablePermissions(
+        read=SERVER_APPS_READ_PERMISSION_ID,
+    ),
 )
 SERVER_SHUTDOWN_PERMISSION_ID = SERVER_EXTENSION_TYPE / "shutdown"
 SHUTDOWN_ENDPOINT_TYPE = EndpointType[bool, bool].create_json(

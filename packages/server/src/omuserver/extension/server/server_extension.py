@@ -4,10 +4,11 @@ from asyncio import Future
 from collections import defaultdict
 
 from loguru import logger
-from omu.extension.permission.permission import PermissionType
+from omu.extension.permission import PermissionType
 from omu.extension.server.server_extension import (
     APP_TABLE_TYPE,
     REQUIRE_APPS_PACKET_TYPE,
+    SERVER_APPS_READ_PERMISSION_ID,
     SERVER_SHUTDOWN_PERMISSION_ID,
     SHUTDOWN_ENDPOINT_TYPE,
     VERSION_REGISTRY_TYPE,
@@ -40,6 +41,20 @@ SERVER_SHUTDOWN_PERMISSION = PermissionType(
         },
     },
 )
+SERVER_APPS_READ_PERMISSION = PermissionType(
+    id=SERVER_APPS_READ_PERMISSION_ID,
+    metadata={
+        "level": "low",
+        "name": {
+            "en": "Get connected apps",
+            "ja": "接続アプリ一覧取得",
+        },
+        "note": {
+            "en": "Permission to get a list of apps connected to the server",
+            "ja": "サーバーに接続されたアプリの一覧を取得する",
+        },
+    },
+)
 
 
 class ServerExtension:
@@ -48,7 +63,10 @@ class ServerExtension:
         server.packet_dispatcher.register(
             REQUIRE_APPS_PACKET_TYPE,
         )
-        server.permissions.register(SERVER_SHUTDOWN_PERMISSION)
+        server.permissions.register(
+            SERVER_SHUTDOWN_PERMISSION,
+            SERVER_APPS_READ_PERMISSION,
+        )
         self.version_registry = self._server.registry.register(VERSION_REGISTRY_TYPE)
         self.apps = self._server.tables.register(APP_TABLE_TYPE)
         server.network.event.connected += self.on_connected
