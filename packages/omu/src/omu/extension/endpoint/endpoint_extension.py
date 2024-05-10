@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from asyncio import Future
 from dataclasses import dataclass
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -33,8 +33,8 @@ class EndpointHandler:
 class EndpointExtension(Extension):
     def __init__(self, client: Client) -> None:
         self.client = client
-        self.response_futures: Dict[int, Future] = {}
-        self.registered_endpoints: Dict[Identifier, EndpointHandler] = {}
+        self.response_futures: dict[int, Future] = {}
+        self.registered_endpoints: dict[Identifier, EndpointHandler] = {}
         self.call_id = 0
         client.network.register_packet(
             ENDPOINT_REGISTER_PACKET,

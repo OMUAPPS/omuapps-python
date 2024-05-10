@@ -1,4 +1,4 @@
-from typing import List, Set
+from typing import Set
 
 from omu.app import App
 from omu.client import Client
@@ -25,7 +25,7 @@ SHUTDOWN_ENDPOINT_TYPE = EndpointType[bool, bool].create_json(
     "shutdown",
     permission_id=SERVER_SHUTDOWN_PERMISSION_ID,
 )
-REQUIRE_APPS_PACKET_TYPE = PacketType[List[Identifier]].create_json(
+REQUIRE_APPS_PACKET_TYPE = PacketType[list[Identifier]].create_json(
     SERVER_EXTENSION_TYPE,
     "require_apps",
     serializer=Serializer.model(Identifier).to_array(),

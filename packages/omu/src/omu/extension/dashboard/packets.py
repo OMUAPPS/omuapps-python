@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import List
 
 from omu.app import App
 from omu.bytebuffer import ByteReader, ByteWriter
@@ -14,7 +13,7 @@ from omu.extension.plugin.package_info import PackageInfo
 class PermissionRequestPacket:
     request_id: str
     app: App
-    permissions: List[PermissionType]
+    permissions: list[PermissionType]
 
     @classmethod
     def serialize(cls, item: PermissionRequestPacket) -> bytes:

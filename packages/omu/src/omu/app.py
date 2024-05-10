@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Final, List, NotRequired, TypedDict
+from typing import Final, NotRequired, TypedDict
 
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -17,7 +17,7 @@ class AppMetadata(TypedDict):
     repository: NotRequired[LocalizedText]
     authors: NotRequired[LocalizedText]
     license: NotRequired[LocalizedText]
-    tags: NotRequired[List[str]]
+    tags: NotRequired[list[str]]
 
 
 class AppJson(TypedDict):

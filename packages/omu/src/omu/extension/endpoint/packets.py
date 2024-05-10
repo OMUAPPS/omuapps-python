@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
 
 from omu.bytebuffer import ByteReader, ByteWriter
 from omu.identifier import Identifier
@@ -9,7 +8,7 @@ from omu.identifier import Identifier
 
 @dataclass
 class EndpointRegisterPacket:
-    endpoints: Dict[Identifier, Identifier | None]
+    endpoints: dict[Identifier, Identifier | None]
 
     @classmethod
     def serialize(cls, item: EndpointRegisterPacket) -> bytes:

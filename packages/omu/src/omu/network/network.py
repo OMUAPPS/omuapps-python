@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, List, Literal
+from typing import Literal
 
 from loguru import logger
 
@@ -54,9 +54,9 @@ class Network:
         self._connected = False
         self._closed = False
         self._event = NetworkEvents()
-        self._tasks: List[Coro[[], None]] = []
+        self._tasks: list[Coro[[], None]] = []
         self._packet_mapper = PacketMapper()
-        self._packet_handlers: Dict[Identifier, PacketHandler] = {}
+        self._packet_handlers: dict[Identifier, PacketHandler] = {}
         self.register_packet(
             PACKET_TYPES.CONNECT,
             PACKET_TYPES.DISCONNECT,
@@ -78,7 +78,7 @@ class Network:
             return
 
         self._closed = True
-        ERROR_MAP: Dict[DisconnectType, type[OmuError]] = {
+        ERROR_MAP: dict[DisconnectType, type[OmuError]] = {
             DisconnectType.ANOTHER_CONNECTION: AnotherConnection,
             DisconnectType.PERMISSION_DENIED: PermissionDenied,
             DisconnectType.INVALID_TOKEN: InvalidToken,

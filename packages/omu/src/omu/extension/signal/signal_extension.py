@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Dict
+from typing import Callable
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -39,7 +39,7 @@ SIGNAL_NOTIFY_PACKET = PacketType[SignalPacket].create_serialized(
 class SignalExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self.signals: Dict[Identifier, Signal] = {}
+        self.signals: dict[Identifier, Signal] = {}
         client.network.register_packet(
             SIGNAL_REGISTER_PACKET,
             SIGNAL_LISTEN_PACKET,

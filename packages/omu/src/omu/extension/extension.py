@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Callable, List
+from typing import Callable
 
 from omu.client import Client
 from omu.identifier import Identifier
@@ -14,13 +14,13 @@ class Extension(abc.ABC):
 class ExtensionType[T: Extension](Identifier):
     name: str
     create: Callable[[Client], T]
-    dependencies: Callable[[], List[ExtensionType]]
+    dependencies: Callable[[], list[ExtensionType]]
 
     def __init__(
         self,
         name: str,
         create: Callable[[Client], T],
-        dependencies: Callable[[], List[ExtensionType]],
+        dependencies: Callable[[], list[ExtensionType]],
     ) -> None:
         super().__init__("ext", name)
         self.name = name

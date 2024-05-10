@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import json
 from pathlib import Path
-from typing import Dict
 
 from omu.address import Address
 from omu.app import App
@@ -34,7 +33,7 @@ class JsonTokenProvider(TokenProvider):
         return tokens.get(self.get_store_key(server_address, app))
 
     def store(self, server_address: Address, app: App, token: str) -> None:
-        tokens: Dict[str, str] = {}
+        tokens: dict[str, str] = {}
         if self._path.exists():
             tokens = json.loads(self._path.read_text(encoding="utf-8"))
 

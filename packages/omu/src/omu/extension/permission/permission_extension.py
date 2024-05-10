@@ -1,4 +1,4 @@
-from typing import Dict, List, Set
+from typing import Set
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -19,8 +19,8 @@ PERMISSION_EXTENSION_TYPE = ExtensionType(
 class PermissionExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self.permissions: List[PermissionType] = []
-        self.registered_permissions: Dict[Identifier, PermissionType] = {}
+        self.permissions: list[PermissionType] = []
+        self.registered_permissions: dict[Identifier, PermissionType] = {}
         self.required_permission_ids: Set[Identifier] = set()
         client.network.register_packet(
             PERMISSION_REGISTER_PACKET,
@@ -70,21 +70,21 @@ class PermissionExtension(Extension):
                 [*self.registered_permissions.values()],
             )
 
-    async def handle_grant(self, permissions: List[PermissionType]):
+    async def handle_grant(self, permissions: list[PermissionType]):
         self.permissions = permissions
 
 
-PERMISSION_REGISTER_PACKET = PacketType[List[PermissionType]].create_json(
+PERMISSION_REGISTER_PACKET = PacketType[list[PermissionType]].create_json(
     PERMISSION_EXTENSION_TYPE,
     "register",
     Serializer.model(PermissionType).to_array(),
 )
-PERMISSION_REQUIRE_PACKET = PacketType[List[Identifier]].create_json(
+PERMISSION_REQUIRE_PACKET = PacketType[list[Identifier]].create_json(
     PERMISSION_EXTENSION_TYPE,
     "require",
     serializer=Serializer.model(Identifier).to_array(),
 )
-PERMISSION_REQUEST_ENDPOINT = EndpointType[List[Identifier], None].create_json(
+PERMISSION_REQUEST_ENDPOINT = EndpointType[list[Identifier], None].create_json(
     PERMISSION_EXTENSION_TYPE,
     "request",
     request_serializer=Serializer.model(Identifier).to_array(),

@@ -1,5 +1,3 @@
-from typing import Dict
-
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 from omu.extension.table import TableType
@@ -17,7 +15,7 @@ PLUGIN_EXTENSION_TYPE = ExtensionType(
 class PluginExtension(Extension):
     def __init__(self, client: Client):
         self.client = client
-        self.plugins: Dict[str, str | None] = {}
+        self.plugins: dict[str, str | None] = {}
 
         self.client.network.register_packet(
             PLUGIN_REQUIRE_PACKET,
@@ -27,11 +25,11 @@ class PluginExtension(Extension):
     async def on_connected(self):
         await self.client.send(PLUGIN_REQUIRE_PACKET, self.plugins)
 
-    def require(self, plugins: Dict[str, str | None]):
+    def require(self, plugins: dict[str, str | None]):
         self.plugins.update(plugins)
 
 
-PLUGIN_REQUIRE_PACKET = PacketType[Dict[str, str | None]].create_json(
+PLUGIN_REQUIRE_PACKET = PacketType[dict[str, str | None]].create_json(
     PLUGIN_EXTENSION_TYPE,
     "require",
 )

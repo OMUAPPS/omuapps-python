@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, List
+from typing import Callable
 
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
@@ -86,7 +86,7 @@ class RegistryImpl[T](Registry[T]):
         self.client = client
         self.type = registry_type
         self._value = registry_type.default_value
-        self.listeners: List[Coro[[T], None]] = []
+        self.listeners: list[Coro[[T], None]] = []
         self.listening = False
         client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._handle_update)
         client.network.add_task(self._on_ready_task)

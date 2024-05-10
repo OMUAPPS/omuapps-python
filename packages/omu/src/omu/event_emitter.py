@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Callable, List, Self
+from typing import Callable, Self
 
 from omu.helper import Coro
 
@@ -14,7 +14,7 @@ class EventEmitter[**P]:
     ) -> None:
         self.on_subscribe = on_subscribe
         self.on_empty = on_empty
-        self._listeners: List[Callable[P, None] | Coro[P, None]] = []
+        self._listeners: list[Callable[P, None] | Coro[P, None]] = []
 
     @property
     def empty(self) -> bool:

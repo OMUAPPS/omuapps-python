@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict
-
 from omu.client import Client
 from omu.extension import Extension, ExtensionType
 
@@ -9,7 +7,7 @@ from omu.extension import Extension, ExtensionType
 class ExtensionRegistry:
     def __init__(self, client: Client) -> None:
         self._client = client
-        self._extensions: Dict[str, Extension] = {}
+        self._extensions: dict[str, Extension] = {}
 
     def register[T: Extension](self, type: ExtensionType[T]) -> T:
         if self.has(type):
