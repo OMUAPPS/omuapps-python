@@ -1,8 +1,7 @@
 from typing import TypedDict
 
-from omu.extension.permission.permission import PermissionType
-from omu.extension.signal import SignalType
-from omu.extension.signal.signal import SignalPermissions
+from omu.extension.permission import PermissionType
+from omu.extension.signal import SignalPermissions, SignalType
 from omuchat.model import Provider
 
 from omuchatprovider.chatprovider import BASE_PROVIDER_IDENTIFIER

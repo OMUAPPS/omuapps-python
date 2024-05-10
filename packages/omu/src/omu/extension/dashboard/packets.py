@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from omu.app import App
 from omu.bytebuffer import ByteReader, ByteWriter
-from omu.extension.permission.permission import PermissionType
+from omu.extension.permission import PermissionType
 from omu.extension.plugin.package_info import PackageInfo
 
 
