@@ -59,7 +59,8 @@ idna==3.7
     # via yarl
 iniconfig==2.0.0
     # via pytest
-iwashi==3.0.1
+iwashi==3.0.3
+    # via omuchatprovider
     # via omuplugin-chat
 loguru==0.7.2
     # via iwashi
