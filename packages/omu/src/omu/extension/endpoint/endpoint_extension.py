@@ -45,7 +45,7 @@ class EndpointExtension(Extension):
         client.network.add_packet_handler(ENDPOINT_RECEIVE_PACKET, self._on_receive)
         client.network.add_packet_handler(ENDPOINT_ERROR_PACKET, self._on_error)
         client.network.add_packet_handler(ENDPOINT_CALL_PACKET, self._on_call)
-        client.network.event.connected += self.on_connected
+        client.network.add_task(self.on_ready)
 
     async def _on_receive(self, packet: EndpointDataPacket) -> None:
         if packet.key not in self.response_futures:
@@ -80,7 +80,7 @@ class EndpointExtension(Extension):
             )
             raise e
 
-    async def on_connected(self) -> None:
+    async def on_ready(self) -> None:
         endpoints = {
             key: endpoint.endpoint_type.permission_id
             for key, endpoint in self.registered_endpoints.items()
@@ -91,6 +91,8 @@ class EndpointExtension(Extension):
     def register[Req, Res](
         self, type: EndpointType[Req, Res], func: Coro[[Req], Res]
     ) -> None:
+        if self.client.ready:
+            raise Exception("Cannot register endpoint after client is ready")
         if type.id in self.registered_endpoints:
             raise Exception(f"Endpoint for key {type.id} already registered")
         self.registered_endpoints[type.id] = EndpointHandler(

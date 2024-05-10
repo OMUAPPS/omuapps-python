@@ -20,12 +20,14 @@ class PluginExtension(Extension):
         self.client.network.register_packet(
             PLUGIN_REQUIRE_PACKET,
         )
-        self.client.network.event.connected += self.on_connected
+        self.client.network.add_task(self.on_task)
 
-    async def on_connected(self):
+    async def on_task(self):
         await self.client.send(PLUGIN_REQUIRE_PACKET, self.plugins)
 
     def require(self, plugins: dict[str, str | None]):
+        if self.client.running:
+            raise RuntimeError("Cannot require plugins after client has started")
         self.plugins.update(plugins)
 
 

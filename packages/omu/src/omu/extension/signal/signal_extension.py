@@ -71,7 +71,6 @@ class SignalImpl[T](Signal):
         self.listening = False
         client.network.add_packet_handler(SIGNAL_NOTIFY_PACKET, self._on_broadcast)
         client.network.add_task(self._on_task)
-        client.event.ready += self._on_ready
 
     async def send(self, body: T) -> None:
         data = self.type.serializer.serialize(body)
@@ -82,6 +81,11 @@ class SignalImpl[T](Signal):
 
     def listen(self, listener: Coro[[T], None]) -> Callable[[], None]:
         if not self.listening:
+
+            async def on_ready():
+                await self.client.send(SIGNAL_LISTEN_PACKET, self.type.id)
+
+            self.client.when_ready(on_ready)
             self.listening = True
 
         self.listeners.append(listener)
@@ -98,9 +102,6 @@ class SignalImpl[T](Signal):
             SIGNAL_REGISTER_PACKET,
             packet,
         )
-
-    async def _on_ready(self) -> None:
-        await self.client.send(SIGNAL_LISTEN_PACKET, self.type.id)
 
     async def _on_broadcast(self, data: SignalPacket) -> None:
         if data.id != self.type.id:

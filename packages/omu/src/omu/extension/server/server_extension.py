@@ -49,13 +49,15 @@ class ServerExtension(Extension):
         self.client = client
         self.apps = client.tables.get(APP_TABLE_TYPE)
         self.required_apps: Set[Identifier] = set()
-        client.network.event.connected += self.on_connect
+        client.network.add_task(self.on_task)
 
-    async def on_connect(self) -> None:
+    async def on_task(self) -> None:
         await self.client.send(REQUIRE_APPS_PACKET_TYPE, [*self.required_apps])
 
     async def shutdown(self, restart: bool = False) -> bool:
         return await self.client.endpoints.call(SHUTDOWN_ENDPOINT_TYPE, restart)
 
     def require(self, *app_ids: Identifier) -> None:
+        if self.client.running:
+            raise RuntimeError("Cannot require apps after the client has started")
         self.required_apps.update(app_ids)

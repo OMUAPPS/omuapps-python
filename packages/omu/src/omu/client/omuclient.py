@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Callable
 
 from loguru import logger
 
@@ -48,6 +49,7 @@ from omu.extension.table import (
     TABLE_EXTENSION_TYPE,
     TableExtension,
 )
+from omu.helper import Coro
 from omu.network import Network
 from omu.network.packet import Packet, PacketType
 from omu.network.websocket_connection import WebsocketsConnection
@@ -188,3 +190,9 @@ class OmuClient(Client):
     @property
     def event(self) -> ClientEvents:
         return self._event
+
+    def when_ready(self, coro: Coro[[], None]) -> Callable[[], None]:
+        if self._ready:
+            self.loop.create_task(coro())
+        self.event.ready.subscribe(coro)
+        return lambda: self.event.ready.unsubscribe(coro)

@@ -314,13 +314,26 @@ class TableImpl[T](Table[T]):
     def listen(
         self, listener: AsyncCallback[Mapping[str, T]] | None = None
     ) -> Callable[[], None]:
-        self._listening = True
+        if not self._listening:
+
+            async def on_ready():
+                await self._client.send(TABLE_LISTEN_PACKET, self._id)
+
+            self._client.when_ready(on_ready)
+            self._listening = True
+
         if listener is not None:
             self._event.cache_update += listener
             return lambda: self._event.cache_update.unsubscribe(listener)
         return lambda: None
 
     def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
+        if not self._proxies:
+
+            async def listen():
+                await self._client.send(TABLE_PROXY_LISTEN_PACKET, self._id)
+
+            self._client.when_ready(listen)
         self._proxies.append(callback)
         return lambda: self._proxies.remove(callback)
 
@@ -350,10 +363,6 @@ class TableImpl[T](Table[T]):
                 TABLE_SET_CONFIG_PACKET,
                 SetConfigPacket(id=self._id, config=self._config),
             )
-        if self._listening:
-            await self._client.send(TABLE_LISTEN_PACKET, self._id)
-        if len(self._proxies) > 0:
-            await self._client.send(TABLE_PROXY_LISTEN_PACKET, self._id)
 
     async def _on_proxy(self, packet: TableProxyPacket) -> None:
         if packet.id != self._id:

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import abc
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from omu.app import App
 from omu.event_emitter import EventEmitter
+from omu.helper import Coro
 
 if TYPE_CHECKING:
     from omu.extension import ExtensionRegistry
@@ -105,3 +106,6 @@ class Client(abc.ABC):
     @property
     @abc.abstractmethod
     def event(self) -> ClientEvents: ...
+
+    @abc.abstractmethod
+    def when_ready(self, coro: Coro[[], None]) -> Callable[[], None]: ...
