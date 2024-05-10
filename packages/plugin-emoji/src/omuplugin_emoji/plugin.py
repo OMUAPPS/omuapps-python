@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal, TypedDict
 
+from loguru import logger
 from omu.extension.table.table import TableType
 from omu.identifier import Identifier
 from omu.interface.keyable import Keyable
@@ -18,6 +19,22 @@ APP = App(
     version="0.1.0",
 )
 client = Client(APP)
+
+
+class EmojiConfig(TypedDict):
+    active: bool
+
+
+config = EmojiConfig(
+    active=False,
+)
+
+
+@client.registry.create("config", config).listen
+async def on_config_change(new_config: EmojiConfig):
+    global config
+    config = new_config
+    logger.info(f"emoji config updated: {config}")
 
 
 class TextPattern(TypedDict):
@@ -188,6 +205,8 @@ def find_matching_emoji(text: str) -> EmojiMatch | None:
 
 @client.chat.messages.proxy
 async def on_message(message: Message):
+    if not config["active"]:
+        return message
     if not message.content:
         return message
     message.content = transform(message.content)
