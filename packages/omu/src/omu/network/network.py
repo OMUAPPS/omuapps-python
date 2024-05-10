@@ -205,8 +205,6 @@ class Network:
         packet_handler = self._packet_handlers.get(packet.type.id)
         if not packet_handler:
             return
-        if packet_handler.event is None:
-            raise RuntimeError(f"No handler for packet type {packet.type.id}")
         await packet_handler.event(packet.data)
 
     @property
