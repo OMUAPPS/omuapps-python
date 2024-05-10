@@ -24,7 +24,6 @@ if TYPE_CHECKING:
 
 class ClientListeners:
     def __init__(self) -> None:
-        self.initialized = EventEmitter[[]]()
         self.started = EventEmitter[[]]()
         self.stopped = EventEmitter[[]]()
         self.ready = EventEmitter[[]]()

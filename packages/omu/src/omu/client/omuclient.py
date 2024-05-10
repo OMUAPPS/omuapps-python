@@ -88,7 +88,6 @@ class OmuClient(Client):
         self._dashboard = self.extensions.register(DASHBOARD_EXTENSION_TYPE)
         self._i18n = self.extensions.register(I18N_EXTENSION_TYPE)
 
-        self._loop.create_task(self._listeners.initialized.emit())
 
     @property
     def app(self) -> App:
