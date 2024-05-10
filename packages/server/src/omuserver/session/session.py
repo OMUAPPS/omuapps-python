@@ -203,7 +203,6 @@ class Session:
     async def wait_for_tasks(self) -> None:
         if self.ready:
             raise RuntimeError("Session is already ready")
-        # await asyncio.gather(*[task.future for task in self.tasks])
         for task in self.ready_tasks:
             task.start_future.set_result(None)
             await task.future

@@ -69,9 +69,6 @@ class LiveChatRenderer(TypedDict):
     id: str
     timestampUsec: str
     authorExternalChannelId: str
-    # authorName: SimpleText
-    # authorPhoto: Thumbnails
-    # authorBadges: NotRequired[List[AuthorBadge]]
     message: Runs
 
 
