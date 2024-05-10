@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Callable
 
 from loguru import logger
 
 from omu.address import Address
 from omu.app import App
 from omu.client.token import JsonTokenProvider, TokenProvider
+from omu.event_emitter import Unlisten
 from omu.extension import ExtensionRegistry
 from omu.extension.asset import (
     ASSET_EXTENSION_TYPE,
@@ -191,8 +191,7 @@ class OmuClient(Client):
     def event(self) -> ClientEvents:
         return self._event
 
-    def when_ready(self, coro: Coro[[], None]) -> Callable[[], None]:
+    def when_ready(self, coro: Coro[[], None]) -> Unlisten:
         if self._ready:
             self.loop.create_task(coro())
-        self.event.ready.subscribe(coro)
-        return lambda: self.event.ready.unsubscribe(coro)
+        return self.event.ready.listen(coro)

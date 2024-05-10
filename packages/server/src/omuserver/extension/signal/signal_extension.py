@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 
 from omu.errors import PermissionDenied
+from omu.event_emitter import Unlisten
 from omu.extension.signal import SignalPermissions
 from omu.extension.signal.packets import SignalRegisterPacket
 from omu.extension.signal.signal_extension import (
@@ -43,7 +43,6 @@ class SignalExtension:
         signal = ServerSignal(
             server=self._server,
             id=id,
-            listeners=[],
             permissions=SignalPermissions(),
         )
         self.signals[id] = signal
@@ -92,12 +91,17 @@ class SignalExtension:
         await signal.notify(data.body)
 
 
-@dataclass
 class ServerSignal:
-    server: Server
-    id: Identifier
-    listeners: list[Session]
-    permissions: SignalPermissions
+    def __init__(
+        self,
+        server: Server,
+        id: Identifier,
+        permissions: SignalPermissions,
+    ) -> None:
+        self.server = server
+        self.id = id
+        self.listeners: dict[Session, Unlisten] = {}
+        self.permissions = permissions
 
     async def notify(self, body: bytes) -> None:
         packet = SignalPacket(id=self.id, body=body)
@@ -107,11 +111,11 @@ class ServerSignal:
     def attach_session(self, session: Session) -> None:
         if session in self.listeners:
             raise Exception("Session already attached")
-        self.listeners.append(session)
-        session.event.disconnected += self.detach_session
+        unlisten = session.event.disconnected.listen(self.detach_session)
+        self.listeners[session] = unlisten
 
     def detach_session(self, session: Session) -> None:
         if session not in self.listeners:
             raise Exception("Session not attached")
-        self.listeners.remove(session)
-        session.event.disconnected -= self.detach_session
+        unlisten = self.listeners.pop(session)
+        unlisten()

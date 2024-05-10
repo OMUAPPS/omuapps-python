@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import Callable
 
 from omu.bytebuffer import ByteReader, ByteWriter, Flags
+from omu.event_emitter import Unlisten
 from omu.helper import Coro
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
@@ -74,7 +74,7 @@ class SignalType[T]:
 
 class Signal[T](abc.ABC):
     @abc.abstractmethod
-    def listen(self, listener: Coro[[T], None]) -> Callable[[], None]: ...
+    def listen(self, listener: Coro[[T], None]) -> Unlisten: ...
 
     @abc.abstractmethod
     async def send(self, body: T) -> None: ...

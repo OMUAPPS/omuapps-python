@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable
-
 from omu.client import Client
+from omu.event_emitter import Unlisten
 from omu.extension import Extension, ExtensionType
 from omu.helper import Coro
 from omu.identifier import Identifier
@@ -79,7 +78,7 @@ class SignalImpl[T](Signal):
             SignalPacket(id=self.type.id, body=data),
         )
 
-    def listen(self, listener: Coro[[T], None]) -> Callable[[], None]:
+    def listen(self, listener: Coro[[T], None]) -> Unlisten:
         if not self.listening:
 
             async def on_ready():

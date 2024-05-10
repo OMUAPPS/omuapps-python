@@ -1,4 +1,5 @@
 from omu import Identifier
+from omu.event_emitter import Unlisten
 from omu.extension.registry.packets import RegistryPermissions
 from omu.extension.registry.registry_extension import (
     REGISTRY_UPDATE_PACKET,
@@ -19,7 +20,7 @@ class ServerRegistry:
     ) -> None:
         self.id = id
         self.permissions = permissions or RegistryPermissions()
-        self._listeners: dict[Identifier, Session] = {}
+        self._listeners: dict[Identifier, tuple[Session, Unlisten]] = {}
         self._path = server.directories.get(
             "registry"
         ) / id.get_sanitized_path().with_suffix(".json")
@@ -40,7 +41,7 @@ class ServerRegistry:
         await self._notify()
 
     async def _notify(self) -> None:
-        for listener in self._listeners.values():
+        for listener, _ in self._listeners.values():
             if listener.closed:
                 raise Exception(f"Session {listener.app=} closed")
             await listener.send(
@@ -51,8 +52,8 @@ class ServerRegistry:
     async def attach_session(self, session: Session) -> None:
         if session.app.id in self._listeners:
             raise Exception("Session already attached")
-        self._listeners[session.app.id] = session
-        session.event.disconnected += self.detach_session
+        unlisten = session.event.disconnected.listen(self.detach_session)
+        self._listeners[session.app.id] = session, unlisten
         await session.send(
             REGISTRY_UPDATE_PACKET,
             RegistryPacket(id=self.id, value=self.data),
@@ -61,8 +62,8 @@ class ServerRegistry:
     async def detach_session(self, session: Session) -> None:
         if session.app.id not in self._listeners:
             raise Exception("Session not attached")
-        del self._listeners[session.app.id]
-        session.event.disconnected -= self.detach_session
+        _, unlisten = self._listeners.pop(session.app.id)
+        unlisten()
 
 
 class Registry[T]:

@@ -5,6 +5,8 @@ from typing import Callable, Self
 
 from omu.helper import Coro
 
+type Unlisten = Callable[[], None]
+
 
 class EventEmitter[**P]:
     def __init__(
@@ -15,12 +17,19 @@ class EventEmitter[**P]:
         self.on_subscribe = on_subscribe
         self.on_empty = on_empty
         self._listeners: list[Callable[P, None] | Coro[P, None]] = []
+        self.closed = False
 
     @property
     def empty(self) -> bool:
         return len(self._listeners) == 0
 
-    def subscribe(self, listener: Callable[P, None] | Coro[P, None]) -> None:
+    def close(self) -> None:
+        self.closed = True
+        self._listeners.clear()
+
+    def listen(self, listener: Callable[P, None] | Coro[P, None]) -> Unlisten:
+        if self.closed:
+            raise ValueError("EventEmitter is closed")
         if listener in self._listeners:
             raise ValueError("Listener already subscribed")
         if self.on_subscribe and len(self._listeners) == 0:
@@ -28,8 +37,9 @@ class EventEmitter[**P]:
             if asyncio.iscoroutine(coroutine):
                 asyncio.create_task(coroutine)
         self._listeners.append(listener)
+        return lambda: self.unlisten(listener)
 
-    def unsubscribe(self, listener: Callable[P, None] | Coro[P, None]) -> None:
+    def unlisten(self, listener: Callable[P, None] | Coro[P, None]) -> None:
         if listener not in self._listeners:
             return
         self._listeners.remove(listener)
@@ -38,19 +48,17 @@ class EventEmitter[**P]:
             if asyncio.iscoroutine(coroutine):
                 asyncio.create_task(coroutine)
 
-    def __iadd__(self, listener: Callable[P, None] | Coro[P, None]) -> Self:
-        self.subscribe(listener)
-        return self
-
-    def __isub__(self, listener: Callable[P, None] | Coro[P, None]) -> Self:
-        self.unsubscribe(listener)
-        return self
-
     async def emit(self, *args: P.args, **kwargs: P.kwargs) -> None:
+        if self.closed:
+            raise ValueError("EventEmitter is closed")
         for listener in tuple(self._listeners):
             if asyncio.iscoroutinefunction(listener):
                 await listener(*args, **kwargs)
             else:
                 listener(*args, **kwargs)
+
+    def __iadd__(self, listener: Callable[P, None] | Coro[P, None]) -> Self:
+        self.listen(listener)
+        return self
 
     __call__ = emit

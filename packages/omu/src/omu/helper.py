@@ -29,3 +29,11 @@ def sanitize_filename(name: str) -> str:
 
 def generate_md5_hash(id: str) -> str:
     return hashlib.md5(id.encode()).hexdigest()
+
+
+def batch_call(*funcs: typing.Callable[[], None]) -> typing.Callable[[], None]:
+    def wrapper():
+        for func in funcs:
+            func()
+
+    return wrapper

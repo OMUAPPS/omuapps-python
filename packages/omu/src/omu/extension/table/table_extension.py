@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     AsyncGenerator,
-    Callable,
     Dict,
     Iterable,
     List,
@@ -10,6 +9,7 @@ from typing import (
 )
 
 from omu.client import Client
+from omu.event_emitter import Unlisten
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint.endpoint import EndpointType
 from omu.helper import AsyncCallback, Coro
@@ -212,8 +212,7 @@ class TableImpl[T](Table[T]):
             TABLE_ITEM_CLEAR_PACKET,
             self._on_item_clear,
         )
-        client.network.add_task(self._on_network_task)
-        client.event.ready += self._on_ready
+        client.network.add_task(self._on_ready)
 
     @property
     def cache(self) -> Mapping[str, T]:
@@ -313,7 +312,7 @@ class TableImpl[T](Table[T]):
 
     def listen(
         self, listener: AsyncCallback[Mapping[str, T]] | None = None
-    ) -> Callable[[], None]:
+    ) -> Unlisten:
         if not self._listening:
 
             async def on_ready():
@@ -323,11 +322,10 @@ class TableImpl[T](Table[T]):
             self._listening = True
 
         if listener is not None:
-            self._event.cache_update += listener
-            return lambda: self._event.cache_update.unsubscribe(listener)
+            return self._event.cache_update.listen(listener)
         return lambda: None
 
-    def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
+    def proxy(self, callback: Coro[[T], T | None]) -> Unlisten:
         if not self._proxies:
 
             async def listen():
@@ -338,9 +336,16 @@ class TableImpl[T](Table[T]):
         return lambda: self._proxies.remove(callback)
 
     def set_config(self, config: TableConfig) -> None:
+        if self._client.running:
+            raise ValueError("Cannot set config after client has started")
         self._config = config
 
-    async def _on_network_task(self) -> None:
+    async def _on_ready(self) -> None:
+        if self._config is not None:
+            await self._client.send(
+                TABLE_SET_CONFIG_PACKET,
+                SetConfigPacket(id=self._id, config=self._config),
+            )
         if self._permissions is None:
             return
         if not self._id.is_subpath_of(self._client.app.id):
@@ -356,13 +361,6 @@ class TableImpl[T](Table[T]):
                 proxy=self._permissions.proxy,
             ),
         )
-
-    async def _on_ready(self) -> None:
-        if self._config is not None:
-            await self._client.send(
-                TABLE_SET_CONFIG_PACKET,
-                SetConfigPacket(id=self._id, config=self._config),
-            )
 
     async def _on_proxy(self, packet: TableProxyPacket) -> None:
         if packet.id != self._id:

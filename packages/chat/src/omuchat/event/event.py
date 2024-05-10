@@ -4,7 +4,7 @@ from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from omu.event_emitter import EventEmitter
+from omu.event_emitter import EventEmitter, Unlisten
 from omu.extension.table import Table
 
 if TYPE_CHECKING:
@@ -15,13 +15,12 @@ type EventHandler[**P] = Callable[P, Coroutine[None, None, None]]
 
 @dataclass(frozen=True)
 class EventSource[**P]:
-    subscribe: Callable[[EventHandler[P], Client], None]
-    unsubscribe: Callable[[EventHandler[P], Client], None]
+    listen: Callable[[EventHandler[P], Client], Unlisten]
 
 
 class ListenerEvent[**P](EventSource[P]):
     def __init__(self, get_listener: Callable[[Client], EventEmitter[P]]):
-        super().__init__(self._subscribe, self._unsubscribe)
+        super().__init__(self._subscribe)
         self.get_listener = get_listener
 
     def _subscribe(
@@ -30,15 +29,7 @@ class ListenerEvent[**P](EventSource[P]):
         client: Client,
     ):
         listener = self.get_listener(client)
-        listener += emit
-
-    def _unsubscribe(
-        self,
-        emit: EventHandler[P],
-        client: Client,
-    ):
-        listener = self.get_listener(client)
-        listener -= emit
+        return listener.listen(emit)
 
 
 class TableEvent[T](ListenerEvent[Mapping[str, T]]):
@@ -87,15 +78,9 @@ class TableEvent[T](ListenerEvent[Mapping[str, T]]):
             listener = get_listener(self.get_table(client))
             nonlocal batch_wrapper
             batch_wrapper = self._create_batch_wrapper(emit)
-            listener += batch_wrapper
+            return listener.listen(batch_wrapper)
 
-        def unsubscribe(emit: EventHandler[T], client: Client):
-            if batch_wrapper is None:
-                raise ValueError("Listener not subscribed")
-            listener = get_listener(self.get_table(client))
-            listener -= batch_wrapper
-
-        return EventSource(subscribe, unsubscribe)
+        return EventSource(subscribe)
 
 
 @dataclass(frozen=True)
@@ -109,20 +94,12 @@ class EventRegistry:
         self.client = client
         self.events: dict[int, Entry] = {}
 
-    def register[**P](self, event: EventSource[P], listener: EventHandler[P]):
+    def register[**P](
+        self, event: EventSource[P], listener: EventHandler[P]
+    ) -> Unlisten:
         event_id = id(event)
         if event_id not in self.events:
             entry = Entry[P](event, EventEmitter[P]())
-            event.subscribe(entry.listeners.emit, self.client)
+            event.listen(entry.listeners.emit, self.client)
             self.events[event_id] = entry  # type: ignore
-        self.events[event_id].listeners.subscribe(listener)
-
-    def unregister[**P](self, event: EventSource[P], listener: EventHandler[P]):
-        event_id = id(event)
-        if event_id not in self.events:
-            return
-        entry = self.events[event_id]
-        entry.listeners.unsubscribe(listener)
-        if entry.listeners.empty:
-            entry.source.unsubscribe(entry.listeners.emit, self.client)
-            del entry
+        return self.events[event_id].listeners.listen(listener)

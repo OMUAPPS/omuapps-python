@@ -29,12 +29,3 @@ class Client(OmuClient):
             return listener
 
         return decorator
-
-    def off[**P](
-        self, event: EventSource[P]
-    ) -> Callable[[EventHandler[P]], EventHandler[P]]:
-        def decorator(listener: EventHandler[P]) -> EventHandler[P]:
-            self.event_registry.unregister(event, listener)
-            return listener
-
-        return decorator

@@ -117,7 +117,11 @@ class ServerExtension:
     async def on_connected(self, session: Session) -> None:
         logger.info(f"Connected: {session.app.key()}")
         await self.apps.add(session.app)
-        session.event.ready += self.on_session_ready
+        unlisten = session.event.ready.listen(self.on_session_ready)
+
+        @session.event.disconnected.listen
+        def on_disconnected(session: Session) -> None:
+            unlisten()
 
     async def on_session_ready(self, session: Session) -> None:
         for waiter in self._app_waiters.get(session.app.id, []):
@@ -128,4 +132,3 @@ class ServerExtension:
     async def on_disconnected(self, session: Session) -> None:
         logger.info(f"Disconnected: {session.app.key()}")
         await self.apps.remove(session.app)
-        session.event.ready -= self.on_session_ready

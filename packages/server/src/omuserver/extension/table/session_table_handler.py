@@ -11,6 +11,7 @@ from omu.extension.table.table_extension import (
     TableItemsPacket,
     TablePacket,
 )
+from omu.helper import batch_call
 from omu.identifier import Identifier
 
 from omuserver.extension.table.server_table import ServerTable
@@ -22,16 +23,15 @@ class SessionTableListener:
         self.id = id
         self.session = session
         self.table = table
-        table.event.add += self.on_add
-        table.event.update += self.on_update
-        table.event.remove += self.on_remove
-        table.event.clear += self.on_clear
+        self.unlisten = batch_call(
+            table.event.add.listen(self.on_add),
+            table.event.update.listen(self.on_update),
+            table.event.remove.listen(self.on_remove),
+            table.event.clear.listen(self.on_clear),
+        )
 
     def close(self) -> None:
-        self.table.event.add -= self.on_add
-        self.table.event.update -= self.on_update
-        self.table.event.remove -= self.on_remove
-        self.table.event.clear -= self.on_clear
+        self.unlisten()
 
     async def on_add(self, items: Mapping[str, Any]) -> None:
         if self.session.closed:

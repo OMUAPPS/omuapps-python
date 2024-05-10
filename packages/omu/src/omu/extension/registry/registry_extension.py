@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Callable
-
 from omu.client import Client
+from omu.event_emitter import Unlisten
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.helper import Coro
@@ -117,7 +116,7 @@ class RegistryImpl[T](Registry[T]):
             ),
         )
 
-    def listen(self, handler: Coro[[T], None]) -> Callable[[], None]:
+    def listen(self, handler: Coro[[T], None]) -> Unlisten:
         if not self.listening:
 
             async def on_ready():

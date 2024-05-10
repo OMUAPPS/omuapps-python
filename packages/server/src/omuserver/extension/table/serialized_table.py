@@ -1,5 +1,6 @@
-from collections.abc import AsyncGenerator, Callable, Mapping
+from collections.abc import AsyncGenerator, Mapping
 
+from omu.event_emitter import Unlisten
 from omu.extension.table import Table, TableConfig, TableType
 from omu.extension.table.table import TableEvents, TablePermissions
 from omu.helper import AsyncCallback, Coro
@@ -137,11 +138,10 @@ class SerializedTable[T: Keyable](Table[T]):
 
     def listen(
         self, listener: AsyncCallback[Mapping[str, T]] | None = None
-    ) -> Callable[[], None]:
+    ) -> Unlisten:
         self._listening = True
         if listener:
-            self._event.cache_update += listener
-            return lambda: self._event.cache_update.unsubscribe(listener)
+            return self._event.cache_update.listen(listener)
         return lambda: None
 
     async def on_cache_update(self, cache: Mapping[str, bytes]) -> None:
@@ -162,7 +162,7 @@ class SerializedTable[T: Keyable](Table[T]):
     async def on_clear(self) -> None:
         await self._event.clear()
 
-    def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]:
+    def proxy(self, callback: Coro[[T], T | None]) -> Unlisten:
         raise NotImplementedError
 
     def _parse_items(self, items: Mapping[str, bytes]) -> dict[str, T]:

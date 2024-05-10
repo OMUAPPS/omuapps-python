@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import Callable
 
 from omu.bytebuffer import ByteReader, ByteWriter, Flags
+from omu.event_emitter import Unlisten
 from omu.helper import Coro, map_optional
 from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
@@ -93,4 +93,4 @@ class Registry[T](abc.ABC):
     async def update(self, handler: Coro[[T], T]) -> None: ...
 
     @abc.abstractmethod
-    def listen(self, handler: Coro[[T], None]) -> Callable[[], None]: ...
+    def listen(self, handler: Coro[[T], None]) -> Unlisten: ...

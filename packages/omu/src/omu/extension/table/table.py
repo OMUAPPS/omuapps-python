@@ -11,7 +11,7 @@ from typing import (
     TypedDict,
 )
 
-from omu.event_emitter import EventEmitter
+from omu.event_emitter import EventEmitter, Unlisten
 from omu.helper import AsyncCallback, Coro
 from omu.identifier import Identifier
 from omu.interface import Keyable
@@ -72,10 +72,10 @@ class Table[T](abc.ABC):
     @abc.abstractmethod
     def listen(
         self, listener: AsyncCallback[Mapping[str, T]] | None = None
-    ) -> Callable[[], None]: ...
+    ) -> Unlisten: ...
 
     @abc.abstractmethod
-    def proxy(self, callback: Coro[[T], T | None]) -> Callable[[], None]: ...
+    def proxy(self, callback: Coro[[T], T | None]) -> Unlisten: ...
 
     @abc.abstractmethod
     def set_config(self, config: TableConfig) -> None: ...
@@ -90,7 +90,7 @@ class TableEvents[T]:
         self,
         table: Table[T],
     ) -> None:
-        self.unlisten: Callable[[], None] | None = None
+        self.unlisten: Unlisten | None = None
 
         def listen():
             self.unlisten = table.listen()
