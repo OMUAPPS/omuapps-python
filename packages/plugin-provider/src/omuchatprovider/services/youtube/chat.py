@@ -256,7 +256,8 @@ class YoutubeChatService(ChatService):
             video_id,
         )
         room.metadata = RoomMetadata(
-            thumbnail=f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+            thumbnail=f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
+            url=f"https://www.youtube.com/watch?v={video_id}",
         )
         instance = cls(youtube_service, client, room, chat)
         await client.chat.rooms.add(room)

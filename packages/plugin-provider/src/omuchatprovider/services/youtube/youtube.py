@@ -35,10 +35,6 @@ class YoutubeService(ProviderService):
             room = Room(
                 provider_id=YOUTUBE_IDENTIFIER,
                 id=YOUTUBE_IDENTIFIER / video_id,
-                metadata={
-                    "url": f"https://www.youtube.com/watch?v={video_id}",
-                    "thumbnail": f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg",
-                },
                 connected=False,
                 status="offline",
                 channel_id=channel.key(),
