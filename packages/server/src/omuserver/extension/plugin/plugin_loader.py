@@ -49,8 +49,9 @@ class DependencyResolver:
     async def get_installed_package_info(
         self, package: str
     ) -> PluginPackageInfo | None:
-        package_info = importlib.metadata.distribution(package)
-        if package_info is None:
+        try:
+            package_info = importlib.metadata.distribution(package)
+        except importlib.metadata.PackageNotFoundError:
             return None
         return PluginPackageInfo(
             package=package_info.name,

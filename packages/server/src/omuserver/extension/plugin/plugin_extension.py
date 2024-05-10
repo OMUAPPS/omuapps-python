@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 
 from omu.extension.dashboard.packets import PluginRequestPacket
 from omu.extension.plugin import PackageInfo
@@ -27,7 +28,7 @@ class PluginExtension:
             self.handle_require_packet,
         )
         server.network.listeners.start += self.on_network_start
-        self.server_id = 0
+        self.request_id = 0
         self.lock = asyncio.Lock()
         self.loader = PluginLoader(server)
         self.dependency_resolver = DependencyResolver()
@@ -35,6 +36,10 @@ class PluginExtension:
 
     async def on_network_start(self) -> None:
         await self.loader.run_plugins()
+
+    def _get_next_request_id(self) -> str:
+        self.request_id += 1
+        return f"{self.request_id}-{time.time_ns()}"
 
     async def request_plugins(
         self, session: Session, packages: dict[str, str | None]
@@ -54,7 +59,7 @@ class PluginExtension:
         if len(to_request) == 0:
             return
         request = PluginRequestPacket(
-            request_id="",
+            request_id=self._get_next_request_id(),
             app=session.app,
             packages=to_request,
         )
@@ -67,7 +72,8 @@ class PluginExtension:
     ) -> None:
         if not packages:
             return
-        await self.request_plugins(session, packages)
+        if not session.is_dashboard:
+            await self.request_plugins(session, packages)
 
         changed = False
         for package, version in packages.items():
