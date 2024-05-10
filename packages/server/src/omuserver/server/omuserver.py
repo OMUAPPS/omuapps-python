@@ -90,8 +90,11 @@ class OmuServer(Server):
                     headers=headers,
                 )
                 await response.prepare(request)
-                async for chunk in resp.content.iter_any():
-                    await response.write(chunk)
+                try:
+                    async for chunk in resp.content.iter_any():
+                        await response.write(chunk)
+                except ConnectionResetError:
+                    pass
                 return response
         except aiohttp.ClientResponseError as e:
             return web.Response(status=e.status, text=e.message)
