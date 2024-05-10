@@ -36,7 +36,7 @@ from .packet_mapper import PacketMapper
 @dataclass
 class PacketHandler[T]:
     packet_type: PacketType[T]
-    handler: Coro[[T], None] | None = None
+    event: EventEmitter[T]
 
 
 class Network:
@@ -114,7 +114,10 @@ class Network:
         for packet_type in packet_types:
             if self._packet_handlers.get(packet_type.id):
                 raise ValueError(f"Packet type {packet_type.id} already registered")
-            self._packet_handlers[packet_type.id] = PacketHandler(packet_type)
+            self._packet_handlers[packet_type.id] = PacketHandler(
+                packet_type,
+                EventEmitter(),
+            )
 
     def add_packet_handler[T](
         self,
@@ -125,7 +128,7 @@ class Network:
             raise ValueError(f"Packet type {packet_type.id} not registered")
 
         def decorator(func: Coro[[T], None]) -> None:
-            self._packet_handlers[packet_type.id].handler = func
+            self._packet_handlers[packet_type.id].event.listen(func)
 
         if packet_handler:
             decorator(packet_handler)
@@ -202,9 +205,9 @@ class Network:
         packet_handler = self._packet_handlers.get(packet.type.id)
         if not packet_handler:
             return
-        if packet_handler.handler is None:
+        if packet_handler.event is None:
             raise RuntimeError(f"No handler for packet type {packet.type.id}")
-        await packet_handler.handler(packet.data)
+        await packet_handler.event(packet.data)
 
     @property
     def event(self) -> NetworkEvents:
