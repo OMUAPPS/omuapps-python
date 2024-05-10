@@ -53,12 +53,13 @@ async def translate(component: Component, lang: Language) -> Component:
 
 
 def is_same_content(a: Component, b: Component) -> bool:
-    texts_a = [sibling for sibling in a.iter() if isinstance(sibling, Text)]
-    texts_b = [sibling for sibling in b.iter() if isinstance(sibling, Text)]
-    return all(
-        text_a.text == text_b.text
-        for text_a, text_b in zip(texts_a, texts_b, strict=False)
-    )
+    texts_a = [
+        sibling.text.lower() for sibling in a.iter() if isinstance(sibling, Text)
+    ]
+    texts_b = [
+        sibling.text.lower() for sibling in b.iter() if isinstance(sibling, Text)
+    ]
+    return all(a == b for a, b in zip(texts_a, texts_b, strict=False))
 
 
 @client.chat.messages.proxy
