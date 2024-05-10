@@ -215,7 +215,7 @@ class TableImpl[T](Table[T]):
             self._on_item_clear,
         )
         client.network.add_task(self._on_network_task)
-        client.listeners.ready += self._on_ready
+        client.event.ready += self._on_ready
 
     @property
     def cache(self) -> Mapping[str, T]:

@@ -52,7 +52,7 @@ from omu.network import Network
 from omu.network.packet import Packet, PacketType
 from omu.network.websocket_connection import WebsocketsConnection
 
-from .client import Client, ClientListeners
+from .client import Client, ClientEvents
 
 
 class OmuClient(Client):
@@ -68,7 +68,7 @@ class OmuClient(Client):
         self._loop = loop or asyncio.get_event_loop()
         self._ready = False
         self._running = False
-        self._listeners = ClientListeners()
+        self._event = ClientEvents()
         self._app = app
         self._network = Network(
             self,
@@ -176,15 +176,15 @@ class OmuClient(Client):
             raise RuntimeError("Already running")
         self._running = True
         self.loop.create_task(self._network.connect(reconnect=reconnect))
-        await self._listeners.started()
+        await self._event.started()
 
     async def stop(self) -> None:
         if not self._running:
             raise RuntimeError("Not running")
         self._running = False
         await self._network.disconnect()
-        await self._listeners.stopped()
+        await self._event.stopped()
 
     @property
-    def listeners(self) -> ClientListeners:
-        return self._listeners
+    def event(self) -> ClientEvents:
+        return self._event

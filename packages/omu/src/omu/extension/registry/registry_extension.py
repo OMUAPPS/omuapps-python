@@ -90,7 +90,7 @@ class RegistryImpl[T](Registry[T]):
         self.listening = False
         client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._handle_update)
         client.network.add_task(self._on_ready_task)
-        client.listeners.ready += self._on_ready
+        client.event.ready += self._on_ready
 
     @property
     def value(self) -> T:

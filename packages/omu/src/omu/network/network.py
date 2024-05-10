@@ -93,7 +93,7 @@ class Network:
             raise error(reason.message)
 
     async def handle_ready(self, _: None):
-        await self._client.listeners.ready.emit()
+        await self._client.event.ready.emit()
 
     @property
     def address(self) -> Address:

@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from omu.network.packet import PacketType
 
 
-class ClientListeners:
+class ClientEvents:
     def __init__(self) -> None:
         self.started = EventEmitter[[]]()
         self.stopped = EventEmitter[[]]()
@@ -104,4 +104,4 @@ class Client(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def listeners(self) -> ClientListeners: ...
+    def event(self) -> ClientEvents: ...

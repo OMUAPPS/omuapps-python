@@ -4,7 +4,7 @@ from .event import ListenerEvent, TableEvent
 
 
 class events:
-    ready = ListenerEvent(lambda client: client.listeners.ready)
+    ready = ListenerEvent(lambda client: client.event.ready)
     message = TableEvent[Message](lambda client: client.chat.messages)
     author = TableEvent[Author](lambda client: client.chat.authors)
     channel = TableEvent[Channel](lambda client: client.chat.channels)
