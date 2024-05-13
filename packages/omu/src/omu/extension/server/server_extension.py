@@ -4,6 +4,7 @@ from omu.event_emitter import Unlisten
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.extension.registry import RegistryType
+from omu.extension.server.packets import ConsolePacket
 from omu.extension.table import TablePermissions, TableType
 from omu.helper import Coro
 from omu.identifier import Identifier
@@ -42,12 +43,17 @@ VERSION_REGISTRY_TYPE = RegistryType[str | None].create_json(
 SERVER_CONSOLE_PERMISSION_ID = SERVER_EXTENSION_TYPE / "console"
 CONSOLE_GET_ENDPOINT_TYPE = EndpointType[int | None, list[str]].create_json(
     SERVER_EXTENSION_TYPE,
-    "console_get",
+    "console",
     permission_id=SERVER_CONSOLE_PERMISSION_ID,
 )
 CONSOLE_LISTEN_PACKET_TYPE = PacketType[None].create_json(
     SERVER_EXTENSION_TYPE,
     "console_listen",
+)
+CONSOLE_PACKET_TYPE = PacketType[ConsolePacket].create_serialized(
+    SERVER_EXTENSION_TYPE,
+    "console",
+    serializer=ConsolePacket,
 )
 
 
@@ -55,7 +61,10 @@ class ServerExtension(Extension):
     def __init__(self, client: Client) -> None:
         client.network.register_packet(
             REQUIRE_APPS_PACKET_TYPE,
+            CONSOLE_LISTEN_PACKET_TYPE,
+            CONSOLE_PACKET_TYPE,
         )
+        client.network.add_packet_handler(CONSOLE_PACKET_TYPE, self._on_console)
         self.client = client
         self.apps = client.tables.get(APP_TABLE_TYPE)
         self.required_apps: set[Identifier] = set()
@@ -86,3 +95,7 @@ class ServerExtension(Extension):
             self.client.when_ready(listen)
         self.console_listeners.append(listener)
         return lambda: self.console_listeners.remove(listener)
+
+    async def _on_console(self, packet: list[str]) -> None:
+        for listener in self.console_listeners:
+            await listener(packet)
