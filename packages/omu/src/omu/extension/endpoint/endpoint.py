@@ -7,7 +7,7 @@ from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EndpointType[Req, Res]:
     id: Identifier
     request_serializer: Serializable[Req, bytes]

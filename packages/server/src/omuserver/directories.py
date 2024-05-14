@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import LiteralString
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Directories:
     data: pathlib.Path
     assets: pathlib.Path

@@ -211,7 +211,7 @@ class YoutubeChat:
         return metadata
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ChatData:
     chat_actions: ChatActions
     metadata_actions: MetadataActions

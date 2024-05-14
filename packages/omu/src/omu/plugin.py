@@ -8,7 +8,7 @@ from omu.helper import Coro
 from .client import Client
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Plugin:
     get_client: Callable[[], Client] | None = None
     on_start_server: Coro[[Server], None] | None = None

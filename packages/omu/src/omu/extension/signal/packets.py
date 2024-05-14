@@ -8,7 +8,7 @@ from omu.identifier import Identifier
 from .signal import SignalPermissions
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class SignalPacket:
     id: Identifier
     body: bytes
@@ -28,7 +28,7 @@ class SignalPacket:
         return SignalPacket(id=key, body=body)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class SignalRegisterPacket:
     id: Identifier
     permissions: SignalPermissions

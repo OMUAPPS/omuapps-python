@@ -9,7 +9,7 @@ from omu.extension.permission import PermissionType
 from omu.extension.plugin.package_info import PackageInfo
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PermissionRequestPacket:
     request_id: str
     app: App
@@ -36,7 +36,7 @@ class PermissionRequestPacket:
             return cls(request_id, app, list(permissions))
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PluginRequestPacket:
     request_id: str
     app: App

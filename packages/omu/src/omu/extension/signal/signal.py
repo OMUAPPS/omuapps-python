@@ -10,7 +10,7 @@ from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SignalPermissions:
     all: Identifier | None = None
     listen: Identifier | None = None
@@ -38,7 +38,7 @@ class SignalPermissions:
         return SignalPermissions(all=all, listen=listen, notify=send)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SignalType[T]:
     id: Identifier
     serializer: Serializable[T, bytes]

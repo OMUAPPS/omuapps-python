@@ -52,7 +52,7 @@ class ServerPacketDispatcher:
         return decorator
 
 
-@dataclass
+@dataclass(slots=True)
 class PacketHandler[T]:
     packet_type: PacketType[T]
     handler: Coro[[Session, T], None] | None = None

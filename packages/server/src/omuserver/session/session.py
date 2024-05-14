@@ -41,7 +41,7 @@ class SessionEvents:
         self.ready = EventEmitter[Session]()
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class SessionTask:
     session: Session
     start_future: asyncio.Future[None]

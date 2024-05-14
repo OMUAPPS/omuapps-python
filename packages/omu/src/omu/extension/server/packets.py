@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from omu.bytebuffer import ByteReader, ByteWriter
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ConsolePacket:
     lines: list[str]
 

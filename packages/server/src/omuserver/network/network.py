@@ -150,7 +150,9 @@ class Network:
         runner = web.AppRunner(self._app)
         await runner.setup()
         site = web.TCPSite(
-            runner, host=self._server.address.host, port=self._server.address.port
+            runner,
+            host=self._server.address.host or "127.0.0.1",
+            port=self._server.address.port,
         )
         await site.start()
 
