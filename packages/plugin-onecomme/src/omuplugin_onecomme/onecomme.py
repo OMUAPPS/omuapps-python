@@ -52,7 +52,7 @@ async def start_onecomme(server: Server):
         raise FileNotFoundError("OneComme binary not found")
     await asyncio.create_subprocess_exec(
         bin,
-        "",  # empty args for issue
+        "",  # empty args for issue https://forum.onecomme.com/t/topic/1641
         "--disable-api-server",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
