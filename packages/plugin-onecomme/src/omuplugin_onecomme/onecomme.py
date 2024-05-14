@@ -1,59 +1,60 @@
-from typing import TypedDict
+import asyncio
+import os
+from pathlib import Path
+
+from loguru import logger
+from omuserver.server import Server
 
 
-class Color(TypedDict):
-    r: int
-    g: int
-    b: int
+def find_onecomme_binary() -> Path | None:
+    to_check: list[Path] = []
+    if os.name == "nt":
+        to_check.append(Path(os.environ["ProgramFiles"]) / "OneComme" / "OneComme.exe")
+    else:
+        # TODO: Implement for other platforms
+        raise NotImplementedError("OneComme is only supported on Windows")
+    for path in to_check:
+        if path.exists():
+            return path
+    return None
 
 
-class Badge(TypedDict):
-    label: str
-    url: str
+def find_onecomme_config() -> Path | None:
+    to_check: list[Path] = []
+    if os.name == "nt":
+        to_check.append(Path(os.environ["APPDATA"]) / "OneComme" / "config.json")
+    else:
+        # TODO: Implement for other platforms
+        raise NotImplementedError("OneComme is only supported on Windows")
+    for path in to_check:
+        if path.exists():
+            return path
+    return None
 
 
-class CommentData(TypedDict):
-    id: str
-    liveId: str
-    userId: str
-    name: str
-    screenName: str
-    hasGift: bool
-    isOwner: bool
-    isAnonymous: bool
-    profileImage: str
-    badges: list[Badge]
-    timestamp: str
-    comment: str
-    displayName: str
-    originalProfileImage: str
-    isFirstTime: bool
+def terminate_onecomme():
+    bin = find_onecomme_binary()
+    if bin is None:
+        return
+    if os.name == "nt":
+        os.system(f"taskkill /f /im {bin.name}")
+    else:
+        # TODO: Implement for other platforms
+        raise NotImplementedError("OneComme is only supported on Windows")
+    logger.info("OneComme terminated")
 
 
-class CommentMeta(TypedDict):
-    no: int
-    tc: int
-
-
-class CommentServiceData(TypedDict):
-    id: str
-    name: str
-    url: str
-    write: bool
-    speech: bool
-    options: dict
-    enabled: bool
-    persist: bool
-    translate: list
-    color: Color
-
-
-class Comment(TypedDict):
-    id: str
-    service: str
-    name: str
-    url: str
-    color: Color
-    data: CommentData
-    meta: CommentMeta
-    serviceData: CommentServiceData
+async def start_onecomme(server: Server):
+    terminate_onecomme()
+    # https://onecomme.com/news/#:~:text=--disable-api-server%3A%20APIサーバーを起動しない
+    bin = find_onecomme_binary()
+    if bin is None:
+        raise FileNotFoundError("OneComme binary not found")
+    await asyncio.create_subprocess_exec(
+        bin,
+        "",  # empty args for issue
+        "--disable-api-server",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    logger.info("OneComme started")
