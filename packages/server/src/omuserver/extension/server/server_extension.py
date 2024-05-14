@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import asyncio
 from asyncio import Future
 from collections import defaultdict
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from loguru import logger
-from omu.extension.permission import PermissionType
+from omu.errors import PermissionDenied
+from omu.extension.server.packets import ConsolePacket
 from omu.extension.server.server_extension import (
     APP_TABLE_TYPE,
+    CONSOLE_GET_ENDPOINT_TYPE,
+    CONSOLE_LISTEN_PACKET_TYPE,
+    CONSOLE_PACKET_TYPE,
     REQUIRE_APPS_PACKET_TYPE,
-    SERVER_APPS_READ_PERMISSION_ID,
-    SERVER_SHUTDOWN_PERMISSION_ID,
+    SERVER_CONSOLE_PERMISSION_ID,
     SHUTDOWN_ENDPOINT_TYPE,
     VERSION_REGISTRY_TYPE,
 )
@@ -20,6 +26,15 @@ from omuserver.helper import get_launch_command
 from omuserver.server import Server
 from omuserver.session import Session
 
+from .permissions import (
+    SERVER_APPS_READ_PERMISSION,
+    SERVER_CONSOLE_PERMISSION,
+    SERVER_SHUTDOWN_PERMISSION,
+)
+
+if TYPE_CHECKING:
+    from loguru import Message
+
 
 class WaitHandle:
     def __init__(self, ids: list[Identifier]):
@@ -27,34 +42,15 @@ class WaitHandle:
         self.ids = ids
 
 
-SERVER_SHUTDOWN_PERMISSION = PermissionType(
-    id=SERVER_SHUTDOWN_PERMISSION_ID,
-    metadata={
-        "level": "high",
-        "name": {
-            "en": "Shutdown Server",
-            "ja": "サーバーをシャットダウン",
-        },
-        "note": {
-            "en": "Permission to shutdown the server",
-            "ja": "サーバーをシャットダウンできる権限",
-        },
-    },
-)
-SERVER_APPS_READ_PERMISSION = PermissionType(
-    id=SERVER_APPS_READ_PERMISSION_ID,
-    metadata={
-        "level": "low",
-        "name": {
-            "en": "Get connected apps",
-            "ja": "接続アプリ一覧取得",
-        },
-        "note": {
-            "en": "Permission to get a list of apps connected to the server",
-            "ja": "サーバーに接続されたアプリの一覧を取得する",
-        },
-    },
-)
+class LogHandler:
+    def __init__(
+        self,
+        callback: Callable[[str], None],
+    ) -> None:
+        self.callback = callback
+
+    def write(self, message: Message) -> None:
+        self.callback(message)
 
 
 class ServerExtension:
@@ -62,21 +58,54 @@ class ServerExtension:
         self._server = server
         server.packet_dispatcher.register(
             REQUIRE_APPS_PACKET_TYPE,
+            CONSOLE_LISTEN_PACKET_TYPE,
         )
         server.permissions.register(
             SERVER_SHUTDOWN_PERMISSION,
             SERVER_APPS_READ_PERMISSION,
+            SERVER_CONSOLE_PERMISSION,
         )
         self.version_registry = self._server.registry.register(VERSION_REGISTRY_TYPE)
         self.apps = self._server.tables.register(APP_TABLE_TYPE)
         server.network.event.connected += self.on_connected
         server.network.event.disconnected += self.on_disconnected
         server.event.start += self.on_start
-        server.endpoints.bind_endpoint(SHUTDOWN_ENDPOINT_TYPE, self.shutdown)
+        server.endpoints.bind_endpoint(
+            SHUTDOWN_ENDPOINT_TYPE,
+            self.handle_shutdown,
+        )
         server.packet_dispatcher.add_packet_handler(
             REQUIRE_APPS_PACKET_TYPE, self.handle_require_apps
         )
+        server.endpoints.bind_endpoint(
+            CONSOLE_GET_ENDPOINT_TYPE, self.handle_console_get
+        )
+        server.packet_dispatcher.add_packet_handler(
+            CONSOLE_LISTEN_PACKET_TYPE, self.handle_console_listen
+        )
         self._app_waiters: dict[Identifier, list[WaitHandle]] = defaultdict(list)
+        self._log_lines: list[str] = []
+        self._log_listeners: list[Session] = []
+        self._log_queue: list[str] = []
+        self._log_event = asyncio.Event()
+        logger.add(LogHandler(self._on_log))
+        self._server.loop.create_task(self.log_task())
+
+    def _on_log(self, message: str) -> None:
+        self._log_queue.append(message)
+        self._log_event.set()
+
+    async def log_task(self) -> None:
+        while True:
+            await self._log_event.wait()
+            self._log_event.clear()
+            packet = ConsolePacket(self._log_queue)
+            for session in self._log_listeners:
+                if session.closed:
+                    continue
+                await session.send(CONSOLE_PACKET_TYPE, packet)
+            self._log_lines.extend(self._log_queue)
+            self._log_queue.clear()
 
     async def handle_require_apps(
         self, session: Session, app_ids: list[Identifier]
@@ -96,12 +125,12 @@ class ServerExtension:
         await waiter.future
         ready_task.set()
 
-    async def shutdown(self, session: Session, restart: bool = False) -> bool:
+    async def handle_shutdown(self, session: Session, restart: bool = False) -> bool:
         await self._server.shutdown()
-        self._server.loop.create_task(self._shutdown(restart))
+        self._server.loop.create_task(self.shutdown(restart))
         return True
 
-    async def _shutdown(self, restart: bool = False) -> None:
+    async def shutdown(self, restart: bool = False) -> None:
         if restart:
             import os
             import sys
@@ -109,6 +138,24 @@ class ServerExtension:
             os.execv(sys.executable, get_launch_command()["args"])
         else:
             self._server.loop.stop()
+
+    async def handle_console_get(
+        self, session: Session, line_count: int | None
+    ) -> list[str]:
+        if line_count is None:
+            return self._log_lines
+        return self._log_lines[-line_count:]
+
+    async def handle_console_listen(self, session: Session, packet: None) -> None:
+        if not self._server.permissions.has_permission(
+            session, SERVER_CONSOLE_PERMISSION_ID
+        ):
+            msg = (
+                f"Session {session} does not have permission "
+                f"{SERVER_CONSOLE_PERMISSION_ID}"
+            )
+            raise PermissionDenied(msg)
+        self._log_listeners.append(session)
 
     async def on_start(self) -> None:
         await self.version_registry.set(__version__)
