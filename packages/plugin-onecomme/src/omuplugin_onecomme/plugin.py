@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import socket
 from html import escape
 from typing import TypedDict
 
@@ -9,7 +10,7 @@ from loguru import logger
 from omuchat import App, Client, events, model
 from omuchat.model import content
 
-from .onecomme import Badge, Comment, CommentData, CommentServiceData
+from .types import Badge, Comment, CommentData, CommentServiceData
 
 APP = App(
     "cc.omuchat:onecomme/plugin",
@@ -119,11 +120,12 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
         await to_comment(message)
         for message in (await client.chat.messages.fetch_items(before=35)).values()
     ]
-
     await ws.send_json(
         {
             "type": "connected",
-            "data": CommentsData(comments=[message for message in messages if message]),
+            "data": CommentsData(
+                comments=list(reversed(tuple(filter(None, messages))))
+            ),
         }
     )
     sessions.add(ws)
@@ -176,13 +178,31 @@ async def on_message_delete(message: model.Message) -> None:
         await ws.send_json({"type": "deleted", "data": [message.key()]})
 
 
+def is_port_free() -> bool:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(
+                (
+                    "localhost",
+                    11180,
+                )
+            )
+            return True
+    except OSError:
+        return False
+
+
 @client.on(events.ready)
 async def on_ready():
+    port_free = is_port_free()
+    if not port_free:
+        raise OSError("Port 11180 already in use")
     app.add_routes([web.get("/sub", handle)])
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "localhost", 11180)
     asyncio.create_task(site.start())
+    logger.info("OneComme server started")
 
 
 if __name__ == "__main__":
