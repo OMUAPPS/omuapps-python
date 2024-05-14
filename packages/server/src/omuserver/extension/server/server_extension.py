@@ -101,6 +101,8 @@ class ServerExtension:
             self._log_event.clear()
             packet = ConsolePacket(self._log_queue)
             for session in self._log_listeners:
+                if session.closed:
+                    continue
                 await session.send(CONSOLE_PACKET_TYPE, packet)
             self._log_lines.extend(self._log_queue)
             self._log_queue.clear()
