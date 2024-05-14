@@ -96,6 +96,6 @@ class ServerExtension(Extension):
         self.console_listeners.append(listener)
         return lambda: self.console_listeners.remove(listener)
 
-    async def _on_console(self, packet: list[str]) -> None:
+    async def _on_console(self, packet: ConsolePacket) -> None:
         for listener in self.console_listeners:
-            await listener(packet)
+            await listener(packet.lines)
