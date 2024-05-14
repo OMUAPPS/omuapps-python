@@ -7,13 +7,13 @@ from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PacketData:
     type: str
     data: bytes
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Packet[T]:
     type: PacketType[T]
     data: T
@@ -25,7 +25,7 @@ class PacketClass[T](Protocol):
     def deserialize(self, item: bytes) -> T: ...
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PacketType[T]:
     id: Identifier
     serializer: Serializable[T, bytes]

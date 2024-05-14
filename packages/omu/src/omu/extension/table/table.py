@@ -116,7 +116,7 @@ class TableEvents[T]:
 type ModelEntry[T: Keyable, D] = JsonSerializable[T, D]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TablePermissions:
     all: Identifier | None = None
     read: Identifier | None = None
@@ -125,7 +125,7 @@ class TablePermissions:
     proxy: Identifier | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TableType[T]:
     id: Identifier
     serializer: Serializable[T, bytes]

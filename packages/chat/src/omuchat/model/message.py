@@ -24,7 +24,7 @@ class MessageJson(TypedDict):
     created_at: NotRequired[str] | None  # ISO 8601 date string
 
 
-@dataclass
+@dataclass(slots=True)
 class Message(Keyable, Model[MessageJson]):
     room_id: Identifier
     id: Identifier

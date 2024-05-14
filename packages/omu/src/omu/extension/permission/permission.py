@@ -21,7 +21,7 @@ class PermissionTypeJson(TypedDict):
     metadata: PermissionMetadata
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PermissionType(Model[PermissionTypeJson]):
     id: Identifier
     metadata: PermissionMetadata

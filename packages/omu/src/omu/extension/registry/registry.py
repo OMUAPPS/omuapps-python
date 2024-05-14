@@ -10,7 +10,7 @@ from omu.identifier import Identifier
 from omu.serializer import Serializable, Serializer
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RegistryPermissions:
     all: Identifier | None = None
     read: Identifier | None = None
@@ -42,7 +42,7 @@ class RegistryPermissions:
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RegistryType[T]:
     id: Identifier
     default_value: T

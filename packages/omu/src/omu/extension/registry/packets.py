@@ -8,7 +8,7 @@ from omu.identifier import Identifier
 from .registry import RegistryPermissions
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RegistryPacket:
     id: Identifier
     value: bytes | None
@@ -31,7 +31,7 @@ class RegistryPacket:
         return RegistryPacket(key, value)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class RegistryRegisterPacket:
     id: Identifier
     permissions: RegistryPermissions

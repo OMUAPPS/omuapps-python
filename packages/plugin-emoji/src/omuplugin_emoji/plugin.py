@@ -122,7 +122,7 @@ async def update_emoji_table(items: Mapping[str, Emoji]):
                 Patterns.regex.append((pattern, emoji))
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class EmojiMatch:
     start: int
     end: int

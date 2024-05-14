@@ -14,7 +14,7 @@ ASSET_EXTENSION_TYPE = ExtensionType(
 )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class File:
     identifier: Identifier
     buffer: bytes

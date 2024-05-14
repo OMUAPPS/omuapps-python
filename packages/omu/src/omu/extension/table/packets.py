@@ -11,7 +11,7 @@ from omu.identifier import Identifier
 from .table import TableConfig
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TablePacket:
     id: Identifier
 
@@ -28,7 +28,7 @@ class TablePacket:
         return TablePacket(id=Identifier.from_key(id))
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TableItemsPacket:
     id: Identifier
     items: Mapping[str, bytes]
@@ -56,7 +56,7 @@ class TableItemsPacket:
         return TableItemsPacket(id=Identifier.from_key(id), items=items)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TableKeysPacket:
     id: Identifier
     keys: Sequence[str]
@@ -79,7 +79,7 @@ class TableKeysPacket:
         return TableKeysPacket(id=Identifier.from_key(id), keys=keys)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TableProxyPacket:
     id: Identifier
     items: Mapping[str, bytes]
@@ -114,7 +114,7 @@ class TableProxyPacket:
         )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TableFetchPacket:
     id: Identifier
     before: int | None
@@ -157,7 +157,7 @@ class TableFetchPacket:
         )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class SetConfigPacket:
     id: Identifier
     config: TableConfig
@@ -177,7 +177,7 @@ class SetConfigPacket:
         return SetConfigPacket(id=Identifier.from_key(id), config=config)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class SetPermissionPacket:
     id: Identifier
     all: Identifier | None = None

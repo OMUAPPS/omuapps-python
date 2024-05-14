@@ -9,7 +9,7 @@ from omuchat import Channel, Client, Provider, Room
 type ChatServiceFactory = Coro[[], ChatService]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class FetchedRoom:
     room: Room
     create: ChatServiceFactory

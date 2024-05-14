@@ -14,7 +14,7 @@ class GiftJson(TypedDict):
     image_url: NotRequired[str] | None
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Gift(Model[GiftJson]):
     id: str
     name: str | None = None

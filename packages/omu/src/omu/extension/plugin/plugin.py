@@ -10,7 +10,7 @@ class PluginPackageInfoData(TypedDict):
     version: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PluginPackageInfo(Keyable, Model[PluginPackageInfoData]):
     package: str
     version: str

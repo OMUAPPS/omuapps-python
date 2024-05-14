@@ -6,7 +6,7 @@ from omu.bytebuffer import ByteReader, ByteWriter
 from omu.identifier import Identifier
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class EndpointRegisterPacket:
     endpoints: dict[Identifier, Identifier | None]
 
@@ -33,7 +33,7 @@ class EndpointRegisterPacket:
         return EndpointRegisterPacket(endpoints=endpoints)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class EndpointDataPacket:
     id: Identifier
     key: int
@@ -56,7 +56,7 @@ class EndpointDataPacket:
         return EndpointDataPacket(id=Identifier.from_key(id), key=key, data=data)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class EndpointErrorPacket:
     id: Identifier
     key: int

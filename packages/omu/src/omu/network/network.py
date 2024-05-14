@@ -33,7 +33,7 @@ from .packet.packet_types import (
 from .packet_mapper import PacketMapper
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class PacketHandler[T]:
     packet_type: PacketType[T]
     event: EventEmitter[T]

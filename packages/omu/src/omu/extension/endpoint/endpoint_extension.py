@@ -25,7 +25,7 @@ ENDPOINT_EXTENSION_TYPE = ExtensionType(
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class EndpointHandler:
     endpoint_type: EndpointType
     func: Coro[[Any], Any]

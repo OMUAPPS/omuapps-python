@@ -5,7 +5,7 @@ from omu.address import Address
 from omuserver.directories import Directories
 
 
-@dataclass
+@dataclass(slots=True)
 class Config:
     address: Address = Address(
         host="0.0.0.0",
