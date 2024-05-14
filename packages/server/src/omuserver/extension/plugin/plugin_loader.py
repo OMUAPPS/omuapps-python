@@ -138,13 +138,7 @@ class PluginLoader:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.plugins: dict[str, Plugin] = {}
-        server.event.start += self.handle_server_start
         server.event.stop += self.handle_server_stop
-
-    async def handle_server_start(self) -> None:
-        for plugin in self.plugins.values():
-            if plugin.on_start_server is not None:
-                await plugin.on_start_server(self._server)
 
     async def handle_server_stop(self) -> None:
         for plugin in self.plugins.values():
@@ -161,6 +155,12 @@ class PluginLoader:
                 raise ValueError(f"Duplicate plugin: {entry_point}")
             plugin = self.load_plugin_from_entry_point(entry_point)
             self.plugins[plugin_key] = plugin
+
+        for plugin in self.plugins.values():
+            if plugin.on_start_server is not None:
+                await plugin.on_start_server(self._server)
+
+        for plugin in self.plugins.values():
             await self.run_plugin(plugin)
 
     async def load_updated_plugins(self):
