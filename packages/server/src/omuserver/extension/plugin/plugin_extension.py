@@ -45,7 +45,7 @@ class PluginExtension:
         self, session: Session, packages: dict[str, str | None]
     ) -> None:
         to_request: list[PackageInfo] = []
-        for package, version in packages.items():
+        for package in packages.keys():
             package_info = await self.dependency_resolver.get_installed_package_info(
                 package
             )
@@ -72,20 +72,24 @@ class PluginExtension:
     ) -> None:
         if not packages:
             return
-        if not session.is_dashboard:
-            await self.request_plugins(session, packages)
 
-        changed = False
-        for package, version in packages.items():
-            specifier = None
-            if version is not None:
-                specifier = SpecifierSet(version)
-            if self.dependency_resolver.add_dependencies({package: specifier}):
-                changed = True
+        async def task():
+            if not session.is_dashboard:
+                await self.request_plugins(session, packages)
 
-        if not changed:
-            return
+            changed = False
+            for package, version in packages.items():
+                specifier = None
+                if version is not None:
+                    specifier = SpecifierSet(version)
+                if self.dependency_resolver.add_dependencies({package: specifier}):
+                    changed = True
 
-        async with self.lock:
-            await self.dependency_resolver.resolve()
-            await self.loader.load_updated_plugins()
+            if not changed:
+                return
+
+            async with self.lock:
+                await self.dependency_resolver.resolve()
+                await self.loader.load_updated_plugins()
+
+        session.add_ready_task(task)

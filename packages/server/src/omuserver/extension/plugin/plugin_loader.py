@@ -6,7 +6,6 @@ import importlib.util
 import sys
 import tempfile
 from collections.abc import Mapping
-from multiprocessing import Process
 from typing import (
     Protocol,
 )
@@ -14,21 +13,14 @@ from typing import (
 import aiohttp
 import uv
 from loguru import logger
-from omu.address import Address
-from omu.app import App
-from omu.client.token import TokenProvider
-from omu.extension.plugin import PackageInfo
-from omu.extension.plugin.plugin import PluginPackageInfo
-from omu.network.websocket_connection import WebsocketsConnection
+from omu.extension.plugin import PackageInfo, PluginPackageInfo
 from omu.plugin import Plugin
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 from omuserver.server import Server
-from omuserver.session import Session
 
-from .plugin_connection import PluginConnection
-from .plugin_session_connection import PluginSessionConnection
+from .plugin_instance import PluginInstance
 
 PLUGIN_GROUP = "omu.plugins"
 
@@ -40,6 +32,9 @@ class PluginModule(Protocol):
 class DependencyResolver:
     def __init__(self) -> None:
         self._dependencies: dict[str, SpecifierSet] = {}
+        self._packages_distributions: Mapping[str, importlib.metadata.Distribution] = {}
+        self._packages_distributions_changed = False
+        self.find_packages_distributions()
 
     async def fetch_package_info(self, package: str) -> PackageInfo:
         async with aiohttp.ClientSession() as session:
@@ -109,12 +104,21 @@ class DependencyResolver:
                 continue
         return changed
 
-    async def resolve(self):
-        requirements: dict[str, SpecifierSet] = {}
-        skipped: dict[str, SpecifierSet] = {}
-        packages_distributions: Mapping[str, importlib.metadata.Distribution] = {
+    def find_packages_distributions(
+        self,
+    ) -> Mapping[str, importlib.metadata.Distribution]:
+        if not self._packages_distributions_changed:
+            return self._packages_distributions
+        self._packages_distributions: Mapping[str, importlib.metadata.Distribution] = {
             dist.name: dist for dist in importlib.metadata.distributions()
         }
+        self._packages_distributions_changed = False
+        return self._packages_distributions
+
+    async def resolve(self):
+        packages_distributions = self.find_packages_distributions()
+        requirements: dict[str, SpecifierSet] = {}
+        skipped: dict[str, SpecifierSet] = {}
         for dependency, specifier in self._dependencies.items():
             package = packages_distributions.get(dependency)
             if package is None:
@@ -127,41 +131,45 @@ class DependencyResolver:
                 skipped[dependency] = specifier_set
                 continue
             requirements[dependency] = specifier_set
+        if len(requirements) == 0:
+            return
 
         await self.update_requirements(requirements)
-        logger.info(
-            f"Skipped dependencies: {", ".join(self.format_dependencies(skipped))}"
-        )
+        self._packages_distributions_changed = True
 
 
 class PluginLoader:
     def __init__(self, server: Server) -> None:
         self._server = server
-        self.plugins: dict[str, Plugin] = {}
+        self.instances: dict[str, PluginInstance] = {}
         server.event.stop += self.handle_server_stop
 
     async def handle_server_stop(self) -> None:
-        for plugin in self.plugins.values():
-            if plugin.on_stop_server is not None:
-                await plugin.on_stop_server(self._server)
+        for instance in self.instances.values():
+            if instance.plugin.on_stop_server is not None:
+                await instance.plugin.on_stop_server(self._server)
 
     async def run_plugins(self):
+        self.load_plugins_from_entry_points()
+
+        for instance in self.instances.values():
+            if instance.plugin.on_start_server is not None:
+                await instance.plugin.on_start_server(self._server)
+
+        await asyncio.gather(
+            *(instance.start(self._server) for instance in self.instances.values())
+        )
+
+    def load_plugins_from_entry_points(self):
         entry_points = importlib.metadata.entry_points(group=PLUGIN_GROUP)
         for entry_point in entry_points:
             if entry_point.dist is None:
                 raise ValueError(f"Invalid plugin: {entry_point} has no distribution")
             plugin_key = entry_point.dist.name
-            if plugin_key in self.plugins:
+            if plugin_key in self.instances:
                 raise ValueError(f"Duplicate plugin: {entry_point}")
-            plugin = self.load_plugin_from_entry_point(entry_point)
-            self.plugins[plugin_key] = plugin
-
-        for plugin in self.plugins.values():
-            if plugin.on_start_server is not None:
-                await plugin.on_start_server(self._server)
-
-        for plugin in self.plugins.values():
-            await self.run_plugin(plugin)
+            plugin = PluginInstance.from_entry_point(entry_point)
+            self.instances[plugin_key] = plugin
 
     async def load_updated_plugins(self):
         entry_points = importlib.metadata.entry_points(group=PLUGIN_GROUP)
@@ -169,82 +177,11 @@ class PluginLoader:
             if entry_point.dist is None:
                 raise ValueError(f"Invalid plugin: {entry_point} has no distribution")
             plugin_key = entry_point.dist.name
-            if plugin_key in self.plugins:
+            if plugin_key in self.instances:
                 continue
-            plugin = self.load_plugin_from_entry_point(entry_point)
-            self.plugins[plugin_key] = plugin
-            await self.run_plugin(plugin)
+            instance = PluginInstance.from_entry_point(entry_point)
+            self.instances[plugin_key] = instance
+            if instance.plugin.on_start_server is not None:
+                await instance.plugin.on_start_server(self._server)
 
-    async def run_plugin(self, plugin: Plugin):
-        token = await self._server.security.generate_plugin_token()
-        if plugin.isolated:
-            process = Process(
-                target=run_plugin_isolated,
-                args=(
-                    plugin,
-                    self._server.address,
-                    token,
-                ),
-                daemon=True,
-            )
-            process.start()
-        else:
-            if plugin.get_client is not None:
-                plugin_client = plugin.get_client()
-                connection = PluginConnection()
-                plugin_client.network.set_connection(connection)
-                plugin_client.network.set_token_provider(PluginTokenProvider(token))
-                await plugin_client.start()
-                session_connection = PluginSessionConnection(connection)
-                session = await Session.from_connection(
-                    self._server,
-                    self._server.packet_dispatcher.packet_mapper,
-                    session_connection,
-                )
-                self._server.loop.create_task(
-                    self._server.network.process_session(session)
-                )
-
-    def load_plugin_from_entry_point(
-        self, entry_point: importlib.metadata.EntryPoint
-    ) -> Plugin:
-        plugin = entry_point.load()
-        if not isinstance(plugin, Plugin):
-            raise ValueError(f"Invalid plugin: {plugin} is not a Plugin")
-        return plugin
-
-
-class PluginTokenProvider(TokenProvider):
-    def __init__(self, token: str):
-        self._token = token
-
-    def get(self, server_address: Address, app: App) -> str | None:
-        return self._token
-
-    def store(self, server_address: Address, app: App, token: str) -> None:
-        raise NotImplementedError
-
-
-def handle_exception(loop: asyncio.AbstractEventLoop, context: dict) -> None:
-    logger.error(context["message"])
-    exception = context.get("exception")
-    if exception:
-        raise exception
-
-
-def run_plugin_isolated(
-    plugin: Plugin,
-    address: Address,
-    token: str,
-) -> None:
-    if plugin.get_client is None:
-        raise ValueError(f"Invalid plugin: {plugin} has no client")
-    client = plugin.get_client()
-    connection = WebsocketsConnection(client, address)
-    client.network.set_connection(connection)
-    client.network.set_token_provider(PluginTokenProvider(token))
-    loop = asyncio.get_event_loop()
-    loop.set_exception_handler(handle_exception)
-    loop.run_until_complete(client.start())
-    loop.run_forever()
-    loop.close()
+            await instance.start(self._server)
