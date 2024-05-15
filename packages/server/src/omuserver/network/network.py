@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import socket
 
 import psutil
@@ -112,9 +111,6 @@ class Network:
         del self._sessions[session.app.id]
         await self._event.disconnected.emit(session)
 
-    async def _handle_start(self, app: web.Application) -> None:
-        asyncio.create_task(self._event.start.emit())
-
     def is_port_free(self) -> bool:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -146,7 +142,6 @@ class Network:
 
     async def start(self) -> None:
         self.check_port_availability()
-        self._app.on_startup.append(self._handle_start)
         runner = web.AppRunner(self._app)
         await runner.setup()
         site = web.TCPSite(
@@ -155,6 +150,7 @@ class Network:
             port=self._server.address.port,
         )
         await site.start()
+        await self._event.start.emit()
 
     @property
     def event(self) -> NetworkEvents:
