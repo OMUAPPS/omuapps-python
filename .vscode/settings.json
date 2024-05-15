@@ -1,17 +1,23 @@
 {
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/",
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.autoImportCompletions": true,
-    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/",
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestArgs": [
+        "packages"
+    ],
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+    },
     "files.exclude": {
         "**/__pycache__": true,
         "**/.mypy_cache": true,
         "**/.ruff_cache": true,
         "**/.pytest_cache": true,
     },
-    "github.copilot.chat.localeOverride": "ja",
-    "python.testing.pytestArgs": [
-        "packages"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "always"
+    },
+    "editor.formatOnSave": false,
 }
