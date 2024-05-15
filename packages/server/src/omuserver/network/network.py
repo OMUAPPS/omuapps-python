@@ -32,7 +32,7 @@ class Network:
         self.event.connected += self._packet_dispatcher.process_connection
 
     async def _handle_ready(self, session: Session, packet: None) -> None:
-        await session.wait_for_tasks()
+        await session.process_ready_tasks()
         if session.closed:
             return
         await session.send(PACKET_TYPES.READY, None)

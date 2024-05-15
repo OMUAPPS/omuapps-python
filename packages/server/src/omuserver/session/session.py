@@ -8,6 +8,7 @@ from loguru import logger
 from omu import App
 from omu.errors import DisconnectReason
 from omu.event_emitter import EventEmitter
+from omu.helper import Coro
 from omu.network.packet import PACKET_TYPES, Packet, PacketType
 from omu.network.packet.packet_types import (
     ConnectPacket,
@@ -44,15 +45,8 @@ class SessionEvents:
 @dataclass(frozen=True, slots=True)
 class SessionTask:
     session: Session
-    start_future: asyncio.Future[None]
-    future: asyncio.Future[None]
+    coro: Coro[[], None]
     name: str
-
-    def set(self) -> None:
-        self.future.set_result(None)
-
-    def __repr__(self) -> str:
-        return f"SessionTask({self.name})"
 
 
 class Session:
@@ -185,27 +179,21 @@ class Session:
     async def send[T](self, packet_type: PacketType[T], data: T) -> None:
         await self.connection.send(Packet(packet_type, data), self.packet_mapper)
 
-    async def create_ready_task(self, name: str) -> SessionTask:
+    def add_ready_task(self, coro: Coro[[], None]):
         if self.ready:
             raise RuntimeError("Session is already ready")
-        start_future = asyncio.Future()
-        future = asyncio.Future()
         task = SessionTask(
             session=self,
-            start_future=start_future,
-            future=future,
-            name=name,
+            coro=coro,
+            name=coro.__name__,
         )
         self.ready_tasks.append(task)
-        await start_future
-        return task
 
-    async def wait_for_tasks(self) -> None:
+    async def process_ready_tasks(self) -> None:
         if self.ready:
             raise RuntimeError("Session is already ready")
         for task in self.ready_tasks:
-            task.start_future.set_result(None)
-            await task.future
+            await task.coro()
         self.ready_tasks.clear()
         self.ready = True
         await self.event.ready.emit(self)

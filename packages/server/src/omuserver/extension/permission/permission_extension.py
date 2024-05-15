@@ -111,33 +111,32 @@ class PermissionExtension:
         ):
             return
 
-        ready_task = await session.create_ready_task(
-            f"handle_request({permission_identifiers})"
-        )
+        async def task():
+            request_id = self._get_next_request_id()
+            permissions: list[PermissionType] = []
+            for permission_id in permission_identifiers:
+                permission = self.permission_registry.get(permission_id)
+                if permission is None:
+                    raise ValueError(f"Permission {permission_id} not registered")
+                permissions.append(permission)
+            if session.is_plugin or session.is_dashboard:
+                accepted = True
+            else:
+                accepted = await self.server.dashboard.request_permissions(
+                    PermissionRequestPacket(request_id, session.app, permissions)
+                )
+            if accepted:
+                self.set_permissions(session.token, [p.id for p in permissions])
+                if not session.closed:
+                    await session.send(PERMISSION_GRANT_PACKET, permissions)
+                return
+            else:
+                await session.disconnect(
+                    DisconnectType.PERMISSION_DENIED,
+                    f"Permission request denied (id={request_id})",
+                )
 
-        request_id = self._get_next_request_id()
-        permissions: list[PermissionType] = []
-        for permission_id in permission_identifiers:
-            permission = self.permission_registry.get(permission_id)
-            if permission is None:
-                raise ValueError(f"Permission {permission_id} not registered")
-            permissions.append(permission)
-        if session.is_plugin or session.is_dashboard:
-            accepted = True
-        else:
-            accepted = await self.server.dashboard.request_permissions(
-                PermissionRequestPacket(request_id, session.app, permissions)
-            )
-        if accepted:
-            self.set_permissions(session.token, [p.id for p in permissions])
-            if not session.closed:
-                await session.send(PERMISSION_GRANT_PACKET, permissions)
-            ready_task.set()
-        else:
-            await session.disconnect(
-                DisconnectType.PERMISSION_DENIED,
-                f"Permission request denied (id={request_id})",
-            )
+        session.add_ready_task(task)
 
     async def handle_request(
         self, session: Session, permission_identifiers: list[Identifier]

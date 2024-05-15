@@ -117,13 +117,13 @@ class ServerExtension:
         if len(app_ids) == 0:
             return
 
-        ready_task = await session.create_ready_task(f"require_apps({app_ids})")
+        async def task():
+            waiter = WaitHandle(app_ids)
+            for app_id in app_ids:
+                self._app_waiters[app_id].append(waiter)
+            await waiter.future
 
-        waiter = WaitHandle(app_ids)
-        for app_id in app_ids:
-            self._app_waiters[app_id].append(waiter)
-        await waiter.future
-        ready_task.set()
+        session.add_ready_task(task)
 
     async def handle_shutdown(self, session: Session, restart: bool = False) -> bool:
         await self._server.shutdown()
