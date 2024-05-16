@@ -60,7 +60,7 @@ class ServerExtension:
             REQUIRE_APPS_PACKET_TYPE,
             CONSOLE_LISTEN_PACKET_TYPE,
         )
-        server.permissions.register(
+        server.permission_manager.register(
             SERVER_SHUTDOWN_PERMISSION,
             SERVER_APPS_READ_PERMISSION,
             SERVER_CONSOLE_PERMISSION,
@@ -147,9 +147,7 @@ class ServerExtension:
         return self._log_lines[-line_count:]
 
     async def handle_console_listen(self, session: Session, packet: None) -> None:
-        if not self._server.permissions.has_permission(
-            session, SERVER_CONSOLE_PERMISSION_ID
-        ):
+        if not session.permission_handle.has(SERVER_CONSOLE_PERMISSION_ID):
             msg = (
                 f"Session {session} does not have permission "
                 f"{SERVER_CONSOLE_PERMISSION_ID}"

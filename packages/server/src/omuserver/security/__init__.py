@@ -1,3 +1,6 @@
-from .security import Security
+from .security import PermissionHandle, PermissionManager
 
-__all__ = ["Security"]
+__all__ = [
+    "PermissionHandle",
+    "PermissionManager",
+]

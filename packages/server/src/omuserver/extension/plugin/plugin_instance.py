@@ -45,7 +45,7 @@ class PluginInstance:
         return cls(plugin=plugin)
 
     async def start(self, server: Server):
-        token = await server.security.generate_plugin_token()
+        token = server.permission_manager.generate_plugin_token()
         if self.plugin.isolated:
             process = Process(
                 target=run_plugin_isolated,

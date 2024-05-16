@@ -53,7 +53,7 @@ class AssetExtension:
     def __init__(self, server: Server) -> None:
         self._server = server
         self.storage = FileStorage(server.directories.assets)
-        server.permissions.register(
+        server.permission_manager.register(
             ASSET_UPLOAD_PERMISSION,
             ASSET_UPLOAD_MANY_PERMISSION,
             ASSET_DOWNLOAD_PERMISSION,

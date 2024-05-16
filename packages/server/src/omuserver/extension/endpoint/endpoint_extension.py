@@ -169,9 +169,7 @@ class EndpointExtension:
     def verify_permission(self, endpoint: Endpoint, session: Session):
         if endpoint.id.is_namepath_equal(session.app.id, path_length=1):
             return
-        if endpoint.permission is not None and self._server.permissions.has_permission(
-            session, endpoint.permission
-        ):
+        if endpoint.permission and session.permission_handle.has(endpoint.permission):
             return
         logger.warning(
             f"{session.app.key()} tried to call endpoint {endpoint.id} "
