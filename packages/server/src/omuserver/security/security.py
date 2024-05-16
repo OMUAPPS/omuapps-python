@@ -1,5 +1,6 @@
 import abc
 import datetime
+import json
 import random
 import sqlite3
 import string
@@ -93,6 +94,45 @@ class ServerPermissionManager(PermissionManager):
             )
             """
         )
+        self.token_permissions: dict[str, list[Identifier]] = {}
+        permission_dir = server.directories.get("permissions")
+        permission_dir.mkdir(parents=True, exist_ok=True)
+        self.permission_db = sqlite3.connect(permission_dir / "permissions.db")
+        self.permission_db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS permissions (
+                id TEXT PRIMARY KEY,
+                value BLOB
+            )
+            """
+        )
+        self.permission_db.commit()
+        self.load_permissions()
+
+    def load_permissions(self) -> None:
+        cursor = self.permission_db.cursor()
+        cursor.execute("SELECT id, value FROM permissions")
+        for row in cursor:
+            token = row[0]
+            permissions = json.loads(row[1])
+            self.token_permissions[token] = [
+                Identifier.from_key(key) for key in permissions
+            ]
+
+    def store_permissions(self) -> None:
+        cursor = self.permission_db.cursor()
+        for token, permissions in self.token_permissions.items():
+            permission_keys = [permission.key() for permission in permissions]
+            permissions = json.dumps(permission_keys)
+            cursor.execute(
+                "INSERT OR REPLACE INTO permissions VALUES (?, ?)",
+                (token, permissions),
+            )
+        self.permission_db.commit()
+
+    def set_permissions(self, token: Token, *permission_ids: Identifier) -> None:
+        self.token_permissions[token] = list(permission_ids)
+        self.store_permissions()
 
     def register(self, *permission_types: PermissionType) -> None:
         for permission in permission_types:
@@ -108,9 +148,6 @@ class ServerPermissionManager(PermissionManager):
         if permissions is None:
             return False
         return permission_id in permissions
-
-    def set_permissions(self, token: Token, *permission_ids: Identifier) -> None:
-        self.token_permissions[token] = list(permission_ids)
 
     async def generate_app_token(self, app: App) -> Token:
         token = self._token_generator.generate(32)
@@ -162,7 +199,7 @@ class ServerPermissionManager(PermissionManager):
             if self.is_dashboard_token(token):
                 return Ok((SessionType.DASHBOARD, DashboardPermissionHandle()))
             if self.is_plugin_token(token):
-                return Ok((SessionType.PLUGIN, SessionPermissionHandle(self, token)))
+                return Ok((SessionType.PLUGIN, PluginPermissionHandle()))
         verified = await self.validate_app_token(app, token)
         if not verified:
             logger.warning(f"Invalid token: {token}")
@@ -201,6 +238,20 @@ class SessionPermissionHandle(PermissionHandle):
 
     def has_all(self, permission_ids: Iterable[Identifier]) -> bool:
         return all(self.has(permission_id) for permission_id in permission_ids)
+
+
+class PluginPermissionHandle(PermissionHandle):
+    def set_permissions(self, *permission_ids: Identifier) -> None:
+        pass
+
+    def has(self, permission_id: Identifier) -> bool:
+        return True
+
+    def has_any(self, permission_ids: Iterable[Identifier]) -> bool:
+        return True
+
+    def has_all(self, permission_ids: Iterable[Identifier]) -> bool:
+        return True
 
 
 class DashboardPermissionHandle(PermissionHandle):

@@ -19,7 +19,8 @@ class TokenProvider(abc.ABC):
 
 
 class JsonTokenProvider(TokenProvider):
-    def __init__(self, path: Path = Path.cwd() / ".omu_cache" / "tokens.json"):
+    def __init__(self, path: Path | None = None):
+        path = path or Path.cwd() / ".omu_cache" / "tokens.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         self._path = path
 
