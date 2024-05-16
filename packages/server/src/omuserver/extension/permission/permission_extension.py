@@ -94,15 +94,7 @@ class PermissionExtension:
 
     async def handle_request(
         self, session: Session, permission_identifiers: list[Identifier]
-    ):
-        permissions: list[PermissionType] = []
-        for identifier in permission_identifiers:
-            permission = self.server.permission_manager.get_permission(identifier)
-            if permission is None:
-                raise ValueError(f"Permission {identifier} not registered")
-            permissions.append(permission)
-        session.permission_handle.set_permissions(*[p.id for p in permissions])
-        await session.send(PERMISSION_GRANT_PACKET, permissions)
+    ): ...
 
     def _get_next_request_key(self) -> str:
         self.request_key += 1
