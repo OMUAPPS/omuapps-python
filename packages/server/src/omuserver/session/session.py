@@ -3,6 +3,8 @@ from __future__ import annotations
 import abc
 import asyncio
 from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING
 
 from loguru import logger
 from omu import App
@@ -16,8 +18,12 @@ from omu.network.packet.packet_types import (
     DisconnectType,
 )
 from omu.network.packet_mapper import PacketMapper
+from result import Err, Ok
 
 from omuserver.server import Server
+
+if TYPE_CHECKING:
+    from omuserver.security import PermissionHandle
 
 
 class SessionConnection(abc.ABC):
@@ -49,21 +55,24 @@ class SessionTask:
     name: str
 
 
+class SessionType(Enum):
+    APP = "web"
+    PLUGIN = "plugin"
+    DASHBOARD = "dashboard"
+
 class Session:
     def __init__(
         self,
         packet_mapper: PacketMapper,
         app: App,
-        token: str,
-        is_dashboard: bool,
-        is_plugin: bool,
+        permission_handle: PermissionHandle,
+        kind: SessionType,
         connection: SessionConnection,
     ) -> None:
         self.packet_mapper = packet_mapper
         self.app = app
-        self.token = token
-        self.is_dashboard = is_dashboard
-        self.is_plugin = is_plugin
+        self.permission_handle = permission_handle
+        self.kind = kind
         self.connection = connection
         self.event = SessionEvents()
         self.ready_tasks: list[SessionTask] = []
@@ -110,42 +119,28 @@ class Session:
         app = event.app
         token = event.token
 
-        if token and await server.security.is_plugin_token(token):
-            session = Session(
-                packet_mapper=packet_mapper,
-                app=app,
-                token=token,
-                is_dashboard=False,
-                is_plugin=True,
-                connection=connection,
-            )
-            return session
-
-        is_dashboard = False
-        if server.config.dashboard_token and server.config.dashboard_token == token:
-            is_dashboard = True
-        else:
-            token = await server.security.verify_app_token(app, token)
-        if token is None:
-            await connection.send(
-                Packet(
-                    PACKET_TYPES.DISCONNECT,
-                    DisconnectPacket(DisconnectType.INVALID_TOKEN, "Invalid token"),
-                ),
-                packet_mapper,
-            )
-            await connection.close()
-            raise RuntimeError("Invalid token")
-        session = Session(
-            packet_mapper=packet_mapper,
-            app=app,
-            token=token,
-            is_dashboard=is_dashboard,
-            is_plugin=False,
-            connection=connection,
-        )
-        await session.send(PACKET_TYPES.TOKEN, token)
-        return session
+        match await server.permission_manager.verify_app_token(app, token):
+            case Ok((kind, permission_handle)):
+                session = Session(
+                    packet_mapper=packet_mapper,
+                    app=app,
+                    permission_handle=permission_handle,
+                    kind=kind,
+                    connection=connection,
+                )
+                if session.kind != SessionType.PLUGIN:
+                    await session.send(PACKET_TYPES.TOKEN, token)
+                return session
+            case Err(error):
+                await connection.send(
+                    Packet(
+                        PACKET_TYPES.DISCONNECT,
+                        DisconnectPacket(DisconnectType.INVALID_TOKEN, error),
+                    ),
+                    packet_mapper,
+                )
+                await connection.close()
+                raise RuntimeError(f"Invalid token: {error}")
 
     @property
     def closed(self) -> bool:

@@ -13,6 +13,7 @@ from packaging.specifiers import SpecifierSet
 
 from omuserver.server import Server
 from omuserver.session import Session
+from omuserver.session.session import SessionType
 
 from .plugin_loader import DependencyResolver, PluginLoader
 
@@ -74,7 +75,7 @@ class PluginExtension:
             return
 
         async def task():
-            if not session.is_dashboard:
+            if session.kind != SessionType.DASHBOARD:
                 await self.request_plugins(session, packages)
 
             changed = False

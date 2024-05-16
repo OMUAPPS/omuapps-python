@@ -21,6 +21,7 @@ from omu.identifier import Identifier
 
 from omuserver.server import Server
 from omuserver.session import Session
+from omuserver.session.session import SessionType
 
 from .permission import (
     DASHBOARD_OPEN_APP_PERMISSION,
@@ -41,7 +42,7 @@ class DashboardExtension:
             DASHBOARD_PLUGIN_DENY_PACKET,
             DASHBOARD_OPEN_APP_PACKET,
         )
-        server.permissions.register(
+        server.permission_manager.register(
             DASHBOARD_SET_PERMISSION,
             DASHBOARD_OPEN_APP_PERMISSION,
             DASHOBARD_APP_READ_PERMISSION,
@@ -91,8 +92,8 @@ class DashboardExtension:
     async def handle_dashboard_set(
         self, session: Session, identifier: Identifier
     ) -> DashboardSetResponse:
-        if session.token != self.server.config.dashboard_token:
-            raise ValueError("Dashboard token does not match")
+        if session.kind != SessionType.DASHBOARD:
+            raise PermissionDenied("Session is not a dashboard")
         self.dashboard_session = session
         session.event.disconnected += self._on_dashboard_disconnected
         await self.send_pending_permission_requests()

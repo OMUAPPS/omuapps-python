@@ -42,7 +42,7 @@ class RegistryExtension:
         self._server = server
         self.registries: dict[Identifier, ServerRegistry] = {}
         self._startup_registries: list[ServerRegistry] = []
-        server.permissions.register(REGISTRY_PERMISSION)
+        server.permission_manager.register(REGISTRY_PERMISSION)
         server.packet_dispatcher.register(
             REGISTRY_REGISTER_PACKET,
             REGISTRY_LISTEN_PACKET,
@@ -121,10 +121,13 @@ class RegistryExtension:
         if registry.id.is_namepath_equal(session.app.id, path_length=1):
             return
         require_permissions = get_scopes(registry.permissions)
-        if not any(
-            self._server.permissions.has_permission(session, permission)
-            for permission in filter(None, require_permissions)
-        ):
+        # if not any(
+        #     self._server.permissions.has_permission(session, permission)
+        #     for permission in filter(None, require_permissions)
+        # ):
+        #     msg = f"App {session.app.id=} not allowed to access {registry.id=}"
+        #     raise PermissionDenied(msg)
+        if not session.permission_handle.has_any(filter(None, require_permissions)):
             msg = f"App {session.app.id=} not allowed to access {registry.id=}"
             raise PermissionDenied(msg)
 

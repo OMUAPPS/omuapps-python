@@ -64,7 +64,7 @@ class TableExtension:
         self.server = server
         self._tables: dict[Identifier, ServerTable] = {}
         self._adapters: list[TableAdapter] = []
-        server.permissions.register(TABLE_PERMISSION)
+        server.permission_manager.register(TABLE_PERMISSION)
         server.packet_dispatcher.register(
             TABLE_SET_PERMISSION_PACKET,
             TABLE_SET_CONFIG_PACKET,
@@ -306,7 +306,7 @@ class TableExtension:
         for permission in permissions:
             if permission is None:
                 continue
-            if self.server.permissions.has_permission(session, permission):
+            if session.permission_handle.has(permission):
                 return
 
         raise PermissionDenied(

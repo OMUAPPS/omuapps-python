@@ -15,6 +15,7 @@ from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.server import Server
 from omuserver.session import Session
 from omuserver.session.aiohttp_connection import WebsocketsConnection
+from omuserver.session.session import SessionType
 
 
 class Network:
@@ -81,7 +82,7 @@ class Network:
                 self._packet_dispatcher.packet_mapper,
                 connection,
             )
-            if not session.is_dashboard:
+            if session.kind != SessionType.DASHBOARD:
                 await self._validate_origin(request, session)
             await self.process_session(session)
             return ws

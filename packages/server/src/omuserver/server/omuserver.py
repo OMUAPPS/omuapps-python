@@ -24,7 +24,7 @@ from omuserver.extension.table import TableExtension
 from omuserver.helper import safe_path_join
 from omuserver.network import Network
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
-from omuserver.security.security import Security, ServerAuthenticator
+from omuserver.security.security import PermissionManager, ServerPermissionManager
 
 from .server import Server, ServerEvents
 
@@ -60,7 +60,7 @@ class OmuServer(Server):
         self._network.event.start += self._handle_network_start
         self._network.add_http_route("/proxy", self._handle_proxy)
         self._network.add_http_route("/asset", self._handle_assets)
-        self._security = ServerAuthenticator(self)
+        self._security = ServerPermissionManager(self)
         self._running = False
         self._endpoints = EndpointExtension(self)
         self._permissions = PermissionExtension(self)
@@ -167,7 +167,7 @@ class OmuServer(Server):
         return self._address
 
     @property
-    def security(self) -> Security:
+    def permission_manager(self) -> PermissionManager:
         return self._security
 
     @property

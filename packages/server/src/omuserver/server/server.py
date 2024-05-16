@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from omuserver.extension.table import TableExtension
     from omuserver.network import Network
     from omuserver.network.packet_dispatcher import ServerPacketDispatcher
-    from omuserver.security import Security
+    from omuserver.security import PermissionManager
 
 
 class ServerEvents:
@@ -49,7 +49,7 @@ class Server(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def security(self) -> Security: ...
+    def permission_manager(self) -> PermissionManager: ...
 
     @property
     @abc.abstractmethod

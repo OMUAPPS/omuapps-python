@@ -59,7 +59,7 @@ class SignalExtension:
         for permission in get_scopes(signal.permissions):
             if permission is None:
                 continue
-            if self._server.permissions.has_permission(session, permission):
+            if session.permission_handle.has(permission):
                 return
         msg = f"App {session.app.id=} not allowed to access {signal.id=}"
         raise PermissionDenied(msg)
