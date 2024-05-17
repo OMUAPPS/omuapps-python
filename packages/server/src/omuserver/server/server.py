@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from omuserver.extension.dashboard import DashboardExtension
     from omuserver.extension.endpoint import EndpointExtension
     from omuserver.extension.i18n import I18nExtension
+    from omuserver.extension.logger import LoggerExtension
     from omuserver.extension.permission import PermissionExtension
     from omuserver.extension.plugin import PluginExtension
     from omuserver.extension.registry import RegistryExtension
@@ -94,6 +95,10 @@ class Server(abc.ABC):
     @property
     @abc.abstractmethod
     def i18n(self) -> I18nExtension: ...
+
+    @property
+    @abc.abstractmethod
+    def logger(self) -> LoggerExtension: ...
 
     @property
     @abc.abstractmethod

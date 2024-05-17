@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from omu.extension.dashboard import DashboardExtension
     from omu.extension.endpoint import EndpointExtension
     from omu.extension.i18n import I18nExtension
+    from omu.extension.logger import LoggerExtension
     from omu.extension.permission import PermissionExtension
     from omu.extension.plugin import PluginExtension
     from omu.extension.registry import RegistryExtension
@@ -86,6 +87,10 @@ class Client(abc.ABC):
     @property
     @abc.abstractmethod
     def i18n(self) -> I18nExtension: ...
+
+    @property
+    @abc.abstractmethod
+    def logger(self) -> LoggerExtension: ...
 
     @property
     @abc.abstractmethod

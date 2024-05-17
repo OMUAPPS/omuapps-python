@@ -1,7 +1,6 @@
 from omu.extension.permission import PermissionType
 from omu.extension.server import (
     SERVER_APPS_READ_PERMISSION_ID,
-    SERVER_CONSOLE_PERMISSION_ID,
     SERVER_SHUTDOWN_PERMISSION_ID,
 )
 
@@ -30,20 +29,6 @@ SERVER_APPS_READ_PERMISSION = PermissionType(
         "note": {
             "en": "Permission to get a list of apps connected to the server",
             "ja": "サーバーに接続されたアプリの一覧を取得する",
-        },
-    },
-)
-SERVER_CONSOLE_PERMISSION = PermissionType(
-    id=SERVER_CONSOLE_PERMISSION_ID,
-    metadata={
-        "level": "low",
-        "name": {
-            "en": "Access Server Console",
-            "ja": "サーバーのコンソールアクセス",
-        },
-        "note": {
-            "en": "Permission to access the server console",
-            "ja": "サーバーのコンソールにアクセスする権限",
         },
     },
 )
