@@ -493,6 +493,7 @@ class YoutubeChatService(ChatService):
                     {
                         reaction["unicodeEmojiId"]: reaction["reactionCount"]
                         for reaction in bucket.get("reactionsData", [])
+                        if "unicodeEmojiId" in reaction
                     }
                 )
         if not reaction_counts:
