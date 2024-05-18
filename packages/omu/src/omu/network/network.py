@@ -67,7 +67,9 @@ class Network:
         self.add_packet_handler(PACKET_TYPES.DISCONNECT, self.handle_disconnect)
         self.add_packet_handler(PACKET_TYPES.READY, self.handle_ready)
 
-    async def handle_token(self, token: str):
+    async def handle_token(self, token: str | None):
+        if token is None:
+            return
         self._token_provider.store(self._address, self._client.app, token)
 
     async def handle_disconnect(self, reason: DisconnectPacket):

@@ -31,36 +31,36 @@ class PacketType[T]:
     serializer: Serializable[T, bytes]
 
     @classmethod
-    def create_json[_T](
+    def create_json(
         cls,
         identifier: Identifier,
         name: str,
-        serializer: Serializable[_T, Any] | None = None,
-    ) -> PacketType[_T]:
+        serializer: Serializable[T, Any] | None = None,
+    ) -> PacketType[T]:
         return PacketType(
             id=identifier / name,
             serializer=Serializer.of(serializer or Serializer.noop()).to_json(),
         )
 
     @classmethod
-    def create_serialized[_T](
+    def create_serialized(
         cls,
         identifier: Identifier,
         name: str,
-        serializer: Serializable[_T, bytes],
-    ) -> PacketType[_T]:
+        serializer: Serializable[T, bytes],
+    ) -> PacketType[T]:
         return PacketType(
             id=identifier / name,
             serializer=serializer,
         )
 
     @classmethod
-    def create[_T](
+    def create(
         cls,
         identifier: Identifier,
         name: str,
-        type_class: PacketClass[_T],
-    ) -> PacketType[_T]:
+        type_class: PacketClass[T],
+    ) -> PacketType[T]:
         return PacketType(
             id=identifier / name,
             serializer=type_class,

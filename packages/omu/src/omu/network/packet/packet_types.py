@@ -90,7 +90,7 @@ class PACKET_TYPES:
         "disconnect",
         Serializer.model(DisconnectPacket),
     )
-    TOKEN = PacketType[str].create_json(
+    TOKEN = PacketType[str | None].create_json(
         IDENTIFIER,
         "token",
     )
