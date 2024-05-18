@@ -13,7 +13,7 @@ import bs4
 from iwashi.service import Youtube
 from loguru import logger
 from omu.helper import map_optional
-from omuchat.client import Client
+from omuchat.chat import Chat
 from omuchat.model import (
     MODERATOR,
     OWNER,
@@ -222,15 +222,15 @@ class YoutubeChatService(ChatService):
     def __init__(
         self,
         youtube_service: YoutubeService,
-        client: Client,
+        chat: Chat,
         room: Room,
-        chat: YoutubeChat,
+        youtube_chat: YoutubeChat,
     ):
         self.youtube = youtube_service
-        self.client = client
-        self._room = room
         self.chat = chat
-        self.tasks = Tasks(client.loop)
+        self._room = room
+        self.youtube_chat = youtube_chat
+        self.tasks = Tasks(asyncio.get_event_loop())
         self.author_fetch_queue: list[Author] = []
         self._closed = False
 
@@ -246,12 +246,12 @@ class YoutubeChatService(ChatService):
     async def create(
         cls,
         youtube_service: YoutubeService,
-        client: Client,
+        chat: Chat,
         room: Room,
     ):
-        await client.chat.rooms.update(room)
+        await chat.rooms.update(room)
         video_id = room.id.path[-1]
-        chat = await YoutubeChat.from_video_id(
+        youtube_chat = await YoutubeChat.from_video_id(
             youtube_service.extractor,
             video_id,
         )
@@ -259,8 +259,8 @@ class YoutubeChatService(ChatService):
             thumbnail=f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
             url=f"https://www.youtube.com/watch?v={video_id}",
         )
-        instance = cls(youtube_service, client, room, chat)
-        await client.chat.rooms.add(room)
+        instance = cls(youtube_service, chat, room, youtube_chat)
+        await chat.rooms.add(room)
         return instance
 
     async def start(self):
@@ -268,9 +268,9 @@ class YoutubeChatService(ChatService):
         self.tasks.create_task(self.fetch_authors_task())
         try:
             self._room.connected = True
-            await self.client.chat.rooms.update(self._room)
+            await self.chat.rooms.update(self._room)
             while True:
-                chat_data = await self.chat.next()
+                chat_data = await self.youtube_chat.next()
                 if chat_data is None:
                     break
                 await self.process_chat_data(chat_data)
@@ -279,9 +279,9 @@ class YoutubeChatService(ChatService):
                     metadata = RoomMetadata()
                     if self.room.metadata:
                         metadata |= self.room.metadata
-                    metadata |= await self.chat.fetch_metadata()
+                    metadata |= await self.youtube_chat.fetch_metadata()
                     self.room.metadata = metadata
-                    await self.client.chat.rooms.update(self.room)
+                    await self.chat.rooms.update(self.room)
                 count += 1
         finally:
             await self.stop()
@@ -309,13 +309,13 @@ class YoutubeChatService(ChatService):
         if len(authors) > 0:
             added_authors: list[Author] = []
             for author in authors:
-                if author.key() in self.client.chat.authors.cache:
+                if author.key() in self.chat.authors.cache:
                     continue
                 added_authors.append(author)
-            await self.client.chat.authors.add(*added_authors)
+            await self.chat.authors.add(*added_authors)
             self.author_fetch_queue.extend(added_authors)
         if len(messages) > 0:
-            await self.client.chat.messages.add(*messages)
+            await self.chat.messages.add(*messages)
         await self.process_reactions(chat_data)
 
     async def fetch_authors_task(self):
@@ -330,7 +330,7 @@ class YoutubeChatService(ChatService):
                     metadata = author.metadata or {}
                     metadata |= new_metadata
                     author.metadata = metadata
-                    await self.client.chat.authors.update(author)
+                    await self.chat.authors.update(author)
         except asyncio.CancelledError:
             return
 
@@ -471,9 +471,9 @@ class YoutubeChatService(ChatService):
 
     async def process_deleted_item(self, item: MarkChatItemAsDeletedAction):
         id = self._room.id / item["targetItemId"]
-        message = await self.client.chat.messages.get(id.key())
+        message = await self.chat.messages.get(id.key())
         if message:
-            await self.client.chat.messages.remove(message)
+            await self.chat.messages.remove(message)
 
     async def process_reactions(self, chat_data: ChatData):
         reaction_counts: Counter[str] = Counter()
@@ -592,7 +592,7 @@ class YoutubeChatService(ChatService):
         self._closed = True
         self.tasks.terminate()
         self._room.connected = False
-        await self.client.chat.rooms.update(self._room)
+        await self.chat.rooms.update(self._room)
 
 
 def _get_accessibility_label(data: Accessibility | None) -> str | None:

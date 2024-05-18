@@ -2,8 +2,11 @@ import asyncio
 import time
 
 from loguru import logger
+from omu.app import App
 from omu.identifier import Identifier
-from omuchat import App, Channel, Client, Message, Room, events
+from omu.omu import Omu
+from omuchat import Channel, Message, Room, events
+from omuchat.chat import Chat
 
 from omuchatprovider.errors import ProviderError
 
@@ -16,19 +19,20 @@ APP = App(
 )
 
 
-client = Client(APP)
+omu = Omu(APP)
+chat = Chat(omu)
 
 services: dict[Identifier, ProviderService] = {}
 chat_services: dict[Identifier, ChatService] = {}
 
 for service_class in get_services():
-    service = service_class(client)
+    service = service_class(omu, chat)
     services[service.provider.id] = service
 
 
 async def register_services():
     for service in services.values():
-        await client.chat.providers.add(service.provider)
+        await chat.providers.add(service.provider)
 
 
 async def update_channel(channel: Channel, service: ProviderService):
@@ -47,21 +51,21 @@ async def update_channel(channel: Channel, service: ProviderService):
         logger.error(f"Failed to update channel {channel.id}: {e}")
 
 
-@client.on(events.channel.add)
+@chat.on(events.channel.add)
 async def on_channel_create(channel: Channel):
     provider = get_provider(channel)
     if provider is not None:
         await update_channel(channel, provider)
 
 
-@client.on(events.channel.remove)
+@chat.on(events.channel.remove)
 async def on_channel_remove(channel: Channel):
     provider = get_provider(channel)
     if provider is not None:
         await update_channel(channel, provider)
 
 
-@client.on(events.channel.update)
+@chat.on(events.channel.update)
 async def on_channel_update(channel: Channel):
     provider = get_provider(channel)
     if provider is not None:
@@ -86,10 +90,10 @@ async def recheck_task():
 
 
 async def recheck_rooms():
-    for chat in tuple(chat_services.values()):
-        if chat.closed:
-            del chat_services[chat.room.id]
-    rooms = await client.chat.rooms.fetch_items()
+    for service in tuple(chat_services.values()):
+        if service.closed:
+            del chat_services[service.room.id]
+    rooms = await chat.rooms.fetch_items()
     for room in filter(lambda r: r.connected, rooms.values()):
         if room.provider_id not in services:
             continue
@@ -101,24 +105,24 @@ async def recheck_rooms():
 async def stop_room(room: Room):
     room.status = "offline"
     room.connected = False
-    await client.chat.rooms.update(room)
-    for key, chat in tuple(chat_services.items()):
-        if chat.room.key() == room.key():
-            await chat.stop()
+    await chat.rooms.update(room)
+    for key, service in tuple(chat_services.items()):
+        if service.room.key() == room.key():
+            await service.stop()
             del chat_services[key]
 
 
 async def should_remove(room: Room, provider_service: ProviderService):
     if room.channel_id is None:
         return False
-    channel = await client.chat.channels.get(room.channel_id)
+    channel = await chat.channels.get(room.channel_id)
     if channel and not channel.active:
         return True
     return not await provider_service.is_online(room)
 
 
 async def recheck_channels():
-    all_channels = await client.chat.channels.fetch_items()
+    all_channels = await chat.channels.fetch_items()
     for channel in all_channels.values():
         provider = get_provider(channel)
         if provider is None:
@@ -126,16 +130,16 @@ async def recheck_channels():
         await update_channel(channel, provider)
 
 
-@client.on(events.ready)
+@chat.on(events.message.add)
+async def on_message_create(message: Message):
+    print(f"Message created: {message.text}")
+    for gift in message.gifts or []:
+        print(f"Gift: {gift.name} x{gift.amount}")
+
+
+@omu.event.ready.listen
 async def on_ready():
     await register_services()
     await recheck_channels()
     asyncio.create_task(recheck_task())
     logger.info("Chat provider is ready")
-
-
-@client.on(events.message.add)
-async def on_message_create(message: Message):
-    print(f"Message created: {message.text}")
-    for gift in message.gifts or []:
-        print(f"Gift: {gift.name} x{gift.amount}")

@@ -1,7 +1,5 @@
-from omu import App
-
 from . import permissions
-from .client import Client
+from .chat import Chat
 from .event.event_types import events
 from .model import (
     Author,
@@ -18,9 +16,8 @@ from .version import VERSION
 
 __version__ = VERSION
 __all__ = [
-    "App",
     "permissions",
-    "Client",
+    "Chat",
     "Author",
     "Channel",
     "content",

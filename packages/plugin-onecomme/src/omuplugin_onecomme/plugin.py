@@ -7,7 +7,10 @@ from typing import TypedDict
 
 from aiohttp import web
 from loguru import logger
-from omuchat import App, Client, events, model
+from omu.app import App
+from omu.omu import Omu
+from omuchat import events, model
+from omuchat.chat import Chat
 from omuchat.model import content
 
 from .types import Badge, Comment, CommentData, CommentServiceData
@@ -16,7 +19,8 @@ APP = App(
     "cc.omuchat:onecomme/plugin",
     version="0.1.0",
 )
-client = Client(APP)
+client = Omu(APP)
+chat = Chat(client)
 app = web.Application()
 
 
@@ -51,10 +55,10 @@ def format_content(*components: content.Component | None) -> str:
 
 
 async def to_comment(message: model.Message) -> Comment | None:
-    room = await client.chat.rooms.get(message.room_id.key())
+    room = await chat.rooms.get(message.room_id.key())
     author: model.Author | None = None
     if message.author_id:
-        author = await client.chat.authors.get(message.author_id.key())
+        author = await chat.authors.get(message.author_id.key())
     if not room or not author:
         return None
     metadata = room.metadata or {}
@@ -118,7 +122,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
     await ws.prepare(request)
     messages = [
         await to_comment(message)
-        for message in (await client.chat.messages.fetch_items(before=35)).values()
+        for message in (await chat.messages.fetch_items(before=35)).values()
     ]
     await ws.send_json(
         {
@@ -140,7 +144,7 @@ async def handle(request: web.Request) -> web.WebSocketResponse:
     return ws
 
 
-@client.on(events.message.add)
+@chat.on(events.message.add)
 async def on_message_add(message: model.Message) -> None:
     comment = await to_comment(message)
     if not comment:
@@ -156,7 +160,7 @@ async def on_message_add(message: model.Message) -> None:
         )
 
 
-@client.on(events.message.update)
+@chat.on(events.message.update)
 async def on_message_update(message: model.Message) -> None:
     comment = await to_comment(message)
     if comment is None:
@@ -172,7 +176,7 @@ async def on_message_update(message: model.Message) -> None:
         )
 
 
-@client.on(events.message.remove)
+@chat.on(events.message.remove)
 async def on_message_delete(message: model.Message) -> None:
     for ws in sessions:
         await ws.send_json({"type": "deleted", "data": [message.key()]})
@@ -192,7 +196,7 @@ def is_port_free() -> bool:
         return False
 
 
-@client.on(events.ready)
+@client.event.ready.listen
 async def on_ready():
     port_free = is_port_free()
     if not port_free:

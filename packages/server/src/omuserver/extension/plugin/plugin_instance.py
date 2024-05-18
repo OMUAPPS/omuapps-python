@@ -9,9 +9,9 @@ from multiprocessing import Process
 from loguru import logger
 from omu.address import Address
 from omu.app import App
-from omu.client.token import TokenProvider
 from omu.network.websocket_connection import WebsocketsConnection
 from omu.plugin import Plugin
+from omu.token import TokenProvider
 
 from omuserver.server import Server
 from omuserver.session import Session
@@ -62,9 +62,7 @@ class PluginInstance:
                 connection = PluginConnection()
                 plugin_client = self.plugin.get_client()
                 plugin_client.network.set_connection(connection)
-                plugin_client.network.set_token_provider(
-                    PluginTokenProvider(token)
-                )
+                plugin_client.network.set_token_provider(PluginTokenProvider(token))
                 await plugin_client.start()
                 session_connection = PluginSessionConnection(connection)
                 session = await Session.from_connection(

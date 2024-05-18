@@ -1,9 +1,9 @@
 import re
 
 import iwashi
-from omu import Address, OmuClient
+from omu import Address, Omu
+from omu.app import App
 from omu.extension.permission import PermissionType
-from omuchat import App
 from omuchat.chat import (
     AUTHOR_TABLE,
     CHANNEL_TABLE,
@@ -27,7 +27,7 @@ app = App(
     version="0.1.0",
 )
 address = Address("127.0.0.1", 26423)
-client = OmuClient(app, address=address)
+client = Omu(app, address=address)
 
 client.permissions.register(
     PermissionType(

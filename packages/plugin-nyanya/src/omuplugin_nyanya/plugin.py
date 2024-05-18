@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+from omu.app import App
 from omu.identifier import Identifier
-from omuchat import App, Client, content, model
+from omu.omu import Omu
+from omuchat import content, model
+from omuchat.chat import Chat
 
 IDENTIFIER = Identifier("cc.omuchat", "plugin-nyanya")
 APP = App(
     IDENTIFIER,
     version="0.1.0",
 )
-client = Client(APP)
+omu = Omu(APP)
+chat = Chat(omu)
 replaces = {
     "な": "にゃ",
     "ナ": "ニャ",
@@ -25,7 +29,7 @@ async def translate(
     return component
 
 
-@client.chat.messages.proxy
+@chat.messages.proxy
 async def on_message_add(message: model.Message) -> model.Message:
     if not message.content:
         return message
@@ -34,4 +38,4 @@ async def on_message_add(message: model.Message) -> model.Message:
 
 
 if __name__ == "__main__":
-    client.run()
+    omu.run()

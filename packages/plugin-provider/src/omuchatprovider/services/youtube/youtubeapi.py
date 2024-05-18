@@ -7,7 +7,7 @@ from typing import Any
 
 import aiohttp
 import bs4
-from omuchat.client import Client
+from omu.omu import Omu
 
 from omuchatprovider.errors import ProviderError
 from omuchatprovider.helper import assert_none
@@ -68,8 +68,8 @@ class YoutubePage:
 
 
 class YoutubeAPI:
-    def __init__(self, client: Client, session: aiohttp.ClientSession):
-        self.client = client
+    def __init__(self, omu: Omu, session: aiohttp.ClientSession):
+        self.omu = omu
         self.session = session
         self.throttle = Throttle(timedelta(seconds=1 / 3))
 

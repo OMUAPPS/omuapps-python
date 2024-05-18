@@ -7,9 +7,9 @@ __all__ = ["plugin"]
 
 
 def get_client():
-    from .plugin import client
+    from .plugin import omu
 
-    return client
+    return omu
 
 
 plugin = Plugin(

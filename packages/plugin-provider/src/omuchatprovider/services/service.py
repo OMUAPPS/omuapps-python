@@ -3,8 +3,9 @@ from __future__ import annotations
 import abc
 from dataclasses import dataclass
 
+from omu import Omu
 from omu.helper import Coro
-from omuchat import Channel, Client, Provider, Room
+from omuchat import Channel, Provider, Room
 
 type ChatServiceFactory = Coro[[], ChatService]
 
@@ -17,7 +18,7 @@ class FetchedRoom:
 
 class ProviderService(abc.ABC):
     @abc.abstractmethod
-    def __init__(self, client: Client): ...
+    def __init__(self, omu: Omu): ...
 
     @property
     @abc.abstractmethod

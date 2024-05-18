@@ -8,7 +8,6 @@ from loguru import logger
 
 from omu.address import Address
 from omu.client import Client
-from omu.client.token import TokenProvider
 from omu.errors import (
     AnotherConnection,
     InvalidOrigin,
@@ -21,6 +20,7 @@ from omu.errors import (
 from omu.event_emitter import EventEmitter
 from omu.helper import Coro
 from omu.identifier import Identifier
+from omu.token import TokenProvider
 
 from .connection import Connection
 from .packet import Packet, PacketType

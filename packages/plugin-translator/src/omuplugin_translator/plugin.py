@@ -4,9 +4,11 @@ from typing import TypedDict
 
 from edgetrans import EdgeTranslator, Language, Translator
 from loguru import logger
+from omu import Omu
+from omu.app import App
 from omu.identifier import Identifier
-from omuchat import App, Client, model
-from omuchat.event.event_types import events
+from omuchat import model
+from omuchat.chat import Chat
 from omuchat.model.content import Component, Root, System, Text
 
 IDENTIFIER = Identifier("cc.omuchat", "translator", "plugin")
@@ -14,7 +16,8 @@ APP = App(
     IDENTIFIER,
     version="0.1.0",
 )
-client = Client(APP)
+omu = Omu(APP)
+chat = Chat(omu)
 
 translator: Translator | None = None
 
@@ -28,7 +31,7 @@ config = TrasnlatorConfig(
     active=False,
     languages=["ja", "en"],
 )
-CONFIG_REGISTRY_TYPE = client.registry.create("config", config)
+CONFIG_REGISTRY_TYPE = omu.registry.create("config", config)
 
 
 @CONFIG_REGISTRY_TYPE.listen
@@ -62,7 +65,7 @@ def is_same_content(a: Component, b: Component) -> bool:
     return all(a == b for a, b in zip(texts_a, texts_b, strict=False))
 
 
-@client.chat.messages.proxy
+@chat.messages.proxy
 async def on_message_add(message: model.Message) -> model.Message:
     if not config["active"]:
         return message
@@ -94,7 +97,7 @@ async def on_message_add(message: model.Message) -> model.Message:
     return message
 
 
-@client.on(events.ready)
+@omu.event.ready.listen
 async def on_ready():
     global translator, config
     config = await CONFIG_REGISTRY_TYPE.get()
@@ -102,4 +105,4 @@ async def on_ready():
 
 
 if __name__ == "__main__":
-    client.run()
+    omu.run()

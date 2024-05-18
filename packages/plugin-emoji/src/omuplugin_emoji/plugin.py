@@ -4,12 +4,13 @@ from dataclasses import dataclass
 from typing import Literal, TypedDict
 
 from loguru import logger
+from omu.app import App
 from omu.extension.table.table import TableType
 from omu.identifier import Identifier
 from omu.interface.keyable import Keyable
 from omu.model import Model
-from omuchat import App, Client
-from omuchat.event.event_types import events
+from omu.omu import Omu
+from omuchat.chat import Chat
 from omuchat.model import content
 from omuchat.model.message import Message
 
@@ -18,7 +19,8 @@ APP = App(
     IDENTIFIER,
     version="0.1.0",
 )
-client = Client(APP)
+omu = Omu(APP)
+chat = Chat(omu)
 
 
 class EmojiConfig(TypedDict):
@@ -30,7 +32,7 @@ config = EmojiConfig(
 )
 
 
-@client.registry.create("config", config).listen
+@omu.registry.create("config", config).listen
 async def on_config_change(new_config: EmojiConfig):
     global config
     config = new_config
@@ -96,7 +98,7 @@ EMOJI_TABLE_TYPE = TableType.create_model(
     name="emoji",
     model_type=Emoji,
 )
-emoji_table = client.tables.get(EMOJI_TABLE_TYPE)
+emoji_table = omu.tables.get(EMOJI_TABLE_TYPE)
 emoji_table.set_cache_size(1000)
 
 
@@ -139,7 +141,7 @@ def transform(component: content.Component) -> content.Component:
         for pattern, emoji in Patterns.image:
             if component.id == pattern["id"]:
                 return content.Image.of(
-                    url=client.assets.url(emoji.asset),
+                    url=omu.assets.url(emoji.asset),
                     id=emoji.id,
                 )
     if isinstance(component, content.Parent):
@@ -163,7 +165,7 @@ def transform_text_content(
             parts.append(content.Text.of(text[: match.start]))
         parts.append(
             content.Image.of(
-                url=client.assets.url(match.emoji.asset),
+                url=omu.assets.url(match.emoji.asset),
                 id=match.emoji.id,
             )
         )
@@ -203,7 +205,7 @@ def find_matching_emoji(text: str) -> EmojiMatch | None:
     return match
 
 
-@client.chat.messages.proxy
+@chat.messages.proxy
 async def on_message(message: Message):
     if not config["active"]:
         return message
@@ -213,10 +215,10 @@ async def on_message(message: Message):
     return message
 
 
-@client.on(events.ready)
+@omu.event.ready.listen
 async def ready():
     await emoji_table.fetch_all()
 
 
 if __name__ == "__main__":
-    client.run()
+    omu.run()

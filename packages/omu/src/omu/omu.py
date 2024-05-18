@@ -6,7 +6,6 @@ from loguru import logger
 
 from omu.address import Address
 from omu.app import App
-from omu.client.token import JsonTokenProvider, TokenProvider
 from omu.event_emitter import Unlisten
 from omu.extension import ExtensionRegistry
 from omu.extension.asset import (
@@ -57,15 +56,16 @@ from omu.helper import Coro
 from omu.network import Network
 from omu.network.packet import Packet, PacketType
 from omu.network.websocket_connection import WebsocketsConnection
+from omu.token import JsonTokenProvider, TokenProvider
 
 from .client import Client, ClientEvents
 
 
-class OmuClient(Client):
+class Omu(Client):
     def __init__(
         self,
         app: App,
-        address: Address,
+        address: Address | None = None,
         token: TokenProvider | None = None,
         connection: WebsocketsConnection | None = None,
         extension_registry: ExtensionRegistry | None = None,
@@ -76,11 +76,12 @@ class OmuClient(Client):
         self._running = False
         self._event = ClientEvents()
         self._app = app
+        self.address = address or Address("127.0.0.1", 26423)
         self._network = Network(
             self,
-            address,
+            self.address,
             token or JsonTokenProvider(),
-            connection or WebsocketsConnection(self, address),
+            connection or WebsocketsConnection(self, self.address),
         )
         self._extensions = extension_registry or ExtensionRegistry(self)
 

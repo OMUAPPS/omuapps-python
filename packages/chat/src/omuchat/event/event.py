@@ -8,44 +8,44 @@ from omu.event_emitter import EventEmitter, Unlisten
 from omu.extension.table import Table
 
 if TYPE_CHECKING:
-    from omuchat.client import Client
+    from omuchat.chat import Chat
 
 type EventHandler[**P] = Callable[P, Coroutine[None, None, None]]
 
 
 @dataclass(frozen=True)
 class EventSource[**P]:
-    listen: Callable[[EventHandler[P], Client], Unlisten]
+    listen: Callable[[EventHandler[P], Chat], Unlisten]
 
 
 class ListenerEvent[**P](EventSource[P]):
-    def __init__(self, get_listener: Callable[[Client], EventEmitter[P]]):
+    def __init__(self, get_listener: Callable[[Chat], EventEmitter[P]]):
         super().__init__(self._subscribe)
         self.get_listener = get_listener
 
     def _subscribe(
         self,
         emit: EventHandler[P],
-        client: Client,
+        chat: Chat,
     ):
-        listener = self.get_listener(client)
+        listener = self.get_listener(chat)
         return listener.listen(emit)
 
 
 class TableEvent[T](ListenerEvent[Mapping[str, T]]):
-    def __init__(self, get_table: Callable[[Client], Table[T]]):
+    def __init__(self, get_table: Callable[[Chat], Table[T]]):
         self.get_table = get_table
         super().__init__(
-            lambda client: get_table(client).event.cache_update,
+            lambda chat: get_table(chat).event.cache_update,
         )
         self.add_batch = ListenerEvent(
-            lambda client: get_table(client).event.add,
+            lambda chat: get_table(chat).event.add,
         )
         self.update_batch = ListenerEvent(
-            lambda client: get_table(client).event.update,
+            lambda chat: get_table(chat).event.update,
         )
         self.remove_batch = ListenerEvent(
-            lambda client: get_table(client).event.remove,
+            lambda chat: get_table(chat).event.remove,
         )
         self.add = self._create_batch_subscriber(
             lambda table: table.event.add,
@@ -74,8 +74,8 @@ class TableEvent[T](ListenerEvent[Mapping[str, T]]):
     ):
         batch_wrapper: EventHandler[Mapping[str, T]] | None = None
 
-        def subscribe(emit: EventHandler[T], client: Client):
-            listener = get_listener(self.get_table(client))
+        def subscribe(emit: EventHandler[T], chat: Chat):
+            listener = get_listener(self.get_table(chat))
             nonlocal batch_wrapper
             batch_wrapper = self._create_batch_wrapper(emit)
             return listener.listen(batch_wrapper)
@@ -90,8 +90,8 @@ class Entry[**P]:
 
 
 class EventRegistry:
-    def __init__(self, client: Client):
-        self.client = client
+    def __init__(self, chat: Chat):
+        self.chat = chat
         self.events: dict[int, Entry] = {}
 
     def register[**P](
@@ -100,6 +100,6 @@ class EventRegistry:
         event_id = id(event)
         if event_id not in self.events:
             entry = Entry[P](event, EventEmitter[P]())
-            event.listen(entry.listeners.emit, self.client)
+            event.listen(entry.listeners.emit, self.chat)
             self.events[event_id] = entry  # type: ignore
         return self.events[event_id].listeners.listen(listener)
