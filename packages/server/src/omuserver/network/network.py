@@ -13,9 +13,8 @@ from omu.network.packet.packet_types import DisconnectType
 
 from omuserver.network.packet_dispatcher import ServerPacketDispatcher
 from omuserver.server import Server
-from omuserver.session import Session
+from omuserver.session import Session, SessionType
 from omuserver.session.aiohttp_connection import WebsocketsConnection
-from omuserver.session.session import SessionType
 
 
 class Network:

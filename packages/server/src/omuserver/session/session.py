@@ -60,6 +60,7 @@ class SessionType(Enum):
     PLUGIN = "plugin"
     DASHBOARD = "dashboard"
 
+
 class Session:
     def __init__(
         self,
@@ -120,7 +121,7 @@ class Session:
         token = event.token
 
         match await server.permission_manager.verify_app_token(app, token):
-            case Ok((kind, permission_handle)):
+            case Ok((kind, permission_handle, new_token)):
                 session = Session(
                     packet_mapper=packet_mapper,
                     app=app,
@@ -129,7 +130,7 @@ class Session:
                     connection=connection,
                 )
                 if session.kind != SessionType.PLUGIN:
-                    await session.send(PACKET_TYPES.TOKEN, token)
+                    await session.send(PACKET_TYPES.TOKEN, new_token)
                 return session
             case Err(error):
                 await connection.send(

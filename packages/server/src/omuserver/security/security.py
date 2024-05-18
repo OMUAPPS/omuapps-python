@@ -54,7 +54,7 @@ class PermissionManager(abc.ABC):
     @abc.abstractmethod
     async def verify_app_token(
         self, app: App, token: Token | None
-    ) -> Result[tuple[SessionType, PermissionHandle], str]: ...
+    ) -> Result[tuple[SessionType, PermissionHandle, Token], str]: ...
 
     @abc.abstractmethod
     def generate_plugin_token(self) -> Token: ...
@@ -192,20 +192,20 @@ class ServerPermissionManager(PermissionManager):
 
     async def verify_app_token(
         self, app: App, token: str | None
-    ) -> Result[tuple[SessionType, PermissionHandle], str]:
+    ) -> Result[tuple[SessionType, PermissionHandle, Token], str]:
         if token is None:
             token = await self.generate_app_token(app)
         else:
             if self.is_dashboard_token(token):
-                return Ok((SessionType.DASHBOARD, DashboardPermissionHandle()))
+                return Ok((SessionType.DASHBOARD, DashboardPermissionHandle(), token))
             if self.is_plugin_token(token):
-                return Ok((SessionType.PLUGIN, PluginPermissionHandle()))
+                return Ok((SessionType.PLUGIN, PluginPermissionHandle(), token))
         verified = await self.validate_app_token(app, token)
         if not verified:
             logger.warning(f"Invalid token: {token}")
             logger.info(f"Generating new token for {app}")
             token = await self.generate_app_token(app)
-        return Ok((SessionType.APP, SessionPermissionHandle(self, token)))
+        return Ok((SessionType.APP, SessionPermissionHandle(self, token), token))
 
     def is_dashboard_token(self, token: Token) -> bool:
         dashboard_token = self._server.config.dashboard_token
