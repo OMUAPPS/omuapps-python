@@ -25,6 +25,10 @@ from omu.extension.i18n import (
     I18N_EXTENSION_TYPE,
     I18nExtension,
 )
+from omu.extension.logger import (
+    LOGGER_EXTENSION_TYPE,
+    LoggerExtension,
+)
 from omu.extension.permission import (
     PERMISSION_EXTENSION_TYPE,
     PermissionExtension,
@@ -90,6 +94,7 @@ class OmuClient(Client):
         self._assets = self.extensions.register(ASSET_EXTENSION_TYPE)
         self._dashboard = self.extensions.register(DASHBOARD_EXTENSION_TYPE)
         self._i18n = self.extensions.register(I18N_EXTENSION_TYPE)
+        self._logger = self.extensions.register(LOGGER_EXTENSION_TYPE)
 
     @property
     def ready(self) -> bool:
@@ -150,6 +155,10 @@ class OmuClient(Client):
     @property
     def i18n(self) -> I18nExtension:
         return self._i18n
+
+    @property
+    def logger(self) -> LoggerExtension:
+        return self._logger
 
     @property
     def running(self) -> bool:

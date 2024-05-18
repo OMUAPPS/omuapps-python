@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-import asyncio
 from asyncio import Future
 from collections import defaultdict
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from loguru import logger
-from omu.errors import PermissionDenied
-from omu.extension.server.packets import ConsolePacket
 from omu.extension.server.server_extension import (
     APP_TABLE_TYPE,
-    CONSOLE_GET_ENDPOINT_TYPE,
-    CONSOLE_LISTEN_PACKET_TYPE,
-    CONSOLE_PACKET_TYPE,
     REQUIRE_APPS_PACKET_TYPE,
-    SERVER_CONSOLE_PERMISSION_ID,
     SHUTDOWN_ENDPOINT_TYPE,
     VERSION_REGISTRY_TYPE,
 )
@@ -28,7 +21,6 @@ from omuserver.session import Session
 
 from .permissions import (
     SERVER_APPS_READ_PERMISSION,
-    SERVER_CONSOLE_PERMISSION,
     SERVER_SHUTDOWN_PERMISSION,
 )
 
@@ -58,12 +50,10 @@ class ServerExtension:
         self._server = server
         server.packet_dispatcher.register(
             REQUIRE_APPS_PACKET_TYPE,
-            CONSOLE_LISTEN_PACKET_TYPE,
         )
         server.permission_manager.register(
             SERVER_SHUTDOWN_PERMISSION,
             SERVER_APPS_READ_PERMISSION,
-            SERVER_CONSOLE_PERMISSION,
         )
         self.version_registry = self._server.registry.register(VERSION_REGISTRY_TYPE)
         self.apps = self._server.tables.register(APP_TABLE_TYPE)
@@ -77,35 +67,7 @@ class ServerExtension:
         server.packet_dispatcher.add_packet_handler(
             REQUIRE_APPS_PACKET_TYPE, self.handle_require_apps
         )
-        server.endpoints.bind_endpoint(
-            CONSOLE_GET_ENDPOINT_TYPE, self.handle_console_get
-        )
-        server.packet_dispatcher.add_packet_handler(
-            CONSOLE_LISTEN_PACKET_TYPE, self.handle_console_listen
-        )
         self._app_waiters: dict[Identifier, list[WaitHandle]] = defaultdict(list)
-        self._log_lines: list[str] = []
-        self._log_listeners: list[Session] = []
-        self._log_queue: list[str] = []
-        self._log_event = asyncio.Event()
-        logger.add(LogHandler(self._on_log))
-        self._server.loop.create_task(self.log_task())
-
-    def _on_log(self, message: str) -> None:
-        self._log_queue.append(message)
-        self._log_event.set()
-
-    async def log_task(self) -> None:
-        while True:
-            await self._log_event.wait()
-            self._log_event.clear()
-            packet = ConsolePacket(self._log_queue)
-            for session in self._log_listeners:
-                if session.closed:
-                    continue
-                await session.send(CONSOLE_PACKET_TYPE, packet)
-            self._log_lines.extend(self._log_queue)
-            self._log_queue.clear()
 
     async def handle_require_apps(
         self, session: Session, app_ids: list[Identifier]
@@ -138,22 +100,6 @@ class ServerExtension:
             os.execv(sys.executable, get_launch_command()["args"])
         else:
             self._server.loop.stop()
-
-    async def handle_console_get(
-        self, session: Session, line_count: int | None
-    ) -> list[str]:
-        if line_count is None:
-            return self._log_lines
-        return self._log_lines[-line_count:]
-
-    async def handle_console_listen(self, session: Session, packet: None) -> None:
-        if not session.permission_handle.has(SERVER_CONSOLE_PERMISSION_ID):
-            msg = (
-                f"Session {session} does not have permission "
-                f"{SERVER_CONSOLE_PERMISSION_ID}"
-            )
-            raise PermissionDenied(msg)
-        self._log_listeners.append(session)
 
     async def on_start(self) -> None:
         await self.version_registry.set(__version__)
