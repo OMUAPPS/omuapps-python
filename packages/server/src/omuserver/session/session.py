@@ -56,7 +56,7 @@ class SessionTask:
 
 
 class SessionType(Enum):
-    APP = "web"
+    APP = "app"
     PLUGIN = "plugin"
     DASHBOARD = "dashboard"
 
