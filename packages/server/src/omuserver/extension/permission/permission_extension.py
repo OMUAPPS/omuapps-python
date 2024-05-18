@@ -68,27 +68,18 @@ class PermissionExtension:
                 if permission is None:
                     raise ValueError(f"Permission {permission_id} not registered")
                 permissions.append(permission)
-                request_id = self._get_next_request_key()
-                permissions: list[PermissionType] = []
-                for identifier in permission_ids:
-                    permission = self.server.permission_manager.get_permission(
-                        identifier
-                    )
-                    if permission is not None:
-                        permissions.append(permission)
 
-                accepted = await self.server.dashboard.request_permissions(
-                    PermissionRequestPacket(request_id, session.app, permissions)
-                )
-                if accepted:
-                    session.permission_handle.set_permissions(
-                        *[p.id for p in permissions]
-                    )
-                    if not session.closed:
-                        await session.send(PERMISSION_GRANT_PACKET, permissions)
-                else:
-                    msg = f"Permission request denied (id={request_id})"
-                    raise PermissionDenied(msg)
+            request_id = self._get_next_request_key()
+            accepted = await self.server.dashboard.request_permissions(
+                PermissionRequestPacket(request_id, session.app, permissions)
+            )
+            if accepted:
+                session.permission_handle.set_permissions(*[p.id for p in permissions])
+                if not session.closed:
+                    await session.send(PERMISSION_GRANT_PACKET, permissions)
+            else:
+                msg = f"Permission request denied (id={request_id})"
+                raise PermissionDenied(msg)
 
         session.add_ready_task(task)
 
