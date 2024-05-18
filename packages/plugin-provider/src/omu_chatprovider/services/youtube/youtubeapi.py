@@ -9,9 +9,9 @@ import aiohttp
 import bs4
 from omu import Omu
 
-from omuchatprovider.errors import ProviderError
-from omuchatprovider.helper import assert_none
-from omuchatprovider.throttle import Throttle
+from omu_chatprovider.errors import ProviderError
+from omu_chatprovider.helper import assert_none
+from omu_chatprovider.throttle import Throttle
 
 from . import types
 from .const import (

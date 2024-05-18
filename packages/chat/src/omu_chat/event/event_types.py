@@ -1,4 +1,4 @@
-from omuchat.model import Author, Channel, Message, Provider, Room
+from omu_chat.model import Author, Channel, Message, Provider, Room
 
 from .event import TableEvent
 

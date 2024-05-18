@@ -8,7 +8,7 @@
 #   with-sources: false
 
 -e file:packages/chat
-    # via omuchatprovider
+    # via omu-chatprovider
     # via omuplugin-chat
     # via omuplugin-emoji
     # via omuplugin-nyanya
@@ -16,7 +16,7 @@
     # via omuplugin-onecomme
     # via omuplugin-translator
 -e file:packages/omu
-    # via omuchat
+    # via omu-chat
     # via omuserver
 -e file:packages/plugin-chat
 -e file:packages/plugin-emoji
@@ -30,7 +30,7 @@ aiohttp==3.9.5
     # via edgetrans
     # via iwashi
     # via omu
-    # via omuchatprovider
+    # via omu-chatprovider
     # via omuserver
 aiosignal==1.3.1
     # via aiohttp
@@ -38,7 +38,7 @@ attrs==23.2.0
     # via aiohttp
 beautifulsoup4==4.12.3
     # via bs4
-    # via omuchatprovider
+    # via omu-chatprovider
 bs4==0.0.2
     # via iwashi
 click==8.1.7
@@ -60,13 +60,13 @@ idna==3.7
 iniconfig==2.0.0
     # via pytest
 iwashi==3.0.4
-    # via omuchatprovider
+    # via omu-chatprovider
     # via omuplugin-chat
 loguru==0.7.2
     # via iwashi
     # via omu
-    # via omuchat
-    # via omuchatprovider
+    # via omu-chat
+    # via omu-chatprovider
     # via omuplugin-chat
     # via omuplugin-emoji
     # via omuplugin-nyanya
@@ -74,8 +74,8 @@ loguru==0.7.2
     # via omuplugin-onecomme
     # via omuplugin-translator
     # via omuserver
-lxml==5.2.1
-    # via omuchatprovider
+lxml==5.2.2
+    # via omu-chatprovider
 multidict==6.0.5
     # via aiohttp
     # via yarl
@@ -91,7 +91,7 @@ pluggy==1.5.0
 psutil==5.9.8
     # via omuplugin-obssync
     # via omuserver
-pyright==1.1.362
+pyright==1.1.363
 pytest==8.2.0
     # via pytest-asyncio
     # via pytest-cov
@@ -105,7 +105,7 @@ setuptools==69.5.1
     # via nodeenv
 soupsieve==2.5
     # via beautifulsoup4
-uv==0.1.42
+uv==0.1.44
     # via omuserver
 win32-setctime==1.1.0
     # via loguru

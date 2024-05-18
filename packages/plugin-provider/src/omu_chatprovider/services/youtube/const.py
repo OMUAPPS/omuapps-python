@@ -2,10 +2,10 @@ from typing import TypedDict
 
 from omu.extension.permission import PermissionType
 from omu.extension.signal import SignalPermissions, SignalType
-from omuchat.model import Provider
+from omu_chat.model import Provider
 
-from omuchatprovider.chatprovider import BASE_PROVIDER_IDENTIFIER
-from omuchatprovider.helper import HTTP_REGEX
+from omu_chatprovider.chatprovider import BASE_PROVIDER_IDENTIFIER
+from omu_chatprovider.helper import HTTP_REGEX
 
 YOUTUBE_IDENTIFIER = BASE_PROVIDER_IDENTIFIER / "youtube"
 YOUTUBE_URL = "https://www.youtube.com"
@@ -20,7 +20,7 @@ PROVIDER = Provider(
     url="youtube.com",
     name="Youtube",
     version="0.1.0",
-    repository_url="https://github.com/OMUCHAT/omuchat-python/tree/master/packages/plugin-provider/src/omuchatprovider/services/youtube",
+    repository_url="https://github.com/OMUAPPS/omuapps-python/tree/master/packages/plugin-provider/src/omu_chatprovider/services/youtube",
     regex=YOUTUBE_REGEX,
 )
 BASE_HEADERS = {

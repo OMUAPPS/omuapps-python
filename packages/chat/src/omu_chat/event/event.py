@@ -8,7 +8,7 @@ from omu.event_emitter import EventEmitter, Unlisten
 from omu.extension.table import Table
 
 if TYPE_CHECKING:
-    from omuchat.chat import Chat
+    from omu_chat.chat import Chat
 
 type EventHandler[**P] = Callable[P, Coroutine[None, None, None]]
 

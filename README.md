@@ -1,6 +1,6 @@
-# OMUCHAT
+# OMUAPPS
 
-python側のomuchatの実装
+python側のomuappsの実装
 
 ## Development
 

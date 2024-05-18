@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from omu import Omu
 from omu.helper import Coro
-from omuchat import Channel, Provider, Room
+from omu_chat import Channel, Provider, Room
 
 type ChatServiceFactory = Coro[[], ChatService]
 

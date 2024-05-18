@@ -1,9 +1,9 @@
 from omu import Omu
-from omuchat import Chat
-from omuchat.model import Channel, Provider, Room
+from omu_chat import Chat
+from omu_chat.model import Channel, Provider, Room
 
-from omuchatprovider.helper import get_session
-from omuchatprovider.services import FetchedRoom, ProviderService
+from omu_chatprovider.helper import get_session
+from omu_chatprovider.services import FetchedRoom, ProviderService
 
 from .chat import YoutubeChatService
 from .const import (

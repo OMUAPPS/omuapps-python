@@ -11,7 +11,7 @@ import psutil
 from omu.identifier import Identifier
 from omuserver.server import Server
 
-IDENTIFIER = Identifier("cc.omuchat", "plugin-obssync")
+IDENTIFIER = Identifier("com.omuapps", "plugin-obssync")
 
 
 class obs:

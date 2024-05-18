@@ -7,14 +7,14 @@ from omu.extension.endpoint import EndpointType
 from omu.extension.table import TablePermissions, TableType
 from omu.serializer import Serializer
 
-from omuchat.const import IDENTIFIER
-from omuchat.event.event import EventHandler, EventRegistry, EventSource
-from omuchat.model.author import Author
-from omuchat.model.channel import Channel
-from omuchat.model.message import Message
-from omuchat.model.provider import Provider
-from omuchat.model.room import Room
-from omuchat.permissions import (
+from omu_chat.const import IDENTIFIER
+from omu_chat.event.event import EventHandler, EventRegistry, EventSource
+from omu_chat.model.author import Author
+from omu_chat.model.channel import Channel
+from omu_chat.model.message import Message
+from omu_chat.model.provider import Provider
+from omu_chat.model.room import Room
+from omu_chat.permissions import (
     CHAT_CHANNEL_TREE_PERMISSION_ID,
     CHAT_PERMISSION_ID,
     CHAT_READ_PERMISSION_ID,

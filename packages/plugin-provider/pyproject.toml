@@ -1,5 +1,5 @@
 [project]
-name = "omuchatprovider"
+name = "omu_chatprovider"
 version = "0.3.2"
 description = "Add your description here"
 authors = [
@@ -10,14 +10,14 @@ dependencies = [
     "aiohttp>=3.9.1",
     "beautifulsoup4>=4.12.2",
     "lxml>=5.0.0",
-    "omuchat>=0.1.9",
+    "omu_chat>=0.1.9",
     "iwashi>=3.0.4",
 ]
 readme = "README.md"
 requires-python = ">= 3.12"
 
 [project.entry-points."omu.plugins"]
-plugin = "omuchatprovider:plugin"
+plugin = "omu_chatprovider:plugin"
 
 [build-system]
 requires = ["hatchling"]

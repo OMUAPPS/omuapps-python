@@ -8,10 +8,10 @@ from omu import App, Identifier, Omu
 from omu.extension.table import TableType
 from omu.interface.keyable import Keyable
 from omu.model import Model
-from omuchat import Chat
-from omuchat.model import Message, content
+from omu_chat import Chat
+from omu_chat.model import Message, content
 
-IDENTIFIER = Identifier("cc.omuchat", "emoji", "plugin")
+IDENTIFIER = Identifier("com.omuapps", "emoji", "plugin")
 APP = App(
     IDENTIFIER,
     version="0.1.0",

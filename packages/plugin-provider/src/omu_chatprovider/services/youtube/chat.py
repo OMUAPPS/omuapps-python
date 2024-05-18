@@ -13,8 +13,8 @@ import bs4
 from iwashi.service import Youtube
 from loguru import logger
 from omu.helper import map_optional
-from omuchat import Chat
-from omuchat.model import (
+from omu_chat import Chat
+from omu_chat.model import (
     MODERATOR,
     OWNER,
     VERIFIED,
@@ -29,7 +29,7 @@ from omuchat.model import (
     content,
 )
 
-from omuchatprovider.helper import traverse
+from omu_chatprovider.helper import traverse
 
 from ...errors import ProviderError
 from ...tasks import Tasks

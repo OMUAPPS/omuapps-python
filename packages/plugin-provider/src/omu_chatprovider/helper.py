@@ -7,7 +7,7 @@ from collections.abc import Callable, Coroutine
 
 import aiohttp
 from loguru import logger
-from omuchat import Provider
+from omu_chat import Provider
 
 HTTP_REGEX = r"(https?://)?(www\.)?"
 URL_NORMALIZE_REGEX = (
@@ -21,7 +21,7 @@ URL_NORMALIZE_REGEX = (
 def get_session(provider: Provider) -> aiohttp.ClientSession:
     user_agent = json.dumps(
         [
-            "OmuChat",
+            "omu_chatprovider",
             {
                 "id": provider.id.key(),
                 "version": provider.version,

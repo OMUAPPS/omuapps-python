@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from omu import App, Identifier, Omu
-from omuchat import Chat, content, model
+from omu_chat import Chat, content, model
 
-IDENTIFIER = Identifier("cc.omuchat", "plugin-nyanya")
+IDENTIFIER = Identifier("com.omuapps", "plugin-nyanya")
 APP = App(
     IDENTIFIER,
     version="0.1.0",

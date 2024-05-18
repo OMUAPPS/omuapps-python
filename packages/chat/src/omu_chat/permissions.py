@@ -1,4 +1,4 @@
-from omuchat.const import IDENTIFIER
+from omu_chat.const import IDENTIFIER
 
 CHAT_PERMISSION_ID = IDENTIFIER
 CHAT_READ_PERMISSION_ID = CHAT_PERMISSION_ID / "read"

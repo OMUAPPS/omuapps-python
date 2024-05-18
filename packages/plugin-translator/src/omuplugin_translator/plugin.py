@@ -5,10 +5,10 @@ from typing import TypedDict
 from edgetrans import EdgeTranslator, Language, Translator
 from loguru import logger
 from omu import App, Identifier, Omu
-from omuchat import Chat, model
-from omuchat.model.content import Component, Root, System, Text
+from omu_chat import Chat, model
+from omu_chat.model.content import Component, Root, System, Text
 
-IDENTIFIER = Identifier("cc.omuchat", "translator", "plugin")
+IDENTIFIER = Identifier("com.omuapps", "translator", "plugin")
 APP = App(
     IDENTIFIER,
     version="0.1.0",

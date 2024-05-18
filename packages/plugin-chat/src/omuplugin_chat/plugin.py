@@ -3,7 +3,7 @@ import re
 import iwashi
 from omu import Address, App, Omu
 from omu.extension.permission import PermissionType
-from omuchat.chat import (
+from omu_chat.chat import (
     AUTHOR_TABLE,
     CHANNEL_TABLE,
     CREATE_CHANNEL_TREE_ENDPOINT,
@@ -12,8 +12,8 @@ from omuchat.chat import (
     PROVIDER_TABLE,
     ROOM_TABLE,
 )
-from omuchat.model.channel import Channel
-from omuchat.permissions import (
+from omu_chat.model.channel import Channel
+from omu_chat.permissions import (
     CHAT_CHANNEL_TREE_PERMISSION_ID,
     CHAT_PERMISSION_ID,
     CHAT_READ_PERMISSION_ID,
