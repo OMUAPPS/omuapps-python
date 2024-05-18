@@ -1,8 +1,6 @@
-from omu.omu import Omu
-from omuchat.chat import Chat
-from omuchat.model.channel import Channel
-from omuchat.model.provider import Provider
-from omuchat.model.room import Room
+from omu import Omu
+from omuchat import Chat
+from omuchat.model import Channel, Provider, Room
 
 from omuchatprovider.helper import get_session
 from omuchatprovider.services import FetchedRoom, ProviderService

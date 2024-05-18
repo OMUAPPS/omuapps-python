@@ -7,10 +7,8 @@ from typing import TypedDict
 
 from aiohttp import web
 from loguru import logger
-from omu.app import App
-from omu.omu import Omu
-from omuchat import events, model
-from omuchat.chat import Chat
+from omu import App, Omu
+from omuchat import Chat, events, model
 from omuchat.model import content
 
 from .types import Badge, Comment, CommentData, CommentServiceData

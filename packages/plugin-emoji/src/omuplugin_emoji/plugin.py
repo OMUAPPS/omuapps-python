@@ -4,15 +4,12 @@ from dataclasses import dataclass
 from typing import Literal, TypedDict
 
 from loguru import logger
-from omu.app import App
-from omu.extension.table.table import TableType
-from omu.identifier import Identifier
+from omu import App, Identifier, Omu
+from omu.extension.table import TableType
 from omu.interface.keyable import Keyable
 from omu.model import Model
-from omu.omu import Omu
-from omuchat.chat import Chat
-from omuchat.model import content
-from omuchat.model.message import Message
+from omuchat import Chat
+from omuchat.model import Message, content
 
 IDENTIFIER = Identifier("cc.omuchat", "emoji", "plugin")
 APP = App(

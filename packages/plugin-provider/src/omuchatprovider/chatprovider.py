@@ -2,11 +2,8 @@ import asyncio
 import time
 
 from loguru import logger
-from omu.app import App
-from omu.identifier import Identifier
-from omu.omu import Omu
-from omuchat import Channel, Message, Room, events
-from omuchat.chat import Chat
+from omu import App, Identifier, Omu
+from omuchat import Channel, Chat, Message, Room, events
 
 from omuchatprovider.errors import ProviderError
 

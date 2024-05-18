@@ -7,7 +7,7 @@ from typing import Any
 
 import aiohttp
 import bs4
-from omu.omu import Omu
+from omu import Omu
 
 from omuchatprovider.errors import ProviderError
 from omuchatprovider.helper import assert_none

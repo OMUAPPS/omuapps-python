@@ -4,11 +4,8 @@ from typing import TypedDict
 
 from edgetrans import EdgeTranslator, Language, Translator
 from loguru import logger
-from omu import Omu
-from omu.app import App
-from omu.identifier import Identifier
-from omuchat import model
-from omuchat.chat import Chat
+from omu import App, Identifier, Omu
+from omuchat import Chat, model
 from omuchat.model.content import Component, Root, System, Text
 
 IDENTIFIER = Identifier("cc.omuchat", "translator", "plugin")
