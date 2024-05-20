@@ -10,6 +10,8 @@ from typing import (
     TypedDict,
 )
 
+from omu.identifier import Identifier
+
 type Primitive = dict[str | int, Primitive] | list | str | int | float | bool | None
 
 
@@ -197,6 +199,31 @@ class Image(Component[Literal["image"], ImageData]):
         return cls(url, id, name)
 
 
+class AssetData(TypedDict):
+    id: str
+
+
+class Asset(Component[Literal["asset"], AssetData]):
+    def __init__(self, id: Identifier):
+        self.id = id
+
+    @classmethod
+    def type(cls):
+        return "asset"
+
+    @staticmethod
+    def from_json(json: AssetData) -> Asset:
+        return Asset(Identifier.from_key(json["id"]))
+
+    def to_json(self) -> AssetData:
+        return {
+            "id": self.id.key(),
+        }
+
+    def copy(self) -> Asset:
+        return Asset(self.id)
+
+
 class LinkData(TypedDict):
     url: str
     children: list[ComponentJson]
@@ -299,5 +326,5 @@ class Log(Component[Literal["log"], LogData]):
         return Log(self.level, self.message)
 
 
-for component_type in {Root, Text, Image, Link, System, Log}:
+for component_type in {Root, Text, Image, Asset, Link, System, Log}:
     register(component_type)
