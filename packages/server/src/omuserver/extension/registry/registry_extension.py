@@ -91,6 +91,7 @@ class RegistryExtension:
             lambda permissions: [permissions.all, permissions.write],
         )
         await registry.store(packet.value)
+        await registry.notify(session)
 
     async def handle_get(self, session: Session, id: Identifier) -> RegistryPacket:
         registry = await self.get(id)

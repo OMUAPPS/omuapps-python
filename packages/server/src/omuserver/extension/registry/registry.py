@@ -38,10 +38,11 @@ class ServerRegistry:
             self._path.unlink(missing_ok=True)
         else:
             self._path.write_bytes(value)
-        await self._notify()
 
-    async def _notify(self) -> None:
+    async def notify(self, session: Session) -> None:
         for listener, _ in self._listeners.values():
+            if listener == session:
+                continue
             if listener.closed:
                 raise Exception(f"Session {listener.app=} closed")
             await listener.send(
