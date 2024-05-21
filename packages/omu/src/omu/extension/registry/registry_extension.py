@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from omu.client import Client
-from omu.event_emitter import Unlisten
+from omu.event_emitter import EventEmitter, Unlisten
 from omu.extension import Extension, ExtensionType
 from omu.extension.endpoint import EndpointType
 from omu.helper import Coro
@@ -85,7 +87,7 @@ class RegistryImpl[T](Registry[T]):
         self.client = client
         self.type = registry_type
         self._value = registry_type.default_value
-        self.listeners: list[Coro[[T], None]] = []
+        self.event_emitter: EventEmitter[T] = EventEmitter()
         self.listening = False
         client.network.add_packet_handler(REGISTRY_UPDATE_PACKET, self._handle_update)
         client.network.add_task(self._on_ready_task)
@@ -105,18 +107,23 @@ class RegistryImpl[T](Registry[T]):
                 f"Failed to deserialize registry value for identifier {self.type.id}"
             ) from e
 
+    async def set(self, value: T) -> None:
+        packet = RegistryPacket(
+            id=self.type.id,
+            value=self.type.serializer.serialize(value),
+        )
+        await self.client.send(
+            REGISTRY_UPDATE_PACKET,
+            packet,
+        )
+        await self.event_emitter.emit(value)
+
     async def update(self, handler: Coro[[T], T]) -> None:
         value = await self.get()
         new_value = await handler(value)
-        await self.client.send(
-            REGISTRY_UPDATE_PACKET,
-            RegistryPacket(
-                id=self.type.id,
-                value=self.type.serializer.serialize(new_value),
-            ),
-        )
+        await self.set(new_value)
 
-    def listen(self, handler: Coro[[T], None]) -> Unlisten:
+    def listen(self, handler: Coro[[T], None] | Callable[[T], None]) -> Unlisten:
         if not self.listening:
 
             async def on_ready():
@@ -125,8 +132,7 @@ class RegistryImpl[T](Registry[T]):
             self.client.when_ready(on_ready)
             self.listening = True
 
-        self.listeners.append(handler)
-        return lambda: self.listeners.remove(handler)
+        return self.event_emitter.listen(handler)
 
     async def _handle_update(self, event: RegistryPacket) -> None:
         if event.id != self.type.id:
@@ -135,11 +141,9 @@ class RegistryImpl[T](Registry[T]):
             try:
                 self._value = self.type.serializer.deserialize(event.value)
             except SerializeError as e:
-                raise SerializeError(
-                    f"Failed to deserialize registry value for identifier {self.type.id}"
-                ) from e
-        for listener in self.listeners:
-            await listener(self.value)
+                msg = f"Failed to deserialize registry value for id {self.type.id}"
+                raise SerializeError(msg) from e
+        await self.event_emitter.emit(self._value)
 
     async def _on_ready_task(self) -> None:
         if not self.type.id.is_subpath_of(self.client.app.id):
