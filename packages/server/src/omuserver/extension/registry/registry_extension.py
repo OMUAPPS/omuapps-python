@@ -100,7 +100,7 @@ class RegistryExtension:
             session,
             lambda permissions: [permissions.all, permissions.read],
         )
-        return RegistryPacket(id, registry.data)
+        return RegistryPacket(id, registry.value)
 
     async def get(self, id: Identifier) -> ServerRegistry:
         registry = self.registries.get(id)

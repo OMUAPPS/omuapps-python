@@ -1,3 +1,5 @@
+import asyncio
+
 from omu import Identifier
 from omu.event_emitter import Unlisten
 from omu.extension.registry.packets import RegistryPermissions
@@ -25,30 +27,44 @@ class ServerRegistry:
             "registry"
         ) / id.get_sanitized_path().with_suffix(".json")
         self._changed = False
-        self.data: bytes | None = None
+        self.value: bytes | None = None
+        self.save_task: asyncio.Task | None = None
 
     async def load(self):
+        if self._changed:
+            raise Exception("Registry already loaded")
         if self._path.exists():
-            self.data = self._path.read_bytes()
+            self.value = self._path.read_bytes()
 
     async def store(self, value: bytes | None) -> None:
-        self.data = value
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        if value is None:
-            self._path.unlink(missing_ok=True)
-        else:
-            self._path.write_bytes(value)
+        self.value = value
+        self._changed = True
+        if self.save_task is None:
+            self.save_task = asyncio.create_task(self._save())
+
+    async def _save(self) -> None:
+        while self._changed:
+            if self.value is None:
+                self._path.unlink(missing_ok=True)
+            else:
+                self._path.parent.mkdir(parents=True, exist_ok=True)
+                self._path.write_bytes(self.value)
+            self._changed = False
+            await asyncio.sleep(1)
+        self.save_task = None
 
     async def notify(self, session: Session) -> None:
-        for listener, _ in self._listeners.values():
-            if listener == session:
-                continue
-            if listener.closed:
-                raise Exception(f"Session {listener.app=} closed")
-            await listener.send(
-                REGISTRY_UPDATE_PACKET,
-                RegistryPacket(id=self.id, value=self.data),
-            )
+        async with asyncio.TaskGroup() as tg:
+            for listener, _ in self._listeners.values():
+                if listener == session:
+                    continue
+                if listener.closed:
+                    raise Exception(f"Session {listener.app=} closed")
+                send = listener.send(
+                    REGISTRY_UPDATE_PACKET,
+                    RegistryPacket(id=self.id, value=self.value),
+                )
+                tg.create_task(send)
 
     async def attach_session(self, session: Session) -> None:
         if session.app.id in self._listeners:
@@ -57,7 +73,7 @@ class ServerRegistry:
         self._listeners[session.app.id] = session, unlisten
         await session.send(
             REGISTRY_UPDATE_PACKET,
-            RegistryPacket(id=self.id, value=self.data),
+            RegistryPacket(id=self.id, value=self.value),
         )
 
     async def detach_session(self, session: Session) -> None:
@@ -79,9 +95,9 @@ class Registry[T]:
         self._serializer = serializer
 
     async def get(self) -> T:
-        if self._registry.data is None:
+        if self._registry.value is None:
             return self._default_value
-        return self._serializer.deserialize(self._registry.data)
+        return self._serializer.deserialize(self._registry.value)
 
     async def set(self, value: T) -> None:
         await self._registry.store(self._serializer.serialize(value))
