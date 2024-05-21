@@ -99,8 +99,7 @@ class Network:
         self._sessions[session.app.id] = session
         session.event.disconnected += self.handle_disconnection
         await self._event.connected.emit(session)
-        listen_task = self._server.loop.create_task(session.listen())
-        await listen_task
+        await session.listen()
 
     def is_connected(self, app: App) -> bool:
         return app.id in self._sessions
