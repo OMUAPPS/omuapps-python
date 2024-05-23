@@ -21,9 +21,11 @@ from omu_chat.permissions import (
     CHAT_WRITE_PERMISSION_ID,
 )
 
+from .version import VERSION
+
 app = App(
-    IDENTIFIER,
-    version="0.1.0",
+    id=IDENTIFIER,
+    version=VERSION,
 )
 address = Address("127.0.0.1", 26423)
 client = Omu(app, address=address)

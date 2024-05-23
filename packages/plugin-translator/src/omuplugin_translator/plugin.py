@@ -8,10 +8,12 @@ from omu import App, Identifier, Omu
 from omu_chat import Chat, model
 from omu_chat.model.content import Component, Root, System, Text
 
+from .version import VERSION
+
 IDENTIFIER = Identifier("com.omuapps", "translator", "plugin")
 APP = App(
-    IDENTIFIER,
-    version="0.1.0",
+    id=IDENTIFIER,
+    version=VERSION,
 )
 omu = Omu(APP)
 chat = Chat(omu)

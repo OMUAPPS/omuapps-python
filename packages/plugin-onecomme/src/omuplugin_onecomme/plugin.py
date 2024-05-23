@@ -12,10 +12,11 @@ from omu_chat import Chat, events, model
 from omu_chat.model import content
 
 from .types import Badge, Comment, CommentData, CommentServiceData
+from .version import VERSION
 
 APP = App(
-    "com.omuapps:onecomme/plugin",
-    version="0.1.0",
+    id="com.omuapps:onecomme/plugin",
+    version=VERSION,
 )
 client = Omu(APP)
 chat = Chat(client)
