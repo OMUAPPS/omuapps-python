@@ -5,6 +5,7 @@ from .gift import Gift
 from .message import Message
 from .paid import Paid
 from .provider import Provider
+from .reaction import Reaction
 from .role import MODERATOR, OWNER, VERIFIED, Role
 from .room import Room, RoomMetadata
 
@@ -16,6 +17,7 @@ __all__ = [
     "Message",
     "Paid",
     "Provider",
+    "Reaction",
     "Role",
     "MODERATOR",
     "OWNER",

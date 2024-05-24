@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
+from typing import Any
 
 from omu.bytebuffer import ByteReader, ByteWriter, Flags
 from omu.event_emitter import Unlisten
@@ -49,11 +50,12 @@ class SignalType[T]:
         cls,
         identifier: Identifier,
         name: str,
+        serializer: Serializable[T, Any] | None = None,
         permissions: SignalPermissions | None = None,
     ):
         return cls(
             id=identifier / name,
-            serializer=Serializer.json(),
+            serializer=Serializer.of(serializer or Serializer.noop()).to_json(),
             permissions=permissions or SignalPermissions(),
         )
 

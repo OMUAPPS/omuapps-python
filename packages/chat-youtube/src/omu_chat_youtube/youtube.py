@@ -7,8 +7,6 @@ from omu_chatprovider.service import FetchedRoom, ProviderService
 from .chat import YoutubeChat
 from .const import (
     PROVIDER,
-    REACTION_PERMISSION_TYPE,
-    REACTION_SIGNAL_TYPE,
     YOUTUBE_IDENTIFIER,
 )
 from .youtubeapi import YoutubeAPI
@@ -20,8 +18,6 @@ class YoutubeChatService(ProviderService):
         self.chat = chat
         self.session = get_session(PROVIDER)
         self.extractor = YoutubeAPI(omu, self.session)
-        self.reaction_signal = omu.signal.get(REACTION_SIGNAL_TYPE)
-        omu.permissions.register(REACTION_PERMISSION_TYPE)
 
     @property
     def provider(self) -> Provider:

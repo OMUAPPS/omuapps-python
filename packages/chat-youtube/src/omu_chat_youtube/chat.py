@@ -28,6 +28,7 @@ from omu_chat.model import (
     RoomMetadata,
     content,
 )
+from omu_chat.model.reaction import Reaction
 from omu_chatprovider.errors import ProviderError
 from omu_chatprovider.helper import traverse
 from omu_chatprovider.service import ChatService
@@ -497,12 +498,11 @@ class YoutubeChat(ChatService):
                 )
         if not reaction_counts:
             return
-        await self.youtube.reaction_signal.notify(
-            {
-                "room_id": self._room.key(),
-                "reactions": dict(reaction_counts),
-            },
+        reaction = Reaction(
+            room_id=self._room.id,
+            reactions=reaction_counts,
         )
+        await self.chat.reaction_signal.notify(reaction)
 
     def _parse_author(self, message: AuthorInfo, id: str | None = None) -> Author:
         name = (

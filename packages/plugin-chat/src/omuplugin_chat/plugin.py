@@ -16,6 +16,7 @@ from omu_chat.model.channel import Channel
 from omu_chat.permissions import (
     CHAT_CHANNEL_TREE_PERMISSION_ID,
     CHAT_PERMISSION_ID,
+    CHAT_REACTION_PERMISSION_ID,
     CHAT_READ_PERMISSION_ID,
     CHAT_SEND_PERMISSION_ID,
     CHAT_WRITE_PERMISSION_ID,
@@ -101,7 +102,22 @@ client.permissions.register(
             },
         },
     ),
+    PermissionType(
+        id=CHAT_REACTION_PERMISSION_ID,
+        metadata={
+            "level": "low",
+            "name": {
+                "en": "Reaction",
+                "ja": "リアクション",
+            },
+            "note": {
+                "en": "Permission to get reactions",
+                "ja": "リアクションを取得する権限",
+            },
+        },
+    ),
 )
+
 
 messages = client.tables.get(MESSAGE_TABLE)
 messages.set_config({"cache_size": 1000})
