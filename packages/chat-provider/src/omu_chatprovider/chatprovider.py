@@ -5,9 +5,8 @@ from loguru import logger
 from omu import App, Identifier, Omu
 from omu_chat import Channel, Chat, Message, Room, events
 
-from omu_chatprovider.errors import ProviderError
-
-from .services import ChatService, ProviderService, get_services
+from .errors import ProviderError
+from .service import ChatService, ProviderService, retrieve_services
 from .version import VERSION
 
 BASE_PROVIDER_IDENTIFIER = Identifier("com.omuapps", "chatprovider")
@@ -23,7 +22,7 @@ chat = Chat(omu)
 services: dict[Identifier, ProviderService] = {}
 chat_services: dict[Identifier, ChatService] = {}
 
-for service_class in get_services():
+for service_class in retrieve_services():
     service = service_class(omu, chat)
     services[service.provider.id] = service
 

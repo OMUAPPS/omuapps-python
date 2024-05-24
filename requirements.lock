@@ -16,9 +16,11 @@
     # via omuplugin-obssync
     # via omuplugin-onecomme
     # via omuplugin-translator
+-e file:packages/chat-provider
+    # via omu-chat-youtube
+-e file:packages/chat-youtube
 -e file:packages/omu
     # via omu-chat
-    # via omuplugin-archive
     # via omuserver
 -e file:packages/plugin-archive
 -e file:packages/plugin-chat
@@ -26,7 +28,6 @@
 -e file:packages/plugin-nyanya
 -e file:packages/plugin-obssync
 -e file:packages/plugin-onecomme
--e file:packages/plugin-provider
 -e file:packages/plugin-translator
 -e file:packages/server
 aiohttp==3.9.5
@@ -72,6 +73,7 @@ loguru==0.7.2
     # via iwashi
     # via omu
     # via omu-chat
+    # via omu-chat-youtube
     # via omu-chatprovider
     # via omuplugin-archive
     # via omuplugin-chat

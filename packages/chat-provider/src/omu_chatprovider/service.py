@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
+from importlib import metadata
 
 from omu import Omu
 from omu.helper import Coro
-from omu_chat import Channel, Provider, Room
+from omu_chat import Channel, Chat, Provider, Room
 
 type ChatServiceFactory = Coro[[], ChatService]
 
@@ -18,7 +19,7 @@ class FetchedRoom:
 
 class ProviderService(abc.ABC):
     @abc.abstractmethod
-    def __init__(self, omu: Omu): ...
+    def __init__(self, omu: Omu, chat: Chat): ...
 
     @property
     @abc.abstractmethod
@@ -45,3 +46,25 @@ class ChatService(abc.ABC):
 
     @abc.abstractmethod
     async def stop(self): ...
+
+
+def retrieve_services():
+    entry_points = metadata.entry_points(group="omu_chatprovider.services")
+
+    services: list[type[ProviderService]] = []
+    for entry_point in entry_points:
+        service = entry_point.load()
+        assert issubclass(
+            service, ProviderService
+        ), f"{service} is not a ProviderService"
+        services.append(service)
+
+    return services
+
+
+__all__ = [
+    "ChatService",
+    "FetchedRoom",
+    "ProviderService",
+    "retrieve_services",
+]

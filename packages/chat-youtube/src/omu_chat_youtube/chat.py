@@ -28,12 +28,11 @@ from omu_chat.model import (
     RoomMetadata,
     content,
 )
-
+from omu_chatprovider.errors import ProviderError
 from omu_chatprovider.helper import traverse
+from omu_chatprovider.service import ChatService
+from omu_chatprovider.tasks import Tasks
 
-from ...errors import ProviderError
-from ...tasks import Tasks
-from .. import ChatService
 from . import types
 from .const import (
     YOUTUBE_URL,
@@ -56,12 +55,12 @@ from .types.runs import Runs
 from .youtubeapi import YoutubeAPI, YoutubePage
 
 if TYPE_CHECKING:
-    from .youtube import YoutubeService
+    from .youtube import YoutubeChatService
 
 YOUTUBE_VISITOR = Youtube()
 
 
-class YoutubeChat:
+class YoutubeChatAPI:
     def __init__(
         self,
         video_id: str,
@@ -218,13 +217,13 @@ class ChatData:
     mutations: Mutations
 
 
-class YoutubeChatService(ChatService):
+class YoutubeChat(ChatService):
     def __init__(
         self,
-        youtube_service: YoutubeService,
+        youtube_service: YoutubeChatService,
         chat: Chat,
         room: Room,
-        youtube_chat: YoutubeChat,
+        youtube_chat: YoutubeChatAPI,
     ):
         self.youtube = youtube_service
         self.chat = chat
@@ -245,13 +244,13 @@ class YoutubeChatService(ChatService):
     @classmethod
     async def create(
         cls,
-        youtube_service: YoutubeService,
+        youtube_service: YoutubeChatService,
         chat: Chat,
         room: Room,
     ):
         await chat.rooms.update(room)
         video_id = room.id.path[-1]
-        youtube_chat = await YoutubeChat.from_video_id(
+        youtube_chat = await YoutubeChatAPI.from_video_id(
             youtube_service.extractor,
             video_id,
         )

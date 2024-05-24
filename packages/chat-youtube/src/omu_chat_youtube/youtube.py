@@ -1,11 +1,10 @@
 from omu import Omu
 from omu_chat import Chat
 from omu_chat.model import Channel, Provider, Room
-
 from omu_chatprovider.helper import get_session
-from omu_chatprovider.services import FetchedRoom, ProviderService
+from omu_chatprovider.service import FetchedRoom, ProviderService
 
-from .chat import YoutubeChatService
+from .chat import YoutubeChat
 from .const import (
     PROVIDER,
     REACTION_PERMISSION_TYPE,
@@ -15,7 +14,7 @@ from .const import (
 from .youtubeapi import YoutubeAPI
 
 
-class YoutubeService(ProviderService):
+class YoutubeChatService(ProviderService):
     def __init__(self, omu: Omu, chat: Chat):
         self.omu = omu
         self.chat = chat
@@ -41,7 +40,7 @@ class YoutubeService(ProviderService):
             )
 
             def create(room=room):
-                return YoutubeChatService.create(self, self.chat, room)
+                return YoutubeChat.create(self, self.chat, room)
 
             rooms.append(
                 FetchedRoom(

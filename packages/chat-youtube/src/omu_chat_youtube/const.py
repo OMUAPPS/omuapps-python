@@ -3,7 +3,6 @@ from typing import TypedDict
 from omu.extension.permission import PermissionType
 from omu.extension.signal import SignalPermissions, SignalType
 from omu_chat.model import Provider
-
 from omu_chatprovider.chatprovider import BASE_PROVIDER_IDENTIFIER
 from omu_chatprovider.helper import HTTP_REGEX
 

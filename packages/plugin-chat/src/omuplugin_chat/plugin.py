@@ -121,8 +121,6 @@ async def create_channel_tree(url: str) -> list[Channel]:
     services = await providers.fetch_items()
     for result in results.to_list():
         for provider in services.values():
-            if provider.id == "misskey":
-                continue
             if re.search(provider.regex, result.url) is None:
                 continue
             found_channels.append(
