@@ -77,7 +77,7 @@ CREATE_CHANNEL_TREE_ENDPOINT = EndpointType[str, list[Channel]].create_json(
 REACTION_SIGNAL = SignalType[Reaction].create_json(
     IDENTIFIER,
     "reaction",
-    serializer=Serializer.model(Reaction).to_json(),
+    serializer=Serializer.model(Reaction),
     permissions=SignalPermissions(
         all=CHAT_PERMISSION_ID,
         listen=CHAT_READ_PERMISSION_ID,
