@@ -14,4 +14,5 @@ def get_client():
 
 plugin = Plugin(
     get_client,
+    isolated=True,
 )
