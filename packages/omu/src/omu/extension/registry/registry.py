@@ -90,6 +90,9 @@ class Registry[T](abc.ABC):
     async def get(self) -> T: ...
 
     @abc.abstractmethod
+    async def set(self, value: T) -> None: ...
+
+    @abc.abstractmethod
     async def update(self, handler: Coro[[T], T]) -> None: ...
 
     @abc.abstractmethod
