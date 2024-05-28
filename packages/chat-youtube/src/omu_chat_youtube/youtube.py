@@ -32,7 +32,7 @@ class YoutubeChatService(ProviderService):
                 id=YOUTUBE_IDENTIFIER / video_id,
                 connected=False,
                 status="offline",
-                channel_id=channel.key(),
+                channel_id=channel.id,
             )
 
             def create(room=room):

@@ -35,6 +35,10 @@ async def register_services():
 async def update_channel(channel: Channel, service: ProviderService):
     try:
         if not channel.active:
+            for key, chat_service in tuple(chat_services.items()):
+                if chat_service.room.channel_id == channel.id:
+                    await chat_service.stop()
+                    del chat_services[key]
             return
         fetched_rooms = await service.fetch_rooms(channel)
         for item in fetched_rooms:
@@ -112,7 +116,7 @@ async def stop_room(room: Room):
 async def should_remove(room: Room, provider_service: ProviderService):
     if room.channel_id is None:
         return False
-    channel = await chat.channels.get(room.channel_id)
+    channel = await chat.channels.get(room.channel_id.key())
     if channel and not channel.active:
         return True
     return not await provider_service.is_online(room)

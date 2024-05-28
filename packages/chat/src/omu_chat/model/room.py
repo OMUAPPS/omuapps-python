@@ -43,7 +43,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
         connected: bool,
         status: Status,
         metadata: RoomMetadata | None = None,
-        channel_id: str | None = None,
+        channel_id: Identifier | None = None,
         created_at: datetime | None = None,
     ) -> None:
         self.id = id
@@ -62,7 +62,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
             connected=json["connected"],
             status=json["status"],
             metadata=json.get("metadata"),
-            channel_id=json.get("channel_id"),
+            channel_id=map_optional(json.get("channel_id"), Identifier.from_key),
             created_at=map_optional(json.get("created_at"), datetime.fromisoformat),
         )
 
@@ -73,7 +73,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
             connected=self.connected,
             status=self.status,
             metadata=self.metadata,
-            channel_id=self.channel_id,
+            channel_id=map_optional(self.channel_id, Identifier.key),
             created_at=map_optional(self.created_at, datetime.isoformat),
         )
 
