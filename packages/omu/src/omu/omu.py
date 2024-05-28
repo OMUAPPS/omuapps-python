@@ -201,7 +201,7 @@ class Omu(Client):
     def event(self) -> ClientEvents:
         return self._event
 
-    def when_ready(self, coro: Coro[[], None]) -> Unlisten:
+    def on_ready(self, coro: Coro[[], None]) -> Unlisten:
         if self._ready:
             self.loop.create_task(coro())
         return self.event.ready.listen(coro)

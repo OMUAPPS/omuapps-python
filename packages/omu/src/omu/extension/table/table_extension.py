@@ -312,7 +312,7 @@ class TableImpl[T](Table[T]):
             async def on_ready():
                 await self._client.send(TABLE_LISTEN_PACKET, self._id)
 
-            self._client.when_ready(on_ready)
+            self._client.on_ready(on_ready)
             self._listening = True
 
         if listener is not None:
@@ -325,7 +325,7 @@ class TableImpl[T](Table[T]):
             async def listen():
                 await self._client.send(TABLE_PROXY_LISTEN_PACKET, self._id)
 
-            self._client.when_ready(listen)
+            self._client.on_ready(listen)
         self._proxies.append(callback)
         return lambda: self._proxies.remove(callback)
 

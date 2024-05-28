@@ -66,7 +66,7 @@ class LoggerExtension(Extension):
             async def on_ready():
                 await self.client.send(LOGGER_LISTEN_PACKET, id)
 
-            self.client.when_ready(on_ready)
+            self.client.on_ready(on_ready)
 
             self.listeners[id] = set()
         self.listeners[id].add(listener)

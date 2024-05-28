@@ -129,7 +129,7 @@ class RegistryImpl[T](Registry[T]):
             async def on_ready():
                 await self.client.send(REGISTRY_LISTEN_PACKET, self.type.id)
 
-            self.client.when_ready(on_ready)
+            self.client.on_ready(on_ready)
             self.listening = True
 
         return self.event_emitter.listen(handler)
