@@ -335,10 +335,14 @@ class YoutubeChat(ChatService):
             return
 
     async def fetch_author_metadata(self, author: Author) -> AuthorMetadata:
-        author_channel = await YOUTUBE_VISITOR.visit_url(
-            self.youtube.session,
-            f"https://youtube.com/channel/{author.id.path[-1]}",
-        )
+        try:
+            author_channel = await YOUTUBE_VISITOR.visit_url(
+                self.youtube.session,
+                f"https://youtube.com/channel/{author.id.path[-1]}",
+            )
+        except Exception as e:
+            logger.error(f"Could not fetch author metadata: {e}")
+            return {}
         if author_channel is None:
             return {}
         new_metadata: AuthorMetadata = {}
