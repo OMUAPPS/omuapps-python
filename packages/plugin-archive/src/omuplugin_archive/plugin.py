@@ -2,7 +2,6 @@ import asyncio
 import os
 from pathlib import Path
 
-import yt_dlp
 import yt_dlp.version
 from omu import Omu
 from omu_chat import Chat, Room, events
@@ -107,17 +106,33 @@ async def on_room_update(room: Room):
     await archive_table.update(archive)
 
 
+async def refresh_ytdlp_info():
+    @config_registry.update
+    async def update_config(config: ArchiveConfig) -> ArchiveConfig:
+        return {
+            **config,
+            "yt_dlp_info": {
+                "version": yt_dlp.version.__version__,
+                "git_head": yt_dlp.version.RELEASE_GIT_HEAD,
+                "variant": yt_dlp.version.VARIANT,
+                "update_hint": yt_dlp.version.UPDATE_HINT,
+                "channel": yt_dlp.version.CHANNEL,
+                "origin": yt_dlp.version.ORIGIN,
+            },
+        }
+
+    await update_config
+
+
+async def process_pending_archives():
+    archive_records = await archive_table.fetch_items(after=10)
+    for archive in archive_records.values():
+        if archive.status != "pending":
+            continue
+        await start_archive(archive)
+
+
 @omu.on_ready
 async def on_ready():
-    config: ArchiveConfig = {
-        **config_registry.value,
-        "yt_dlp_info": {
-            "version": yt_dlp.version.__version__,
-            "git_head": yt_dlp.version.RELEASE_GIT_HEAD,
-            "variant": yt_dlp.version.VARIANT,
-            "update_hint": yt_dlp.version.UPDATE_HINT,
-            "channel": yt_dlp.version.CHANNEL,
-            "origin": yt_dlp.version.ORIGIN,
-        },
-    }
-    await config_registry.set(config)
+    await refresh_ytdlp_info()
+    await process_pending_archives()
