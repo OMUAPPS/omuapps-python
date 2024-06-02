@@ -44,7 +44,7 @@ class SessionConnection(abc.ABC):
 class SessionEvents:
     def __init__(self) -> None:
         self.packet = EventEmitter[Session, Packet]()
-        self.disconnected = EventEmitter[Session]()
+        self.disconnected = EventEmitter[Session](catch_errors=True)
         self.ready = EventEmitter[Session]()
 
 
