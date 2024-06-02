@@ -4,6 +4,8 @@ import asyncio
 from collections.abc import Callable
 from typing import Self
 
+from loguru import logger
+
 from omu.helper import Coro
 
 type Unlisten = Callable[[], None]
@@ -14,9 +16,11 @@ class EventEmitter[**P]:
         self,
         on_subscribe: Callable[[], None] | Coro[[], None] | None = None,
         on_empty: Callable[[], None] | Coro[[], None] | None = None,
+        catch_errors: bool = False,
     ) -> None:
         self.on_subscribe = on_subscribe
         self.on_empty = on_empty
+        self.catch_errors = catch_errors
         self._listeners: list[Callable[P, None] | Coro[P, None]] = []
         self.closed = False
 
@@ -53,10 +57,16 @@ class EventEmitter[**P]:
         if self.closed:
             raise ValueError("EventEmitter is closed")
         for listener in tuple(self._listeners):
-            if asyncio.iscoroutinefunction(listener):
-                await listener(*args, **kwargs)
-            else:
-                listener(*args, **kwargs)
+            try:
+                if asyncio.iscoroutinefunction(listener):
+                    await listener(*args, **kwargs)
+                else:
+                    listener(*args, **kwargs)
+            except Exception as e:
+                if self.catch_errors:
+                    logger.opt(exception=e).error("Error in listener")
+                else:
+                    raise e
 
     def __iadd__(self, listener: Callable[P, None] | Coro[P, None]) -> Self:
         self.listen(listener)
