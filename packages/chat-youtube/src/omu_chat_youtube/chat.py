@@ -344,8 +344,8 @@ class YoutubeChat(ChatService):
             await self.chat.authors.add(*added_authors)
             self.author_fetch_queue.extend(added_authors)
         if len(messages) > 0:
-            await self.update_message_ids(messages)
             await self.chat.messages.add(*messages)
+            await self.update_message_ids(messages)
         await self.process_reactions(chat_data)
 
     async def update_message_ids(self, messages):
