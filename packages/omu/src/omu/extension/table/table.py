@@ -54,6 +54,9 @@ class Table[T](abc.ABC):
     ) -> Mapping[str, T]: ...
 
     @abc.abstractmethod
+    async def fetch_range(self, start: str, end: str) -> dict[str, T]: ...
+
+    @abc.abstractmethod
     async def fetch_all(self) -> dict[str, T]: ...
 
     @abc.abstractmethod

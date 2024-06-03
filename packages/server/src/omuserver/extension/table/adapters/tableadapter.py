@@ -40,6 +40,9 @@ class TableAdapter(abc.ABC):
     ) -> dict[str, bytes]: ...
 
     @abc.abstractmethod
+    async def fetch_range(self, start: str, end: str) -> dict[str, bytes]: ...
+
+    @abc.abstractmethod
     async def fetch_all(self) -> dict[str, bytes]: ...
 
     @abc.abstractmethod

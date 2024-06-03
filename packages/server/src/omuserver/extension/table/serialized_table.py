@@ -102,6 +102,10 @@ class SerializedTable[T: Keyable](Table[T]):
         items = await self._table.fetch_items(before, after, cursor)
         return self._parse_items(items)
 
+    async def fetch_range(self, start: str, end: str) -> dict[str, T]:
+        items = await self._table.fetch_range(start, end)
+        return self._parse_items(items)
+
     async def fetch_all(self) -> dict[str, T]:
         items = await self._table.fetch_all()
         return self._parse_items(items)

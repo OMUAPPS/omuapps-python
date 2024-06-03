@@ -10,6 +10,7 @@ from omu.extension.table.packets import (
     SetConfigPacket,
     SetPermissionPacket,
     TableFetchPacket,
+    TableFetchRangePacket,
     TableItemsPacket,
     TableKeysPacket,
     TablePacket,
@@ -18,6 +19,7 @@ from omu.extension.table.packets import (
 from omu.extension.table.table_extension import (
     TABLE_FETCH_ALL_ENDPOINT,
     TABLE_FETCH_ENDPOINT,
+    TABLE_FETCH_RANGE_ENDPOINT,
     TABLE_ITEM_ADD_PACKET,
     TABLE_ITEM_CLEAR_PACKET,
     TABLE_ITEM_GET_ENDPOINT,
@@ -121,6 +123,10 @@ class TableExtension:
             self.handle_item_fetch,
         )
         server.endpoints.bind_endpoint(
+            TABLE_FETCH_RANGE_ENDPOINT,
+            self.handle_item_fetch_range,
+        )
+        server.endpoints.bind_endpoint(
             TABLE_FETCH_ALL_ENDPOINT,
             self.handle_item_fetch_all,
         )
@@ -150,6 +156,16 @@ class TableExtension:
             after=packet.after,
             cursor=packet.cursor,
         )
+        return TableItemsPacket(
+            id=packet.id,
+            items=items,
+        )
+
+    async def handle_item_fetch_range(
+        self, session: Session, packet: TableFetchRangePacket
+    ) -> TableItemsPacket:
+        table = await self.get_table(packet.id)
+        items = await table.fetch_range(packet.start, packet.end)
         return TableItemsPacket(
             id=packet.id,
             items=items,

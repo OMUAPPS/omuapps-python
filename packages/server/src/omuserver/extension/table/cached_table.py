@@ -204,6 +204,11 @@ class CachedTable(ServerTable):
             raise Exception("Table not set")
         return await self._adapter.fetch_items(before, after, cursor)
 
+    async def fetch_range(self, start: str, end: str) -> dict[str, bytes]:
+        if self._adapter is None:
+            raise Exception("Table not set")
+        return await self._adapter.fetch_range(start, end)
+
     async def fetch_all(self) -> dict[str, bytes]:
         if self._adapter is None:
             raise Exception("Table not set")

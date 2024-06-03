@@ -158,6 +158,29 @@ class TableFetchPacket:
 
 
 @dataclass(frozen=True, slots=True)
+class TableFetchRangePacket:
+    id: Identifier
+    start: str
+    end: str
+
+    @classmethod
+    def serialize(cls, item: TableFetchRangePacket) -> bytes:
+        writer = ByteWriter()
+        writer.write_string(item.id.key())
+        writer.write_string(item.start)
+        writer.write_string(item.end)
+        return writer.finish()
+
+    @classmethod
+    def deserialize(cls, item: bytes) -> TableFetchRangePacket:
+        with ByteReader(item) as reader:
+            id = reader.read_string()
+            start = reader.read_string()
+            end = reader.read_string()
+        return TableFetchRangePacket(id=Identifier.from_key(id), start=start, end=end)
+
+
+@dataclass(frozen=True, slots=True)
 class SetConfigPacket:
     id: Identifier
     config: TableConfig

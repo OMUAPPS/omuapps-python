@@ -16,6 +16,7 @@ from .packets import (
     SetConfigPacket,
     SetPermissionPacket,
     TableFetchPacket,
+    TableFetchRangePacket,
     TableItemsPacket,
     TableKeysPacket,
     TablePacket,
@@ -144,6 +145,15 @@ TABLE_FETCH_ENDPOINT = EndpointType[
     response_serializer=TableItemsPacket,
     permission_id=TABLE_PERMISSION_ID,
 )
+TABLE_FETCH_RANGE_ENDPOINT = EndpointType[
+    TableFetchRangePacket, TableItemsPacket
+].create_serialized(
+    TABLE_EXTENSION_TYPE,
+    "fetch_range",
+    request_serializer=TableFetchRangePacket,
+    response_serializer=TableItemsPacket,
+    permission_id=TABLE_PERMISSION_ID,
+)
 TABLE_FETCH_ALL_ENDPOINT = EndpointType[
     TablePacket, TableItemsPacket
 ].create_serialized(
@@ -262,6 +272,15 @@ class TableImpl[T](Table[T]):
         items_response = await self._client.endpoints.call(
             TABLE_FETCH_ENDPOINT,
             TableFetchPacket(id=self._id, before=before, after=after, cursor=cursor),
+        )
+        items = self._parse_items(items_response.items)
+        await self.update_cache(items)
+        return items
+
+    async def fetch_range(self, start: str, end: str) -> dict[str, T]:
+        items_response = await self._client.endpoints.call(
+            TABLE_FETCH_RANGE_ENDPOINT,
+            TableFetchRangePacket(id=self._id, start=start, end=end),
         )
         items = self._parse_items(items_response.items)
         await self.update_cache(items)

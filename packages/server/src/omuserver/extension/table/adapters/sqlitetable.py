@@ -112,6 +112,21 @@ class SqliteTableAdapter(TableAdapter):
             items.update({row[0]: (row[1], (row[2])) for row in _cursor.fetchall()})
         return {key: value for _, (key, value) in sorted(items.items(), reverse=True)}
 
+    async def fetch_range(self, start: str, end: str) -> dict[str, bytes]:
+        _cursor = self._conn.execute(
+            "SELECT id FROM data WHERE key = ? OR key = ? ORDER BY id",
+            (start, end),
+        )
+        rows = _cursor.fetchall()
+        if len(rows) != 2:
+            raise ValueError(f"Range {start} to {end} not found")
+        (start_id,), (end_id,) = rows
+        _cursor = self._conn.execute(
+            "SELECT key, value FROM data WHERE id >= ? AND id <= ?",
+            (start_id, end_id),
+        )
+        return {row[0]: (row[1]) for row in _cursor.fetchall()}
+
     async def fetch_all(self) -> dict[str, bytes]:
         _cursor = self._conn.execute("SELECT key, value FROM data")
         return {row[0]: (row[1]) for row in _cursor.fetchall()}
