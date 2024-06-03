@@ -19,6 +19,8 @@ class RoomMetadata(TypedDict):
     created_at: NotRequired[str]
     started_at: NotRequired[str]
     ended_at: NotRequired[str]
+    first_message_id: NotRequired[str]
+    last_message_id: NotRequired[str]
 
 
 type Status = Literal["online", "reserved", "offline"]
@@ -29,7 +31,7 @@ class RoomJson(TypedDict):
     provider_id: str
     connected: bool
     status: Status
-    metadata: NotRequired[RoomMetadata] | None
+    metadata: RoomMetadata
     channel_id: NotRequired[str] | None
     created_at: NotRequired[str] | None  # ISO 8601 date string
 
@@ -42,7 +44,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
         provider_id: Identifier,
         connected: bool,
         status: Status,
-        metadata: RoomMetadata | None = None,
+        metadata: RoomMetadata,
         channel_id: Identifier | None = None,
         created_at: datetime | None = None,
     ) -> None:
@@ -61,7 +63,7 @@ class Room(Keyable, Model[RoomJson], Hashable):
             provider_id=Identifier.from_key(json["provider_id"]),
             connected=json["connected"],
             status=json["status"],
-            metadata=json.get("metadata"),
+            metadata=json["metadata"],
             channel_id=map_optional(json.get("channel_id"), Identifier.from_key),
             created_at=map_optional(json.get("created_at"), datetime.fromisoformat),
         )

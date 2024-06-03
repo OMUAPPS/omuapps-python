@@ -33,6 +33,9 @@ class YoutubeChatService(ProviderService):
                 connected=False,
                 status="offline",
                 channel_id=channel.id,
+                metadata={
+                    "url": f"https://www.youtube.com/watch?v={video_id}",
+                },
             )
 
             def create(room=room):
