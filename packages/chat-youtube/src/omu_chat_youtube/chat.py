@@ -344,15 +344,15 @@ class YoutubeChat(ChatService):
             await self.chat.authors.add(*added_authors)
             self.author_fetch_queue.extend(added_authors)
         if len(messages) > 0:
-            self.update_message_ids(messages)
+            await self.update_message_ids(messages)
             await self.chat.messages.add(*messages)
         await self.process_reactions(chat_data)
 
-    def update_message_ids(self, messages):
+    async def update_message_ids(self, messages):
         if not self._room.metadata.get("first_message_id"):
             self._room.metadata["first_message_id"] = messages[0].id.key()
-        if not self._room.metadata.get("last_message_id"):
-            self._room.metadata["last_message_id"] = messages[-1].id.key()
+        self._room.metadata["last_message_id"] = messages[-1].id.key()
+        await self.chat.rooms.update(self._room)
 
     async def fetch_authors_task(self):
         try:
