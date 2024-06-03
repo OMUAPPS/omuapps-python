@@ -4,6 +4,7 @@ from .accessibility import Accessibility
 from .image import Image, Thumbnails
 from .runs import Runs
 from .simpletext import SimpleText
+from .tracking import ClickTrackingParams, TrackingParams
 from .urlendpoint import ContextMenuEndpoint
 
 
@@ -83,7 +84,7 @@ class LiveChatTextMessageRenderer(LiveChatRenderer, AuthorInfo):
     contextMenuAccessibility: Accessibility
 
 
-class LiveChatPaidMessageRenderer(LiveChatRenderer, AuthorInfo):
+class LiveChatPaidMessageRenderer(TrackingParams, LiveChatRenderer, AuthorInfo):
     purchaseAmountText: SimpleText
     headerBackgroundColor: int
     headerTextColor: int
@@ -93,18 +94,16 @@ class LiveChatPaidMessageRenderer(LiveChatRenderer, AuthorInfo):
     contextMenuEndpoint: ContextMenuEndpoint
     timestampColor: int
     contextMenuAccessibility: Accessibility
-    trackingParams: str
     textInputBackgroundColor: int
     creatorHeartButton: CreatorHeartButton
     isV2Style: bool
 
 
-class LiveChatPaidStickerRenderer(LiveChatRenderer, AuthorInfo):
+class LiveChatPaidStickerRenderer(TrackingParams, LiveChatRenderer, AuthorInfo):
     sticker: Image
     purchaseAmountText: SimpleText
     contextMenuEndpoint: ContextMenuEndpoint
     contextMenuAccessibility: Accessibility
-    trackingParams: str
 
 
 class LiveChatMembershipItemRenderer(LiveChatRenderer, AuthorInfo):
@@ -262,8 +261,7 @@ class AddLiveChatTickerItemAction(TypedDict):
     item: AddLiveChatTickerItemActionItem
 
 
-class ChatActionsItem(TypedDict):
-    clickTrackingParams: str
+class ChatActionsItem(ClickTrackingParams):
     addChatItemAction: NotRequired[AddChatItemAction]
     removeChatItemByAuthorAction: NotRequired[dict]
     markChatItemAsDeletedAction: NotRequired[MarkChatItemAsDeletedAction]

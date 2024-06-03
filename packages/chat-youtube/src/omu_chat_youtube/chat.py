@@ -78,17 +78,17 @@ class YoutubeChatAPI:
 
     @classmethod
     async def from_video_id(cls, extractor: YoutubeAPI, video_id: str):
-        page = await extractor.get(
+        chat_page = await extractor.get(
             f"{YOUTUBE_URL}/live_chat",
             params={"v": video_id},
         )
-        continuation = cls.extract_chat_continuation(page)
+        continuation = cls.extract_chat_continuation(chat_page)
         if continuation is None:
             raise ProviderError("Could not find continuation")
         return cls(
             video_id,
             extractor,
-            page,
+            chat_page,
             continuation,
         )
 
@@ -257,13 +257,42 @@ class YoutubeChat(ChatService):
             youtube_service.extractor,
             video_id,
         )
-        room.metadata = RoomMetadata(
-            thumbnail=f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
-            url=f"https://www.youtube.com/watch?v={video_id}",
-        )
+        room.metadata |= {
+            "thumbnail": f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg",
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+        }
         instance = cls(youtube_service, chat, room, youtube_chat)
+        await instance.update_times()
         await chat.rooms.add(room)
         return instance
+
+    async def update_times(self):
+        watch_page = await self.youtube.extractor.get(
+            f"{YOUTUBE_URL}/watch",
+            params={"v": self.youtube_chat.video_id},
+        )
+        player_res = watch_page.get_ytinitialplayerresponse()
+        microformat = (
+            traverse(player_res)
+            .map(lambda x: x.get("microformat"))
+            .map(lambda x: x.get("playerMicroformatRenderer"))
+            .get()
+        )
+        broadcast_details = (
+            microformat.get("liveBroadcastDetails") if microformat else None
+        )
+        if microformat and "publishDate" in microformat:
+            created_at = datetime.fromisoformat(microformat["publishDate"])
+            self.room.metadata |= {
+                "created_at": created_at.isoformat(),
+            }
+        if broadcast_details:
+            if "startTimestamp" in broadcast_details:
+                started_at = datetime.fromisoformat(broadcast_details["startTimestamp"])
+                self.room.metadata["started_at"] = started_at.isoformat()
+            if "endTimestamp" in broadcast_details:
+                ended_at = datetime.fromisoformat(broadcast_details["endTimestamp"])
+                self.room.metadata["ended_at"] = ended_at.isoformat()
 
     async def start(self):
         count = 0
@@ -602,6 +631,7 @@ class YoutubeChat(ChatService):
         self._room.connected = False
         if self.last_message_id:
             self._room.metadata["last_message_id"] = self.last_message_id
+        await self.update_times()
         await self.chat.rooms.update(self._room)
 
 

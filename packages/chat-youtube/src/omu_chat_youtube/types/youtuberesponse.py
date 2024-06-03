@@ -1,10 +1,8 @@
-from typing import TypedDict
-
 from .frameworkupdates import FrameworkUpdates
 from .responsecontext import ResponseContext
+from .tracking import TrackingParams
 
 
-class YoutubeResponse(TypedDict):
+class YoutubeResponse(TrackingParams):
     responseContext: ResponseContext
-    trackingParams: str
     frameworkUpdates: FrameworkUpdates

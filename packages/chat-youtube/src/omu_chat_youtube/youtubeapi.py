@@ -48,6 +48,13 @@ class YoutubePage:
             "Could not find initial data",
         )
 
+    def get_ytinitialplayerresponse(self) -> types.ytInitialPlayerResponse:
+        initial_player_response = self.extract_script("var ytInitialPlayerResponse")
+        return assert_none(
+            initial_player_response,
+            "Could not find initial player response",
+        )
+
     @property
     def INNERTUBE_API_KEY(self) -> str:
         return self.get_ytcfg()["INNERTUBE_API_KEY"]

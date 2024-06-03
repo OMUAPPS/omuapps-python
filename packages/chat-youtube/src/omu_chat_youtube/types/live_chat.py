@@ -2,13 +2,13 @@ from typing import TypedDict
 
 from .chatactions import ChatActions
 from .contents import Continuations
+from .tracking import TrackingParams
 from .youtuberesponse import YoutubeResponse
 
 
-class LiveChatContinuation(TypedDict):
+class LiveChatContinuation(TrackingParams):
     continuations: Continuations
     actions: ChatActions
-    trackingParams: str
 
 
 class ContinuationContents(TypedDict):

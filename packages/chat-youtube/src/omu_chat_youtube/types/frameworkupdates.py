@@ -76,6 +76,15 @@ class BooleanEntityPayload(TypedDict):
     booleanEntity: BooleanEntity
 
 
+class OfflineabilityEntity(TypedDict):
+    key: str
+    addToOfflineButtonState: Literal["ADD_TO_OFFLINE_BUTTON_STATE_UNKNOWN"]
+
+
+class OfflineabilityEntityPayload(TypedDict):
+    offlineabilityEntity: OfflineabilityEntity
+
+
 class Mutation(TypedDict):
     entityKey: str
     type: Literal["ENTITY_MUTATION_TYPE_REPLACE"]
@@ -84,6 +93,7 @@ class Mutation(TypedDict):
         | EngagementToolbarStateEntityPayloadPayload
         | EmojiFountainDataEntityPayload
         | BooleanEntityPayload
+        | OfflineabilityEntityPayload
     )
 
 

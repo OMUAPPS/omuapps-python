@@ -1,6 +1,7 @@
 from typing import TypedDict
 
 from .chatactions import ChatActions
+from .tracking import ClickTrackingParams
 
 
 class InvalidationId(TypedDict):
@@ -11,11 +12,10 @@ class InvalidationId(TypedDict):
     protoCreationTimestampMs: str
 
 
-class InvalidationContinuationData(TypedDict):
+class InvalidationContinuationData(ClickTrackingParams):
     invalidationId: InvalidationId
     timeoutMs: int
     continuation: str
-    clickTrackingParams: str
 
 
 class ContinuationItem(TypedDict):

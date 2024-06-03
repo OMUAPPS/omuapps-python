@@ -1,5 +1,7 @@
 from typing import Literal, NotRequired, TypedDict
 
+from .tracking import ClickTrackingParams
+
 
 class UrlEndpoint(TypedDict):
     url: str
@@ -8,7 +10,9 @@ class UrlEndpoint(TypedDict):
 
 
 class WebCommandMetadata(TypedDict):
-    ignoreNavigation: bool
+    ignoreNavigation: NotRequired[bool]
+    sendPost: NotRequired[bool]
+    apiUrl: NotRequired[str]
 
 
 class CommandMetadata(TypedDict):
@@ -24,7 +28,10 @@ class ContextMenuEndpoint(TypedDict):
     liveChatItemContextMenuEndpoint: LiveChatItemContextMenuEndpoint
 
 
-class NavigationEndpoint(TypedDict):
-    clickTrackingParams: str
+class Command(ClickTrackingParams):
+    commandMetadata: NotRequired[CommandMetadata]
+
+
+class NavigationEndpoint(ClickTrackingParams):
     commandMetadata: NotRequired[CommandMetadata]
     urlEndpoint: NotRequired[UrlEndpoint]

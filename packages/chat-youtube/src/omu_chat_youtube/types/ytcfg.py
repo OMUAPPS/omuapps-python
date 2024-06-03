@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TypedDict
 
+from .tracking import ClickTrackingParams
+
 
 class ExperimentFlags(TypedDict):
     H5_enable_full_pacf_logging: bool
@@ -922,15 +924,11 @@ class Request(TypedDict):
     consistencyTokenJars: list[ConsistencytokenjarsItem]
 
 
-class Clicktracking(TypedDict):
-    clickTrackingParams: str
-
-
 class InnertubeContext(TypedDict):
     client: Client
     user: User
     request: Request
-    clickTracking: Clicktracking
+    clickTracking: ClickTrackingParams
 
 
 LatestEcatcherServiceTrackingParams = TypedDict(
