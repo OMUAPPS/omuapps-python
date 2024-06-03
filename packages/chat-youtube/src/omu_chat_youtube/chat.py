@@ -233,8 +233,6 @@ class YoutubeChat(ChatService):
         self.tasks = Tasks(asyncio.get_event_loop())
         self.author_fetch_queue: list[Author] = []
         self._closed = False
-        self.first_message_id: str | None = None
-        self.last_message_id: str | None = None
 
     @property
     def room(self) -> Room:
@@ -346,11 +344,15 @@ class YoutubeChat(ChatService):
             await self.chat.authors.add(*added_authors)
             self.author_fetch_queue.extend(added_authors)
         if len(messages) > 0:
-            if self.first_message_id is None:
-                self.first_message_id = messages[0].id.key()
-            self.last_message_id = messages[-1].id.key()
+            self.update_message_ids(messages)
             await self.chat.messages.add(*messages)
         await self.process_reactions(chat_data)
+
+    def update_message_ids(self, messages):
+        if not self._room.metadata.get("first_message_id"):
+            self._room.metadata["first_message_id"] = messages[0].id.key()
+        if not self._room.metadata.get("last_message_id"):
+            self._room.metadata["last_message_id"] = messages[-1].id.key()
 
     async def fetch_authors_task(self):
         try:
@@ -629,8 +631,6 @@ class YoutubeChat(ChatService):
         self._closed = True
         self.tasks.terminate()
         self._room.connected = False
-        if self.last_message_id:
-            self._room.metadata["last_message_id"] = self.last_message_id
         await self.update_times()
         await self.chat.rooms.update(self._room)
 
