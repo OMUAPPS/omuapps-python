@@ -249,6 +249,9 @@ class YoutubeChat(ChatService):
         chat: Chat,
         room: Room,
     ):
+        exist_room = await chat.rooms.get(room.id.key())
+        if exist_room:
+            room.metadata |= exist_room.metadata
         await chat.rooms.update(room)
         video_id = room.id.path[-1]
         youtube_chat = await YoutubeChatAPI.from_video_id(
