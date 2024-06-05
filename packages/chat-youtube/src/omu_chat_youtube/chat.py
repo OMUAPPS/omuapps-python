@@ -23,12 +23,14 @@ from omu_chat.model import (
     Gift,
     Message,
     Paid,
+    Reaction,
     Role,
     Room,
     RoomMetadata,
+    Vote,
     content,
 )
-from omu_chat.model.reaction import Reaction
+from omu_chat.model.vote import Choice
 from omu_chatprovider.errors import ProviderError
 from omu_chatprovider.helper import traverse
 from omu_chatprovider.service import ChatService
@@ -46,6 +48,7 @@ from .types.chatactions import (
     LiveChatPaidMessageRenderer,
     LiveChatRenderer,
     MarkChatItemAsDeletedAction,
+    UpdateLiveChatPollAction,
 )
 from .types.frameworkupdates import (
     Mutations,
@@ -332,6 +335,8 @@ class YoutubeChat(ChatService):
                 await self.process_deleted_item(action["removeChatItemAction"])
             elif "removeChatItemByAuthorAction" in action:
                 pass
+            elif "updateLiveChatPollAction" in action:
+                await self.process_poll_action(action["updateLiveChatPollAction"])
             else:
                 logger.warning(f"Unknown chat action: {action}")
         if len(authors) > 0:
@@ -513,6 +518,52 @@ class YoutubeChat(ChatService):
         message = await self.chat.messages.get(id.key())
         if message:
             await self.chat.messages.remove(message)
+
+    async def process_poll_action(self, action: UpdateLiveChatPollAction):
+        poll_renderer = action["pollToUpdate"]["pollRenderer"]
+        id = poll_renderer["liveChatPollId"]
+        header = poll_renderer["header"]["pollHeaderRenderer"]
+        title = _parse_runs(header["pollQuestion"])
+        choices = self.parse_poll_choices(poll_renderer)
+        total = self.parse_total_vote_count(header["metadataText"])
+
+        vote = Vote(
+            id=self.room.id / id,
+            room_id=self._room.id,
+            title=str(title),
+            choices=choices,
+            total=total,
+            ended=False,
+        )
+        await self.chat.votes.add(vote)
+
+    def parse_poll_choices(self, poll_renderer):
+        choices: list[Choice] = []
+        for choice in poll_renderer["choices"]:
+            text = _parse_runs(choice["text"])
+            vote_ratio = choice.get("voteRatio", 0.0)
+            choice = Choice(
+                text=str(text),
+                ratio=vote_ratio,
+            )
+            choices.append(choice)
+        return choices
+
+    def parse_total_vote_count(self, run_data: Runs) -> int | None:
+        runs = run_data["runs"]
+        if len(runs) == 0:
+            return
+        last = runs[-1]
+        if "text" not in last:
+            logger.warning(f"Could not find total votes: {run_data}")
+            return
+        total_text = last["text"]
+        total_match = re.search(r"\d+", total_text)
+        if total_match is None:
+            logger.warning(f"Could not parse total votes: {total_text}")
+            return
+        total = int(total_match.group(0))
+        return total
 
     async def process_reactions(self, chat_data: ChatData):
         reaction_counts: Counter[str] = Counter()

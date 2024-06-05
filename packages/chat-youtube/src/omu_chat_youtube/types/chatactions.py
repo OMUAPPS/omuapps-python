@@ -1,4 +1,4 @@
-from typing import Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from .accessibility import Accessibility
 from .image import Image, Thumbnails
@@ -261,11 +261,46 @@ class AddLiveChatTickerItemAction(TypedDict):
     item: AddLiveChatTickerItemActionItem
 
 
+class ChoicesItem(TypedDict):
+    text: Runs
+    selected: bool
+    voteRatio: float
+    votePercentage: SimpleText
+    signinEndpoint: Any
+
+
+class PollHeaderRenderer(TypedDict):
+    pollQuestion: Runs
+    thumbnail: Thumbnails
+    metadataText: Runs
+    liveChatPollType: Literal["LIVE_CHAT_POLL_TYPE_CREATOR"]
+    contextMenuButton: Any
+
+
+class PollRendererHeader(TypedDict):
+    pollHeaderRenderer: PollHeaderRenderer
+
+
+class PollRenderer(TypedDict):
+    choices: list[ChoicesItem]
+    liveChatPollId: str
+    header: PollRendererHeader
+
+
+class PollToUpdate(TypedDict):
+    pollRenderer: PollRenderer
+
+
+class UpdateLiveChatPollAction(TypedDict):
+    pollToUpdate: PollToUpdate
+
+
 class ChatActionsItem(ClickTrackingParams):
     addChatItemAction: NotRequired[AddChatItemAction]
     removeChatItemByAuthorAction: NotRequired[dict]
     markChatItemAsDeletedAction: NotRequired[MarkChatItemAsDeletedAction]
     addLiveChatTickerItemAction: NotRequired[AddLiveChatTickerItemAction]
+    updateLiveChatPollAction: NotRequired[UpdateLiveChatPollAction]
 
 
 type ChatActions = list[ChatActionsItem]
