@@ -59,8 +59,8 @@ class CachedTable(ServerTable):
             raise Exception("Table not set")
         if not self._changed:
             return
-        self._changed = False
         await self._adapter.store()
+        self._changed = False
 
     def attach_session(self, session: Session) -> None:
         if session in self._sessions:
