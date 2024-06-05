@@ -1,4 +1,4 @@
-from omu_chat.model import Author, Channel, Message, Provider, Room
+from omu_chat.model import Author, Channel, Message, Provider, Room, Vote
 
 from .event import TableEvent
 
@@ -9,3 +9,4 @@ class events:
     channel = TableEvent[Channel](lambda chat: chat.channels)
     provider = TableEvent[Provider](lambda chat: chat.providers)
     room = TableEvent[Room](lambda chat: chat.rooms)
+    vote = TableEvent[Vote](lambda chat: chat.votes)
