@@ -305,11 +305,7 @@ class YoutubeChat(ChatService):
                 await self.process_chat_data(chat_data)
                 await asyncio.sleep(1 / 3)
                 if count % 10 == 0:
-                    metadata = RoomMetadata()
-                    if self.room.metadata:
-                        metadata |= self.room.metadata
-                    metadata |= await self.youtube_chat.fetch_metadata()
-                    self.room.metadata = metadata
+                    self.room.metadata |= await self.youtube_chat.fetch_metadata()
                     await self.chat.rooms.update(self.room)
                 count += 1
         finally:
