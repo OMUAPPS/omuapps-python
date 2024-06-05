@@ -8,11 +8,13 @@ from .provider import Provider
 from .reaction import Reaction
 from .role import MODERATOR, OWNER, VERIFIED, Role
 from .room import Room, RoomMetadata
+from .vote import Choice, Vote
 
 __all__ = [
     "Author",
     "AuthorMetadata",
     "Channel",
+    "Choice",
     "Gift",
     "Message",
     "Paid",
@@ -25,4 +27,5 @@ __all__ = [
     "Room",
     "RoomMetadata",
     "content",
+    "Vote",
 ]

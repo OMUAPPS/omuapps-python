@@ -12,6 +12,7 @@ from omu_chat.chat import (
     PROVIDER_TABLE,
     REACTION_SIGNAL,
     ROOM_TABLE,
+    VOTE_TABLE,
 )
 from omu_chat.model.channel import Channel
 from omu_chat.permissions import (
@@ -127,6 +128,7 @@ authors.set_config({"cache_size": 500})
 channels = client.tables.get(CHANNEL_TABLE)
 providers = client.tables.get(PROVIDER_TABLE)
 rooms = client.tables.get(ROOM_TABLE)
+votes = client.tables.get(VOTE_TABLE)
 reaction_signal = client.signal.get(REACTION_SIGNAL)
 
 

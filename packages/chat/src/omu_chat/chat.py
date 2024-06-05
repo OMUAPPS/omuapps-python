@@ -10,7 +10,7 @@ from omu.serializer import Serializer
 
 from omu_chat.const import IDENTIFIER
 from omu_chat.event.event import EventHandler, EventRegistry, EventSource
-from omu_chat.model import Author, Channel, Message, Provider, Reaction, Room
+from omu_chat.model import Author, Channel, Message, Provider, Reaction, Room, Vote
 from omu_chat.permissions import (
     CHAT_CHANNEL_TREE_PERMISSION_ID,
     CHAT_PERMISSION_ID,
@@ -68,6 +68,16 @@ ROOM_TABLE = TableType.create_model(
         write=CHAT_WRITE_PERMISSION_ID,
     ),
 )
+VOTE_TABLE = TableType.create_model(
+    IDENTIFIER,
+    "votes",
+    Vote,
+    permissions=TablePermissions(
+        all=CHAT_PERMISSION_ID,
+        read=CHAT_READ_PERMISSION_ID,
+        write=CHAT_WRITE_PERMISSION_ID,
+    ),
+)
 CREATE_CHANNEL_TREE_ENDPOINT = EndpointType[str, list[Channel]].create_json(
     IDENTIFIER,
     "create_channel_tree",
@@ -98,6 +108,7 @@ class Chat:
         self.channels = omu.tables.get(CHANNEL_TABLE)
         self.providers = omu.tables.get(PROVIDER_TABLE)
         self.rooms = omu.tables.get(ROOM_TABLE)
+        self.votes = omu.tables.get(VOTE_TABLE)
         self.reaction_signal = omu.signal.get(REACTION_SIGNAL)
         self.event_registry = EventRegistry(self)
 

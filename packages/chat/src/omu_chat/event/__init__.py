@@ -1,9 +1,9 @@
-from . import event_types
 from .event import EventHandler, EventRegistry, EventSource
+from .event_types import events
 
 __all__ = [
     "EventHandler",
     "EventRegistry",
-    "event_types",
     "EventSource",
+    "events",
 ]
