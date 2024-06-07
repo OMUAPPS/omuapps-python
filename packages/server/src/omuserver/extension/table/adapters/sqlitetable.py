@@ -26,7 +26,7 @@ class SqliteTableAdapter(TableAdapter):
         return cls(path)
 
     async def store(self) -> None:
-        self._conn.commit()
+        pass
 
     async def load(self) -> None:
         pass
@@ -51,6 +51,7 @@ class SqliteTableAdapter(TableAdapter):
             "INSERT OR REPLACE INTO data (key, value) VALUES (?, ?)",
             (key, value),
         )
+        self._conn.commit()
 
     async def set_all(self, items: Mapping[str, bytes]) -> None:
         query = list(items.items())
@@ -58,15 +59,18 @@ class SqliteTableAdapter(TableAdapter):
             "INSERT OR REPLACE INTO data (key, value) VALUES (?, ?)",
             query,
         )
+        self._conn.commit()
 
     async def remove(self, key: str) -> None:
         self._conn.execute("DELETE FROM data WHERE key = ?", (key,))
+        self._conn.commit()
 
     async def remove_all(self, keys: list[str]) -> None:
         self._conn.execute(
             f"DELETE FROM data WHERE key IN ({','.join('?' for _ in keys)})",
             keys,
         )
+        self._conn.commit()
 
     async def fetch_items(
         self, before: int | None, after: int | None, cursor: str | None
@@ -113,14 +117,20 @@ class SqliteTableAdapter(TableAdapter):
         return {key: value for _, (key, value) in sorted(items.items(), reverse=True)}
 
     async def fetch_range(self, start: str, end: str) -> dict[str, bytes]:
-        _cursor = self._conn.execute(
-            "SELECT id FROM data WHERE key = ? OR key = ? ORDER BY id",
-            (start, end),
-        )
-        rows = _cursor.fetchall()
-        if len(rows) != 2:
-            raise ValueError(f"Range {start} to {end} not found")
-        (start_id,), (end_id,) = rows
+        start_id: int
+        end_id: int
+        _cursor = self._conn.execute("SELECT id FROM data WHERE key = ?", (start,))
+        row = _cursor.fetchone()
+        if row is None:
+            raise ValueError(f"start key {start} not found")
+        start_id = row[0]
+
+        _cursor = self._conn.execute("SELECT id FROM data WHERE key = ?", (end,))
+        row = _cursor.fetchone()
+        if row is None:
+            raise ValueError(f"end key {end} not found")
+        end_id = row[0]
+
         _cursor = self._conn.execute(
             "SELECT key, value FROM data WHERE id >= ? AND id <= ?",
             (start_id, end_id),
@@ -147,6 +157,7 @@ class SqliteTableAdapter(TableAdapter):
 
     async def clear(self) -> None:
         self._conn.execute("DELETE FROM data")
+        self._conn.commit()
 
     async def size(self) -> int:
         _cursor = self._conn.execute("SELECT COUNT(*) FROM data")
