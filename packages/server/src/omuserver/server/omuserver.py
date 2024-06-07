@@ -85,6 +85,7 @@ class OmuServer(Server):
                 headers = {
                     "Cache-Control": "no-cache" if no_cache else "max-age=3600",
                     "Content-Type": resp.content_type,
+                    "Access-Control-Allow-Origin": "*",
                 }
                 resp.raise_for_status()
                 response = web.StreamResponse(
